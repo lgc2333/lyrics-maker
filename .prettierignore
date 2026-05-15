@@ -1,0 +1,10 @@
+.git/
+node_modules/
+dist/
+pnpm-lock.yaml
+
+.agents/
+.claude/
+.superpowers/
+docs/superpowers/
+/skills/

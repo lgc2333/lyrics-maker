@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "context7": {
+      "type": "stdio",
+      // "command": "pnpm",
+      // "args": ["exec", "@upstash/context7-mcp"]
+      "command": "fnm",
+      "args": ["exec", "--using", "default", "pnpm.cmd", "exec", "context7-mcp"]
+    }
+  }
+}
