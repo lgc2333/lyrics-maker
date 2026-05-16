@@ -6,5 +6,5 @@ pnpm-lock.yaml
 .agents/
 .claude/
 .superpowers/
-docs/superpowers/
+/docs/superpowers/plans
 /skills/
