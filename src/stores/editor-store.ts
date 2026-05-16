@@ -117,6 +117,7 @@ export const useEditorStore = defineStore('editor', () => {
   function _ensureAudioTransport(): AudioTransport {
     if (!_audioTransport.value) {
       _audioTransport.value = _audioTransportFactory()
+      _audioTransport.value.setVolume(project.value.audio.musicVolume)
     }
     return _audioTransport.value
   }
@@ -208,7 +209,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ---- Phase 2: TAP BPM ----
 
-  function tapBpm(sourceTime?: number): void {
+  async function tapBpm(sourceTime?: number): Promise<void> {
     const transport = _audioTransport.value
 
     // Determine tap timestamp
@@ -226,7 +227,7 @@ export const useEditorStore = defineStore('editor', () => {
         _currentTime.value,
       )
       transport.seek(activePoint.time)
-      transport.play()
+      await transport.play()
     }
 
     // Feed timestamp to estimator

@@ -6,6 +6,25 @@
 
 Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS v4 + DaisyUI v5
 
+## Phase 2 (Audio + Timing Core)
+
+- Audio import + transport controls (play/pause, seek)
+- Timing points with BPM/time signature/offset
+- TAP BPM (button + `B` key), >8 taps apply to active timing point
+- Metronome synchronized with bar accent and latch tail rule
+- Independent music and SFX volume controls
+
+### Controls
+
+| Key | Action |
+|-----|--------|
+| `Space` | Toggle playback |
+| `B` | TAP BPM |
+| `M` | Toggle metronome |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+S` | Save project |
+
 ## Phase 1 (Infrastructure)
 
 - Command-based undo/redo core for phase-1 actions

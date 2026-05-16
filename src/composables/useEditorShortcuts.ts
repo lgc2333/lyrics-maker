@@ -25,9 +25,7 @@ export function useEditorShortcuts(options: {
     const key = normalizeKeystroke(event)
 
     registry.dispatch(key, (action) => {
-      if (action === 'project.save') {
-        event.preventDefault()
-      }
+      event.preventDefault()
       options.onAction(action)
     })
   }
