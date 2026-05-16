@@ -24,7 +24,9 @@ function createSnapshot<T>(value: T): T {
   return { ...value } as T
 }
 
-export function createCommandHistory<TState>(initialState: TState): CommandHistory<TState> {
+export function createCommandHistory<TState>(
+  initialState: TState,
+): CommandHistory<TState> {
   let state = initialState
   const undoStack: Command<TState>[] = []
   const redoStack: Command<TState>[] = []

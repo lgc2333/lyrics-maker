@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCommandHistory } from './history'
 import type { Command } from './command'
+import { createCommandHistory } from './history'
 
 describe('createCommandHistory', () => {
   it('undo is a no-op on an empty stack', () => {

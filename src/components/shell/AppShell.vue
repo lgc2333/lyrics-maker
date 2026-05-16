@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
+import { useProjectPersistence } from '../../composables/useProjectPersistence'
+import { useEditorStore } from '../../stores/editor-store'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
 import ModePanel from './ModePanel.vue'
 import TransportBar from './TransportBar.vue'
-import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
-import { useProjectPersistence } from '../../composables/useProjectPersistence'
-import { useEditorStore } from '../../stores/editor-store'
 
 const store = useEditorStore()
 const persistence = useProjectPersistence()

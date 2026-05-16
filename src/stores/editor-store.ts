@@ -1,9 +1,10 @@
-import { computed, shallowRef, triggerRef } from 'vue'
 import { defineStore } from 'pinia'
-import { createEmptyProject  } from '../core/domain/project'
-import type {ProjectDocument} from '../core/domain/project';
+import { computed, shallowRef, triggerRef } from 'vue'
+
 import { createCommandHistory } from '../core/commands/history'
 import { createAddLyricLineCommand } from '../core/commands/project-commands'
+import { createEmptyProject } from '../core/domain/project'
+import type { ProjectDocument } from '../core/domain/project'
 import type { SaveResult } from '../platform/persistence/project-file-service'
 
 function makeId(prefix: string) {
@@ -15,7 +16,9 @@ export interface ProjectFileService {
 }
 
 export const useEditorStore = defineStore('editor', () => {
-  const history = shallowRef(createCommandHistory<ProjectDocument>(createEmptyProject()))
+  const history = shallowRef(
+    createCommandHistory<ProjectDocument>(createEmptyProject()),
+  )
   const dirty = shallowRef(false)
   const lastError = shallowRef<string | null>(null)
 
@@ -59,13 +62,23 @@ export const useEditorStore = defineStore('editor', () => {
     if (result.ok) {
       markClean()
       lastError.value = null
-    }
-    else if (result.reason !== 'cancelled') {
+    } else if (result.reason !== 'cancelled') {
       lastError.value = result.reason ?? 'unknown'
     }
 
     return result
   }
 
-  return { project, dirty, canUndo, canRedo, lastError, addLyricLine, undo, redo, markClean, saveProject }
+  return {
+    project,
+    dirty,
+    canUndo,
+    canRedo,
+    lastError,
+    addLyricLine,
+    undo,
+    redo,
+    markClean,
+    saveProject,
+  }
 })

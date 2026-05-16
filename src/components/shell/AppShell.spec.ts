@@ -1,8 +1,9 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import AppShell from './AppShell.vue'
+
 import { useEditorStore } from '../../stores/editor-store'
+import AppShell from './AppShell.vue'
 
 describe('appShell', () => {
   beforeEach(() => {
@@ -23,7 +24,9 @@ describe('appShell', () => {
     store.addLyricLine('test')
     expect(store.project.lyrics).toHaveLength(1)
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }))
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
     expect(store.project.lyrics).toHaveLength(0)
   })
 })

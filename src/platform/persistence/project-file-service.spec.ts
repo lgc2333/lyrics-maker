@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import { createProjectFileService } from './project-file-service'
 
 describe('project file service', () => {
@@ -19,7 +20,9 @@ describe('project file service', () => {
     expect(result.ok).toBe(true)
     expect(showSaveFilePicker).toHaveBeenCalledWith({
       suggestedName: 'lyrics-project.json',
-      types: [{ description: 'Lyrics Project', accept: { 'application/json': ['.json'] } }],
+      types: [
+        { description: 'Lyrics Project', accept: { 'application/json': ['.json'] } },
+      ],
     })
     expect(createWritable).toHaveBeenCalled()
     expect(write).toHaveBeenCalledWith('{"version":1}')

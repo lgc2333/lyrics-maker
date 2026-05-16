@@ -1,5 +1,5 @@
-import type { Command } from './command'
 import type { ProjectDocument } from '../domain/project'
+import type { Command } from './command'
 
 export function createAddLyricLineCommand(payload: {
   id: string

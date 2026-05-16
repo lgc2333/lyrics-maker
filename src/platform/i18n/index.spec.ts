@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { i18n } from './index'
 
 describe('i18n', () => {
