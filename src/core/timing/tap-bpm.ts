@@ -44,7 +44,7 @@ export function createTapBpmEstimator(maxSamples = 128): {
     const avgInterval = totalInterval / (buffer.length - 1)
 
     // BPM = 60 seconds / average interval between taps
-    const bpm = 60 / avgInterval
+    const bpm = Math.round(60 / avgInterval)
 
     return { bpm, sampleCount: buffer.length }
   }
