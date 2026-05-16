@@ -18,7 +18,9 @@ export function createAddLyricLineCommand(payload: {
   }
 }
 
-export function createAddTimingPointCommand(payload: TimingPoint): Command<ProjectDocument> {
+export function createAddTimingPointCommand(
+  payload: TimingPoint,
+): Command<ProjectDocument> {
   return {
     label: 'timing.addPoint',
     do: (state) => ({
@@ -53,9 +55,7 @@ export function createUpdateTimingPointCommand(
       if (!originalPoint) return state
       return {
         ...state,
-        timingPoints: state.timingPoints.map((p) =>
-          p.id === id ? originalPoint! : p,
-        ),
+        timingPoints: state.timingPoints.map((p) => (p.id === id ? originalPoint! : p)),
       }
     },
   }

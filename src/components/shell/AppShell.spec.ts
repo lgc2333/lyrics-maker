@@ -3,10 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MetronomeScheduler } from '../../platform/audio/metronome'
-import {
-  __overrideMetronomeFactory,
-  useEditorStore,
-} from '../../stores/editor-store'
+import { __overrideMetronomeFactory, useEditorStore } from '../../stores/editor-store'
 import AppShell from './AppShell.vue'
 
 /**
@@ -78,9 +75,7 @@ describe('appShell', () => {
     mount(AppShell)
     const store = useEditorStore()
 
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'm', bubbles: true }),
-    )
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
     expect(store.metronomeState).toBe('on')
   })
 })

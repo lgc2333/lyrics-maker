@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { createTapBpmEstimator } from './tap-bpm'
 
 describe('createTapBpmEstimator', () => {

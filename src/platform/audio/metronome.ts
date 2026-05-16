@@ -87,14 +87,12 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
 
       if (enabled) {
         // Normal scheduling: play click at the beat time
-        const audioCtxTime =
-          audioContext.currentTime + (nextBeat.at - currentTime)
+        const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
         scheduleClick(audioCtxTime, nextBeat.isBarStart)
         lastScheduledBeatTime = nextBeat.at
       } else if (latchPending) {
         // Latch: schedule one final click then stop
-        const audioCtxTime =
-          audioContext.currentTime + (nextBeat.at - currentTime)
+        const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
         scheduleClick(audioCtxTime, nextBeat.isBarStart)
         lastScheduledBeatTime = nextBeat.at
         latchPending = false

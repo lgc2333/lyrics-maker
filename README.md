@@ -16,14 +16,14 @@ Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS v4 + DaisyUI v5
 
 ### Controls
 
-| Key | Action |
-|-----|--------|
-| `Space` | Toggle playback |
-| `B` | TAP BPM |
-| `M` | Toggle metronome |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+S` | Save project |
+| Key      | Action           |
+| -------- | ---------------- |
+| `Space`  | Toggle playback  |
+| `B`      | TAP BPM          |
+| `M`      | Toggle metronome |
+| `Ctrl+Z` | Undo             |
+| `Ctrl+Y` | Redo             |
+| `Ctrl+S` | Save project     |
 
 ## Phase 1 (Infrastructure)
 

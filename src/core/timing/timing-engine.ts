@@ -107,10 +107,7 @@ export function getBeatInfoAtTime(
  * When the computed next beat falls at or past a segment boundary (next timing point's start),
  * it returns the next timing point's start time instead.
  */
-export function getNextBeatTime(
-  points: readonly TimingPoint[],
-  time: number,
-): number {
+export function getNextBeatTime(points: readonly TimingPoint[], time: number): number {
   const sorted = sortTimingPoints(points)
 
   if (sorted.length === 0) {

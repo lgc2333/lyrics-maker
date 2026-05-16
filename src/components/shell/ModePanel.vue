@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useEditorStore } from '../../stores/editor-store'
 import { getActiveTimingPoint } from '../../core/timing/timing-engine'
+import { useEditorStore } from '../../stores/editor-store'
 
 const store = useEditorStore()
 
@@ -20,9 +20,7 @@ function onTapBpm() {
     <div class="flex flex-col gap-3">
       <!-- TAP BPM -->
       <div class="flex items-center gap-2">
-        <button class="btn btn-sm btn-primary" @click="onTapBpm">
-          TAP BPM (B)
-        </button>
+        <button class="btn btn-sm btn-primary" @click="onTapBpm">TAP BPM (B)</button>
         <span class="text-sm">BPM: {{ activeBpm() }}</span>
         <span v-if="store.tapSampleCount > 0" class="text-xs opacity-70">
           ({{ store.tapSampleCount }} 次敲击)
@@ -32,7 +30,15 @@ function onTapBpm() {
       <!-- Metronome toggle -->
       <div class="flex items-center gap-2">
         <button class="btn btn-sm" @click="store.toggleMetronome()">
-          节拍器: {{ store.metronomeState === 'on' ? '开' : store.metronomeState === 'latch_pending' ? '收尾中' : '关' }} (M)
+          节拍器:
+          {{
+            store.metronomeState === 'on'
+              ? '开'
+              : store.metronomeState === 'latch_pending'
+                ? '收尾中'
+                : '关'
+          }}
+          (M)
         </button>
       </div>
 
@@ -47,7 +53,11 @@ function onTapBpm() {
           >
             <span class="text-xs opacity-70">{{ point.time.toFixed(1) }}s</span>
             <span>{{ point.bpm }} BPM</span>
-            <span class="text-xs">{{ point.timeSignatureNumerator }}/{{ point.timeSignatureDenominator }}</span>
+            <span class="text-xs"
+              >{{ point.timeSignatureNumerator }}/{{
+                point.timeSignatureDenominator
+              }}</span
+            >
             <button
               class="btn btn-xs btn-ghost"
               @click="store.removeTimingPoint(point.id)"
@@ -58,7 +68,15 @@ function onTapBpm() {
         </ul>
         <button
           class="btn btn-xs mt-1"
-          @click="store.addTimingPoint({ time: store.currentTime, bpm: activeBpm(), timeSignatureNumerator: 4, timeSignatureDenominator: 4, offsetMs: 0 })"
+          @click="
+            store.addTimingPoint({
+              time: store.currentTime,
+              bpm: activeBpm(),
+              timeSignatureNumerator: 4,
+              timeSignatureDenominator: 4,
+              offsetMs: 0,
+            })
+          "
         >
           在此添加 Timing Point
         </button>

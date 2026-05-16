@@ -45,9 +45,7 @@ let _metronomeFactory: () => MetronomeScheduler = () =>
  * Override the AudioTransport factory (for testing).
  * Pass a no-arg function that returns a mock AudioTransport.
  */
-export function __overrideAudioTransportFactory(
-  factory: () => AudioTransport,
-): void {
+export function __overrideAudioTransportFactory(factory: () => AudioTransport): void {
   _audioTransportFactory = factory
 }
 
@@ -55,9 +53,7 @@ export function __overrideAudioTransportFactory(
  * Override the MetronomeScheduler factory (for testing).
  * Pass a no-arg function that returns a mock MetronomeScheduler.
  */
-export function __overrideMetronomeFactory(
-  factory: () => MetronomeScheduler,
-): void {
+export function __overrideMetronomeFactory(factory: () => MetronomeScheduler): void {
   _metronomeFactory = factory
 }
 
@@ -88,9 +84,7 @@ export const useEditorStore = defineStore('editor', () => {
   const canUndo = computed(() => history.value.canUndo)
   const canRedo = computed(() => history.value.canRedo)
 
-  const isPlaying = computed(
-    () => _audioTransport.value?.getIsPlaying() ?? false,
-  )
+  const isPlaying = computed(() => _audioTransport.value?.getIsPlaying() ?? false)
   const currentTime = computed(() => _currentTime.value)
   const activeTimingPointId = computed(() => {
     const points = project.value.timingPoints
@@ -196,10 +190,7 @@ export const useEditorStore = defineStore('editor', () => {
     execute(createAddTimingPointCommand(point))
   }
 
-  function updateTimingPoint(
-    id: string,
-    patch: Partial<TimingPoint>,
-  ): void {
+  function updateTimingPoint(id: string, patch: Partial<TimingPoint>): void {
     execute(createUpdateTimingPointCommand(id, patch))
   }
 
@@ -239,10 +230,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Apply estimated BPM to active timing point via command
     if (estimate) {
-      const activePoint = getActiveTimingPoint(
-        project.value.timingPoints,
-        t,
-      )
+      const activePoint = getActiveTimingPoint(project.value.timingPoints, t)
       updateTimingPoint(activePoint.id, { bpm: estimate.bpm })
     }
   }

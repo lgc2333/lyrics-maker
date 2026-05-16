@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import type { TimingPoint } from '../domain/project'
-import { getActiveTimingPoint, getBeatInfoAtTime, getNextBeatTime } from './timing-engine'
+import {
+  getActiveTimingPoint,
+  getBeatInfoAtTime,
+  getNextBeatTime,
+} from './timing-engine'
 import { sortTimingPoints, validateTimingPoint } from './timing-point'
 
 // Helper to create a TimingPoint with minimal fields
@@ -32,10 +36,7 @@ describe('sortTimingPoints', () => {
   })
 
   it('maintains order for same time', () => {
-    const points: TimingPoint[] = [
-      tp({ id: 'a', time: 10 }),
-      tp({ id: 'b', time: 10 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: 'a', time: 10 }), tp({ id: 'b', time: 10 })]
     const sorted = sortTimingPoints(points)
     expect(sorted.map((p) => p.id)).toEqual(['a', 'b'])
   })
@@ -45,10 +46,7 @@ describe('sortTimingPoints', () => {
   })
 
   it('returns new array, does not mutate input', () => {
-    const points: TimingPoint[] = [
-      tp({ id: '2', time: 20 }),
-      tp({ id: '1', time: 10 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: '2', time: 20 }), tp({ id: '1', time: 10 })]
     const original = [...points]
     sortTimingPoints(points)
     expect(points).toEqual(original)
@@ -268,9 +266,7 @@ describe('getBeatInfoAtTime', () => {
 
   // --- Offset ---
   it('shifts beat grid forward by offset (effective time = time + offsetMs/1000)', () => {
-    const points: TimingPoint[] = [
-      tp({ id: 'tp-1', time: 0, bpm: 120, offsetMs: 50 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: 'tp-1', time: 0, bpm: 120, offsetMs: 50 })]
     // beat duration = 0.5s, offsetMs = 50ms = 0.05s
     // effective_time(0.45) = 0.45 + 0.05 = 0.50 → beat 1
     const info = getBeatInfoAtTime(points, 0.45)
@@ -280,17 +276,13 @@ describe('getBeatInfoAtTime', () => {
 
   // --- Backward projection ---
   it('uses first timing point for times before first point', () => {
-    const points: TimingPoint[] = [
-      tp({ id: 'tp-1', time: 10, bpm: 120 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: 'tp-1', time: 10, bpm: 120 })]
     const info = getBeatInfoAtTime(points, 9.5)
     expect(info.pointId).toBe('tp-1')
   })
 
   it('computes negative beat indices for backward projection', () => {
-    const points: TimingPoint[] = [
-      tp({ id: 'tp-1', time: 10, bpm: 120 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: 'tp-1', time: 10, bpm: 120 })]
     // beat duration = 0.5s
     // effective_time(9.5) = 9.5, elapsed = (9.5 - 10)/0.5 = -1.0
     const info = getBeatInfoAtTime(points, 9.5)
@@ -299,9 +291,7 @@ describe('getBeatInfoAtTime', () => {
   })
 
   it('backward projection preserves bar start detection', () => {
-    const points: TimingPoint[] = [
-      tp({ id: 'tp-1', time: 10, bpm: 120 }),
-    ]
+    const points: TimingPoint[] = [tp({ id: 'tp-1', time: 10, bpm: 120 })]
     // beat 0 = 10.0s, beat -4 = 8.0s (should be bar start)
     expect(getBeatInfoAtTime(points, 8.0).isBarStart).toBe(true)
     expect(getBeatInfoAtTime(points, 8.0).barIndex).toBe(-1)
