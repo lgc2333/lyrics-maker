@@ -372,6 +372,66 @@ describe('editor store (phase 2 - audio transport)', () => {
     store.pausePlayback()
     expect(store.isPlaying).toBe(false)
   })
+
+  it('updates currentTime while playback loop is running', async () => {
+    vi.useFakeTimers()
+
+    let now = 0
+    const mock = createMockAudioTransport()
+    mock.transport.getCurrentTime = vi.fn(() => {
+      now += 0.25
+      return now
+    })
+    __overrideAudioTransportFactory(() => mock.transport)
+
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      setTimeout(() => cb(performance.now()), 0)
+      return 1
+    })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(store.currentTime).toBeGreaterThan(0)
+    vi.useRealTimers()
+  })
+
+  it('adds timing point at progressed currentTime instead of 0', async () => {
+    vi.useFakeTimers()
+    let now = 0
+    const mock = createMockAudioTransport()
+    mock.transport.getCurrentTime = vi.fn(() => {
+      now += 0.5
+      return now
+    })
+    __overrideAudioTransportFactory(() => mock.transport)
+
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      setTimeout(() => cb(performance.now()), 0)
+      return 2
+    })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+    await vi.runOnlyPendingTimersAsync()
+
+    store.addTimingPoint({
+      time: store.currentTime,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+      offsetMs: 0,
+    })
+
+    const inserted = store.project.timingPoints[store.project.timingPoints.length - 1]
+    expect(inserted.time).toBeGreaterThan(0)
+    vi.useRealTimers()
+  })
 })
 
 describe('editor store (phase 2 - TAP BPM)', () => {

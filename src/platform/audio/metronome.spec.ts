@@ -294,4 +294,30 @@ describe('metronome', () => {
       }).not.toThrow()
     })
   })
+
+  // --- Regression: WAV sample loading ---
+  it('loads three wav samples from /assets', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const fakeCtx = {
+      currentTime: 0,
+      destination: {} as AudioDestinationNode,
+      createGain: () => ({ gain: { value: 1 }, connect: vi.fn(), disconnect: vi.fn() }),
+      createBufferSource: () => ({ buffer: null, connect: vi.fn(), start: vi.fn() }),
+      decodeAudioData: vi.fn(async () => ({}) as unknown as AudioBuffer),
+    } as unknown as AudioContext
+
+    createMetronome(fakeCtx)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-tick-osu.wav')
+    expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-tick-downbeat-osu.wav')
+    expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-latch-osu.wav')
+    vi.unstubAllGlobals()
+  })
 })

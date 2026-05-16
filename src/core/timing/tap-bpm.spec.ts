@@ -142,4 +142,14 @@ describe('createTapBpmEstimator', () => {
     // We just verify it doesn't throw
     expect(result).toBeDefined()
   })
+
+  // --- Regression: integer rounding ---
+  it('returns rounded integer bpm after estimate is available', () => {
+    const estimator = createTapBpmEstimator()
+    const taps = [0, 0.49, 0.99, 1.5, 2.01, 2.49, 2.98, 3.49, 3.99, 4.48]
+    let estimate: ReturnType<typeof estimator.push> = null
+    for (const t of taps) estimate = estimator.push(t)
+    expect(estimate).not.toBeNull()
+    expect(Number.isInteger(estimate!.bpm)).toBe(true)
+  })
 })
