@@ -27,8 +27,7 @@ dist-ssr
 .agents/skills
 .claude/
 
-/.superpowers/
 /.worktrees/
-/worktrees/
-/docs/superpowers/plans
+/.superpowers/
+# /docs/superpowers/plans
 /temp/
