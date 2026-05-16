@@ -8,6 +8,19 @@ async function onImportAudio(event: Event) {
   const file = input.files?.[0]
   if (file) await store.importAudioFile(file)
 }
+
+function formatTime(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) return '00:00'
+  const total = Math.floor(sec)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function onSeek(event: Event) {
+  const input = event.target as HTMLInputElement
+  store.seekPlayback(input.valueAsNumber)
+}
 </script>
 
 <template>
@@ -24,6 +37,23 @@ async function onImportAudio(event: Event) {
     <button class="btn btn-sm" @click="store.togglePlayback()">
       {{ store.isPlaying ? '暂停' : '播放' }}
     </button>
+
+    <!-- Playback progress -->
+    <div class="flex items-center gap-2 min-w-[320px]">
+      <span class="text-xs tabular-nums">{{ formatTime(store.currentTime) }}</span>
+      <input
+        data-testid="playback-progress"
+        type="range"
+        min="0"
+        :max="store.duration || 0"
+        step="0.01"
+        :value="store.currentTime"
+        class="range range-xs w-56"
+        :disabled="store.duration <= 0"
+        @input="onSeek"
+      />
+      <span class="text-xs tabular-nums">{{ formatTime(store.duration) }}</span>
+    </div>
 
     <!-- Volume controls -->
     <label class="flex items-center gap-1 text-xs">
