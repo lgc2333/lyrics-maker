@@ -4,7 +4,7 @@ import { createMetronome } from './metronome'
 
 /**
  * Creates a fake AudioContext for testing metronome scheduling logic.
- * Tracks created oscillators and gain nodes for inspection.
+ * Tracks created oscillators, gain nodes, and buffer sources for inspection.
  */
 function createFakeAudioContext() {
   const oscillators: Array<{
@@ -20,6 +20,12 @@ function createFakeAudioContext() {
     gain: { value: number }
     connect: ReturnType<typeof vi.fn>
     disconnect: ReturnType<typeof vi.fn>
+  }> = []
+
+  const sources: Array<{
+    buffer: AudioBuffer | null
+    connect: ReturnType<typeof vi.fn>
+    start: ReturnType<typeof vi.fn>
   }> = []
 
   const ctx = {
@@ -39,6 +45,18 @@ function createFakeAudioContext() {
       return osc
     },
 
+    createBufferSource() {
+      const source = {
+        buffer: null as AudioBuffer | null,
+        connect: vi.fn(),
+        start: vi.fn(),
+      }
+      sources.push(source)
+      return source
+    },
+
+    decodeAudioData: vi.fn(async () => ({}) as unknown as AudioBuffer),
+
     createGain() {
       const gain = {
         gain: { value: 1 },
@@ -53,6 +71,8 @@ function createFakeAudioContext() {
     _oscillators: oscillators,
     /** Access created gain nodes for assertions */
     _gains: gains,
+    /** Access created buffer sources for assertions */
+    _sources: sources,
   }
 
   return ctx
@@ -60,47 +80,72 @@ function createFakeAudioContext() {
 
 describe('metronome', () => {
   let fakeCtx: ReturnType<typeof createFakeAudioContext>
+  let fetchMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    fetchMock = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
     fakeCtx = createFakeAudioContext()
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /**
+   * Flush the microtask queue enough times for all three WAV buffers
+   * to finish loading (fetch -> arrayBuffer -> decodeAudioData).
+   */
+  async function flushMicrotasks() {
+    // Each loadBuffer has 3 async steps, so flush multiple times to be safe
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+
   describe('scheduling', () => {
-    it('schedules accent on bar start and normal clicks otherwise', () => {
+    it('schedules clicks for bar start and normal beats', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       // Schedule accent (bar start) at time 10.5
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
-      const accentOsc = fakeCtx._oscillators[0]
-      expect(accentOsc.frequency.value).toBeGreaterThan(500)
+      expect(fakeCtx._sources.length).toBe(1)
+      expect(fakeCtx._sources[0].start).toHaveBeenCalled()
 
       // Schedule normal click at time 11
       m.syncToTimeline(10.5, { at: 11, isBarStart: false })
-      const normalOsc = fakeCtx._oscillators[1]
-      expect(normalOsc.frequency.value).toBeLessThan(accentOsc.frequency.value)
+      expect(fakeCtx._sources.length).toBe(2)
+      expect(fakeCtx._sources[1].start).toHaveBeenCalled()
     })
 
-    it('schedules clicks at the correct audio context time', () => {
+    it('schedules clicks at the correct audio context time', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       // currentTime = 10, nextBeat.at = 10.5 → scheduled at ctx.currentTime + 0.5 = 10.5
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      const osc = fakeCtx._oscillators[0]
-      expect(osc.start).toHaveBeenCalledWith(10.5)
+      const source = fakeCtx._sources[0]
+      expect(source.start).toHaveBeenCalledWith(10.5)
     })
 
-    it('does not double-schedule the same beat', () => {
+    it('does not double-schedule the same beat', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      // Only 1 oscillator should be created (plus master gain)
-      expect(fakeCtx._oscillators.length).toBe(1)
+      // Only 1 source should be created
+      expect(fakeCtx._sources.length).toBe(1)
     })
 
     it('does nothing when nextBeat is null', () => {
@@ -109,31 +154,30 @@ describe('metronome', () => {
 
       m.syncToTimeline(10, null)
 
-      // Master gain node is created, but no oscillator for click
-      expect(fakeCtx._oscillators.length).toBe(0)
+      // Master gain node is created, but no source for click
+      expect(fakeCtx._sources.length).toBe(0)
     })
 
-    it('connects click chain: oscillator → clickGain → masterGain → destination', () => {
+    it('connects source directly to master gain', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      const clickGain = fakeCtx._gains[1] // [0] is master gain
       const masterGain = fakeCtx._gains[0]
 
-      // Oscillator connects to click gain
-      expect(fakeCtx._oscillators[0].connect).toHaveBeenCalledWith(clickGain)
-      // Click gain connects to master gain
-      expect(clickGain.connect).toHaveBeenCalledWith(masterGain)
+      // BufferSource connects to master gain
+      expect(fakeCtx._sources[0].connect).toHaveBeenCalledWith(masterGain)
       // Master gain connects to destination
       expect(masterGain.connect).toHaveBeenCalledWith(fakeCtx.destination)
     })
   })
 
   describe('latch policy', () => {
-    it('on disable keeps current click, schedules one latch, then stops', () => {
+    it('on disable keeps current click, schedules one latch, then stops', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       // Disable: latch becomes pending
@@ -145,21 +189,22 @@ describe('metronome', () => {
       expect(m.hasPendingLatch()).toBe(false)
 
       // After latch, no more clicks are scheduled
-      const oscCount = fakeCtx._oscillators.length
+      const sourceCount = fakeCtx._sources.length
       m.syncToTimeline(10.5, { at: 11, isBarStart: false })
-      expect(fakeCtx._oscillators.length).toBe(oscCount)
+      expect(fakeCtx._sources.length).toBe(sourceCount)
     })
 
-    it('latch click is a real click (creates oscillator)', () => {
+    it('latch click creates a source and schedules it', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
       m.setEnabled(false)
 
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      // Latch should have created an oscillator
-      expect(fakeCtx._oscillators.length).toBe(1)
-      expect(fakeCtx._oscillators[0].start).toHaveBeenCalled()
+      // Latch should have created a source
+      expect(fakeCtx._sources.length).toBe(1)
+      expect(fakeCtx._sources[0].start).toHaveBeenCalled()
     })
 
     it('cancels pending latch if re-enabled before latch time', () => {
@@ -172,18 +217,19 @@ describe('metronome', () => {
       expect(m.hasPendingLatch()).toBe(false)
     })
 
-    it('after re-enabling, resumes normal scheduling', () => {
+    it('after re-enabling, resumes normal scheduling', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
       m.setEnabled(false)
       m.setEnabled(true)
 
       // Now should schedule normally again
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
-      expect(fakeCtx._oscillators.length).toBe(1)
+      expect(fakeCtx._sources.length).toBe(1)
 
       m.syncToTimeline(10.5, { at: 11, isBarStart: false })
-      expect(fakeCtx._oscillators.length).toBe(2)
+      expect(fakeCtx._sources.length).toBe(2)
     })
 
     it('setEnabled(false) when already disabled does not create another latch', () => {
@@ -197,18 +243,19 @@ describe('metronome', () => {
       expect(m.hasPendingLatch()).toBe(true)
     })
 
-    it('latch only fires once even with multiple syncToTimeline calls', () => {
+    it('latch only fires once even with multiple syncToTimeline calls', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
       m.setEnabled(false)
 
       // First call fires latch
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
-      expect(fakeCtx._oscillators.length).toBe(1)
+      expect(fakeCtx._sources.length).toBe(1)
 
-      // Second call should not create another oscillator
+      // Second call should not create another source
       m.syncToTimeline(10.5, { at: 11, isBarStart: false })
-      expect(fakeCtx._oscillators.length).toBe(1)
+      expect(fakeCtx._sources.length).toBe(1)
     })
   })
 
@@ -238,8 +285,9 @@ describe('metronome', () => {
       expect(fakeCtx._gains[0].gain.value).toBe(0)
     })
 
-    it('sfx volume is independent from oscillator gain', () => {
+    it('sfx volume is applied to metronome output', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
       m.setSfxVolume(0.3)
 
@@ -248,30 +296,31 @@ describe('metronome', () => {
       const masterGain = fakeCtx._gains[0]
       expect(masterGain.gain.value).toBeCloseTo(0.3)
 
-      // The per-click gain should still have its own value (accent/normal)
-      const clickGain = fakeCtx._gains[1]
-      expect(clickGain.gain.value).toBeGreaterThan(0)
+      // A source should be scheduled
+      expect(fakeCtx._sources.length).toBe(1)
     })
   })
 
   describe('enabled state', () => {
-    it('does not schedule clicks when not enabled', () => {
+    it('does not schedule clicks when not enabled', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       // Not enabled by default
 
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      // No click oscillator should be created (only master gain)
-      expect(fakeCtx._oscillators.length).toBe(0)
+      // No source should be created (only master gain)
+      expect(fakeCtx._sources.length).toBe(0)
     })
 
-    it('schedules clicks when enabled', () => {
+    it('schedules clicks when enabled', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
       m.setEnabled(true)
 
       m.syncToTimeline(10, { at: 10.5, isBarStart: true })
 
-      expect(fakeCtx._oscillators.length).toBe(1)
+      expect(fakeCtx._sources.length).toBe(1)
     })
   })
 
@@ -297,27 +346,11 @@ describe('metronome', () => {
 
   // --- Regression: WAV sample loading ---
   it('loads three wav samples from /assets', async () => {
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      arrayBuffer: async () => new ArrayBuffer(8),
-    }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const fakeCtx = {
-      currentTime: 0,
-      destination: {} as AudioDestinationNode,
-      createGain: () => ({ gain: { value: 1 }, connect: vi.fn(), disconnect: vi.fn() }),
-      createBufferSource: () => ({ buffer: null, connect: vi.fn(), start: vi.fn() }),
-      decodeAudioData: vi.fn(async () => ({}) as unknown as AudioBuffer),
-    } as unknown as AudioContext
-
-    createMetronome(fakeCtx)
-    await Promise.resolve()
-    await Promise.resolve()
+    createMetronome(fakeCtx as unknown as AudioContext)
+    await flushMicrotasks()
 
     expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-tick-osu.wav')
     expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-tick-downbeat-osu.wav')
     expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-latch-osu.wav')
-    vi.unstubAllGlobals()
   })
 })

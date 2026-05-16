@@ -10,11 +10,11 @@ export interface MetronomeScheduler {
 }
 
 /**
- * Creates a metronome scheduler that generates click sounds via Web Audio API.
+ * Creates a metronome scheduler that plays WAV samples via Web Audio API.
  *
  * Key behaviors:
- * - Accent click (bar start): higher frequency and louder
- * - Normal click: softer
+ * - Bar start (downbeat): plays downbeat WAV sample
+ * - Normal beat: plays tick WAV sample
  * - When disabled: lets current click finish, schedules ONE latch click at next beat, then stops
  * - If re-enabled before latch fires: cancels latch, resumes normal scheduling
  * - SFX volume controls metronome output independently from music volume
@@ -25,33 +25,40 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
   let lastScheduledBeatTime = -1
   let destroyed = false
 
+  let tickBuffer: AudioBuffer | null = null
+  let downbeatBuffer: AudioBuffer | null = null
+  let latchBuffer: AudioBuffer | null = null
+  let loadError: Error | null = null
+
+  async function loadBuffer(path: string): Promise<AudioBuffer> {
+    const response = await fetch(path)
+    if (!response.ok) throw new Error(`Failed to fetch ${path}`)
+    const raw = await response.arrayBuffer()
+    return await audioContext.decodeAudioData(raw)
+  }
+
+  void Promise.all([
+    loadBuffer('/assets/metronome-tick-osu.wav').then((b) => (tickBuffer = b)),
+    loadBuffer('/assets/metronome-tick-downbeat-osu.wav').then((b) => (downbeatBuffer = b)),
+    loadBuffer('/assets/metronome-latch-osu.wav').then((b) => (latchBuffer = b)),
+  ]).catch((err) => {
+    loadError = err instanceof Error ? err : new Error(String(err))
+  })
+
   // Master gain node for SFX volume control
   const masterGain = audioContext.createGain()
   masterGain.gain.value = 0.8
   masterGain.connect(audioContext.destination)
 
   /**
-   * Schedules a click sound at the given AudioContext time.
-   * Returns the created oscillator and per-click gain node.
+   * Schedules a WAV buffer to play at the given AudioContext time.
    */
-  function scheduleClick(at: number, isAccent: boolean) {
-    if (destroyed) return
-
-    const osc = audioContext.createOscillator()
-    const clickGain = audioContext.createGain()
-
-    // Accent: higher frequency (1760 Hz) and higher gain (0.7)
-    // Normal: standard frequency (880 Hz) and lower gain (0.4)
-    osc.type = 'sine'
-    osc.frequency.value = isAccent ? 1760 : 880
-    clickGain.gain.value = isAccent ? 0.7 : 0.4
-
-    osc.connect(clickGain)
-    clickGain.connect(masterGain)
-
-    // Short click: 50ms duration
-    osc.start(at)
-    osc.stop(at + 0.05)
+  function playBufferAt(at: number, buffer: AudioBuffer | null): void {
+    if (destroyed || !buffer) return
+    const source = audioContext.createBufferSource()
+    source.buffer = buffer
+    source.connect(masterGain)
+    source.start(at)
   }
 
   return {
@@ -85,15 +92,16 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
         lastScheduledBeatTime = -1
       }
 
+      if (loadError) return
+      if (!tickBuffer || !downbeatBuffer || !latchBuffer) return
+
+      const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
+
       if (enabled) {
-        // Normal scheduling: play click at the beat time
-        const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
-        scheduleClick(audioCtxTime, nextBeat.isBarStart)
+        playBufferAt(audioCtxTime, nextBeat.isBarStart ? downbeatBuffer : tickBuffer)
         lastScheduledBeatTime = nextBeat.at
       } else if (latchPending) {
-        // Latch: schedule one final click then stop
-        const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
-        scheduleClick(audioCtxTime, nextBeat.isBarStart)
+        playBufferAt(audioCtxTime, latchBuffer)
         lastScheduledBeatTime = nextBeat.at
         latchPending = false
       }
