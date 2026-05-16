@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { createEmptyProject } from './project'
 
 describe('createEmptyProject', () => {
-  it('creates an empty project seed', () => {
+  it('creates the default project document', () => {
     expect(createEmptyProject()).toEqual({
-      id: '',
-      name: '',
-      description: '',
+      version: 1,
+      title: 'Untitled Project',
+      settings: {
+        locale: 'zh-CN',
+        snapDivisor: 4,
+      },
+      lyrics: [],
     })
   })
 })

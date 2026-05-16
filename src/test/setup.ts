@@ -1,1 +1,6 @@
-// Test setup placeholder for future shared configuration.
+import { afterEach } from 'vitest'
+import { config } from '@vue/test-utils'
+
+afterEach(() => {
+  config.global.stubs = {}
+})
