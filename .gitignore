@@ -23,11 +23,18 @@ dist-ssr
 *.sln
 *.sw?
 
-!.vscode/mcp.json
-.agents/skills
-.claude/
+.agents/skills/*
+!.agents/skills/revise-claude-md/
 
-/.worktrees/
+.claude/settings.local.json
+.claude/skills/*
+!.claude/skills/revise-claude-md
+
+!.vscode/mcp.json
+
 /.superpowers/
 # /docs/superpowers/plans
+
+/.worktrees/
+/worktrees/
 /temp/
