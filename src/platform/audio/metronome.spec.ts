@@ -148,6 +148,21 @@ describe('metronome', () => {
       expect(fakeCtx._sources.length).toBe(1)
     })
 
+    it('reschedules immediately after a backward timeline jump', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+
+      // First schedule at a later position.
+      m.syncToTimeline(30, { at: 30.5, isBarStart: true })
+      expect(fakeCtx._sources.length).toBe(1)
+
+      // Simulate seeking backward: the next beat is now earlier.
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      expect(fakeCtx._sources.length).toBe(2)
+      expect(fakeCtx._sources[1].start).toHaveBeenCalledWith(10.5)
+    })
+
     it('does nothing when nextBeat is null', () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
       m.setEnabled(true)

@@ -330,6 +330,12 @@ export const useEditorStore = defineStore('editor', () => {
     const target = Math.max(0, Math.min(d || 0, time))
     transport.seek(target)
     _currentTime.value = target
+
+    // Restart RAF loop to re-sync metronome after timeline jump
+    if (transport.getIsPlaying()) {
+      _stopPlaybackLoop()
+      _startPlaybackLoop()
+    }
   }
 
   // ---- Return ----

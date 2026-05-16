@@ -39,7 +39,9 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
 
   void Promise.all([
     loadBuffer('/assets/metronome-tick-osu.wav').then((b) => (tickBuffer = b)),
-    loadBuffer('/assets/metronome-tick-downbeat-osu.wav').then((b) => (downbeatBuffer = b)),
+    loadBuffer('/assets/metronome-tick-downbeat-osu.wav').then(
+      (b) => (downbeatBuffer = b),
+    ),
     loadBuffer('/assets/metronome-latch-osu.wav').then((b) => (latchBuffer = b)),
   ]).catch((err) => {
     loadError = err instanceof Error ? err : new Error(String(err))
@@ -84,13 +86,14 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
     ) {
       if (destroyed || !nextBeat) return
 
-      // Avoid double-scheduling the same beat
-      if (nextBeat.at <= lastScheduledBeatTime) return
-
       // Reset tracking on large backward jumps (seek)
       if (nextBeat.at < lastScheduledBeatTime - 1) {
         lastScheduledBeatTime = -1
       }
+
+      // Avoid double-scheduling the same beat.
+      // Must run after backward-seek reset so earlier beats can be re-scheduled.
+      if (nextBeat.at <= lastScheduledBeatTime) return
 
       if (loadError) return
       if (!tickBuffer || !downbeatBuffer || !latchBuffer) return
