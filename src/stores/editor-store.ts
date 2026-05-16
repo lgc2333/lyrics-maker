@@ -12,7 +12,11 @@ import {
 import { createEmptyProject } from '../core/domain/project'
 import type { ProjectDocument, TimingPoint } from '../core/domain/project'
 import { createTapBpmEstimator } from '../core/timing/tap-bpm'
-import { getActiveTimingPoint } from '../core/timing/timing-engine'
+import {
+  getActiveTimingPoint,
+  getBeatInfoAtTime,
+  getNextBeatTime,
+} from '../core/timing/timing-engine'
 import type { AudioTransport } from '../platform/audio/audio-transport'
 import { createAudioTransport } from '../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../platform/audio/metronome'
@@ -99,6 +103,10 @@ export const useEditorStore = defineStore('editor', () => {
   const metronomeState = computed(() => _metronomeState.value)
   const tapSampleCount = computed(() => _tapSampleCount.value)
   const tapEstimatedBpm = computed(() => _tapEstimatedBpm.value)
+  const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
+  const progressRatio = computed(() =>
+    duration.value > 0 ? Math.min(1, Math.max(0, _currentTime.value / duration.value)) : 0,
+  )
 
   // ---- Helpers ----
 
@@ -123,6 +131,45 @@ export const useEditorStore = defineStore('editor', () => {
       _metronome.value.setSfxVolume(project.value.audio.sfxVolume)
     }
     return _metronome.value
+  }
+
+  // ---- Playback loop ----
+
+  let _rafId: number | null = null
+
+  function _tickPlayback(): void {
+    const transport = _audioTransport.value
+    if (!transport || !transport.getIsPlaying()) {
+      _rafId = null
+      return
+    }
+
+    const now = transport.getCurrentTime()
+    _currentTime.value = now
+
+    const m = _metronome.value
+    if (m && project.value.timingPoints.length > 0) {
+      const nextAt = getNextBeatTime(project.value.timingPoints, now)
+      const nextBeat = getBeatInfoAtTime(project.value.timingPoints, nextAt)
+      m.syncToTimeline(now, { at: nextAt, isBarStart: nextBeat.isBarStart })
+
+      if (_metronomeState.value === 'latch_pending' && !m.hasPendingLatch()) {
+        _metronomeState.value = 'off'
+      }
+    }
+
+    _rafId = requestAnimationFrame(_tickPlayback)
+  }
+
+  function _startPlaybackLoop(): void {
+    if (_rafId !== null) return
+    _rafId = requestAnimationFrame(_tickPlayback)
+  }
+
+  function _stopPlaybackLoop(): void {
+    if (_rafId === null) return
+    cancelAnimationFrame(_rafId)
+    _rafId = null
   }
 
   // ---- Phase 1 actions ----
@@ -174,13 +221,16 @@ export const useEditorStore = defineStore('editor', () => {
 
     if (transport.getIsPlaying()) {
       transport.pause()
+      _stopPlaybackLoop()
     } else {
       await transport.play()
+      _startPlaybackLoop()
     }
   }
 
   function pausePlayback(): void {
     _audioTransport.value?.pause()
+    _stopPlaybackLoop()
   }
 
   // ---- Phase 2: Timing Points ----
@@ -219,6 +269,7 @@ export const useEditorStore = defineStore('editor', () => {
       )
       transport.seek(activePoint.time)
       await transport.play()
+      _startPlaybackLoop()
     }
 
     // Feed timestamp to estimator
@@ -269,6 +320,15 @@ export const useEditorStore = defineStore('editor', () => {
     _metronome.value?.setSfxVolume(clamped)
   }
 
+  function seekPlayback(time: number): void {
+    const transport = _audioTransport.value
+    if (!transport) return
+    const d = duration.value
+    const target = Math.max(0, Math.min(d || 0, time))
+    transport.seek(target)
+    _currentTime.value = target
+  }
+
   // ---- Return ----
 
   return {
@@ -292,6 +352,8 @@ export const useEditorStore = defineStore('editor', () => {
     metronomeState,
     tapSampleCount,
     tapEstimatedBpm,
+    duration,
+    progressRatio,
 
     // Phase 2: audio
     importAudioFile,
@@ -308,6 +370,9 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Phase 2: metronome
     toggleMetronome,
+
+    // Phase 2: seek
+    seekPlayback,
 
     // Phase 2: volume
     setMusicVolume,
