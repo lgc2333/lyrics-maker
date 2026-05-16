@@ -10,7 +10,7 @@ pnpm build            # Type check (vue-tsc -b) + production build (vite build)
 pnpm preview          # Preview built output
 pnpm test:run         # Run all Vitest tests (headless)
 pnpm test             # Run tests in watch mode
-pnpm test -- <glob>   # Run a single test file, e.g. pnpm test -- src/core/commands/history.spec.ts
+pnpm test:run "<path>"  # Run a single test file, e.g. pnpm test:run "src/core/commands/history.spec.ts"
 pnpm lint             # ESLint check
 pnpm lint:fix         # ESLint auto-fix
 pnpm format           # Prettier format check + write
@@ -32,7 +32,8 @@ src/
 ├── platform/              # Platform adapters (no Vue dependency)
 │   ├── i18n/              # vue-i18n instance + zh-CN locale messages
 │   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
-│   └── persistence/       # File System Access API adapter + save service
+│   ├── persistence/       # File System Access API adapter + save service
+│   └── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
 ├── stores/                # Pinia stores — UI state orchestration
 │   └── editor-store.ts    # Central editor session: project, undo/redo, save
 ├── composables/           # Vue composables
@@ -54,14 +55,29 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base) is complete. Architecture and data model are in place for:
+Phase 1 (infrastructure base) and Phase 2 (audio + timing core) are complete. Remaining phases:
 
-- Phase 2: Audio + timing core (TAP BPM, metronome, timing points)
 - Phase 3: Waveform/spectrogram views + grid system
 - Phase 4: Lyrics timing (word-level editing, WordTimelineBar)
 - Phase 5: Import/export plugins + shortcut rebinding UI
 
 Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
+
+## Store Testing
+
+The editor store uses `__override*Factory` exports for dependency injection. In tests, override factories before mounting:
+
+```ts
+__overrideAudioTransportFactory(() => mockAudioTransport)
+__overrideMetronomeFactory(() => mockMetronomeScheduler)
+setActivePinia(createPinia())
+```
+
+Avoid `vi.spyOn(store, 'actionName')` — Pinia wraps actions, making spies unreliable. Test state changes directly instead.
+
+## Before Committing
+
+Before committing or claiming work is done, always run `pnpm format` to normalize formatting.
 
 ## Tooling
 
