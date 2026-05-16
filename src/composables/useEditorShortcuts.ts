@@ -12,6 +12,9 @@ export function useEditorShortcuts(options: {
   registry.register('Ctrl+Z', 'history.undo')
   registry.register('Ctrl+Y', 'history.redo')
   registry.register('Ctrl+S', 'project.save')
+  registry.register('Space', 'transport.togglePlay')
+  registry.register('B', 'timing.tapBpm')
+  registry.register('M', 'metronome.toggle')
 
   function onKeydown(event: KeyboardEvent) {
     const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(

@@ -1,9 +1,50 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useEditorStore } from '../../stores/editor-store'
+import type { MetronomeScheduler } from '../../platform/audio/metronome'
+import {
+  __overrideMetronomeFactory,
+  useEditorStore,
+} from '../../stores/editor-store'
 import AppShell from './AppShell.vue'
+
+/**
+ * Creates a mock MetronomeScheduler with controllable state for testing.
+ */
+function createMockMetronome(): {
+  scheduler: MetronomeScheduler
+  enabled: () => boolean
+  latchPending: () => boolean
+  setEnabledCalls: Array<boolean>
+} {
+  let _enabled = false
+  let _latchPending = false
+  const setEnabledCalls: Array<boolean> = []
+
+  const scheduler: MetronomeScheduler = {
+    setEnabled: vi.fn((value: boolean) => {
+      setEnabledCalls.push(value)
+      if (value) {
+        _latchPending = false
+      } else if (_enabled) {
+        _latchPending = true
+      }
+      _enabled = value
+    }),
+    setSfxVolume: vi.fn(),
+    syncToTimeline: vi.fn(),
+    hasPendingLatch: vi.fn(() => _latchPending),
+    destroy: vi.fn(),
+  }
+
+  return {
+    scheduler,
+    enabled: () => _enabled,
+    latchPending: () => _latchPending,
+    setEnabledCalls,
+  }
+}
 
 describe('appShell', () => {
   beforeEach(() => {
@@ -28,5 +69,18 @@ describe('appShell', () => {
       new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
     )
     expect(store.project.lyrics).toHaveLength(0)
+  })
+
+  it('dispatches M to toggle metronome action', () => {
+    const mock = createMockMetronome()
+    __overrideMetronomeFactory(() => mock.scheduler)
+
+    mount(AppShell)
+    const store = useEditorStore()
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'm', bubbles: true }),
+    )
+    expect(store.metronomeState).toBe('on')
   })
 })

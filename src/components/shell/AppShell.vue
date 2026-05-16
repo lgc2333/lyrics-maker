@@ -13,8 +13,11 @@ const persistence = useProjectPersistence()
 useEditorShortcuts({
   onAction: async (action) => {
     if (action === 'history.undo') store.undo()
-    if (action === 'history.redo') store.redo()
-    if (action === 'project.save') await persistence.saveByShortcut()
+    else if (action === 'history.redo') store.redo()
+    else if (action === 'project.save') await persistence.saveByShortcut()
+    else if (action === 'transport.togglePlay') store.togglePlayback()
+    else if (action === 'timing.tapBpm') store.tapBpm()
+    else if (action === 'metronome.toggle') store.toggleMetronome()
   },
 })
 </script>

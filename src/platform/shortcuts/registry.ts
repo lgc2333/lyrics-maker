@@ -1,4 +1,10 @@
-export type ShortcutAction = 'history.undo' | 'history.redo' | 'project.save'
+export type ShortcutAction =
+  | 'history.undo'
+  | 'history.redo'
+  | 'project.save'
+  | 'transport.togglePlay'
+  | 'timing.tapBpm'
+  | 'metronome.toggle'
 
 export function createShortcutRegistry() {
   const bindings = new Map<string, ShortcutAction>()
