@@ -12,6 +12,29 @@ describe('createEmptyProject', () => {
         snapDivisor: 4,
       },
       lyrics: [],
+      timingPoints: [
+        {
+          id: 'tp-1',
+          time: 0,
+          bpm: 120,
+          timeSignatureNumerator: 4,
+          timeSignatureDenominator: 4,
+          offsetMs: 0,
+        },
+      ],
+      audio: {
+        musicVolume: 1,
+        sfxVolume: 0.8,
+      },
     })
+  })
+
+  it('includes phase-2 timing and volume defaults', () => {
+    const project = createEmptyProject()
+    expect(project.timingPoints).toHaveLength(1)
+    expect(project.timingPoints[0].time).toBe(0)
+    expect(project.timingPoints[0].offsetMs).toBe(0)
+    expect(project.audio.musicVolume).toBe(1)
+    expect(project.audio.sfxVolume).toBe(0.8)
   })
 })
