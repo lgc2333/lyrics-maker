@@ -1,12 +1,13 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import TransportBar from './TransportBar.vue'
+
+import type { AudioTransport } from '../../platform/audio/audio-transport'
 import {
   __overrideAudioTransportFactory,
   useEditorStore,
 } from '../../stores/editor-store'
-import type { AudioTransport } from '../../platform/audio/audio-transport'
+import TransportBar from './TransportBar.vue'
 
 function createMockTransport(): AudioTransport {
   let playing = false
@@ -43,9 +44,7 @@ describe('TransportBar', () => {
     const wrapper = mount(TransportBar)
     const store = useEditorStore()
     const slider = wrapper.get('[data-testid="playback-progress"]')
-    expect(Number((slider.element as HTMLInputElement).value)).toBe(
-      store.currentTime,
-    )
+    expect(Number((slider.element as HTMLInputElement).value)).toBe(store.currentTime)
   })
 
   it('disables slider when no audio loaded (duration=0)', () => {
@@ -64,11 +63,30 @@ describe('TransportBar', () => {
     const store = useEditorStore()
 
     // Import audio so duration > 0 (unlocks slider)
-    await store.importAudioFile(
-      new File(['x'], 'song.mp3', { type: 'audio/mpeg' }),
-    )
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     store.seekPlayback(5)
     expect(store.currentTime).toBe(5)
+  })
+
+  it('updates duration after importing audio', async () => {
+    mount(TransportBar)
+    const store = useEditorStore()
+
+    expect(store.duration).toBe(0)
+
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    expect(store.duration).toBe(120)
+  })
+
+  it('shows duration in slider max and time label after import', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    const slider = wrapper.get('[data-testid="playback-progress"]')
+    expect(Number((slider.element as HTMLInputElement).max)).toBe(120)
   })
 })

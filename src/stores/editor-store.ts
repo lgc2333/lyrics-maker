@@ -105,7 +105,9 @@ export const useEditorStore = defineStore('editor', () => {
   const tapEstimatedBpm = computed(() => _tapEstimatedBpm.value)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
   const progressRatio = computed(() =>
-    duration.value > 0 ? Math.min(1, Math.max(0, _currentTime.value / duration.value)) : 0,
+    duration.value > 0
+      ? Math.min(1, Math.max(0, _currentTime.value / duration.value))
+      : 0,
   )
 
   // ---- Helpers ----
@@ -213,6 +215,7 @@ export const useEditorStore = defineStore('editor', () => {
   async function importAudioFile(file: File): Promise<void> {
     const transport = _ensureAudioTransport()
     await transport.loadFile(file)
+    triggerRef(_audioTransport)
   }
 
   async function togglePlayback(): Promise<void> {
