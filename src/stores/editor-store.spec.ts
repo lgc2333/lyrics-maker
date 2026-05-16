@@ -1,9 +1,91 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useEditorStore } from './editor-store'
+import type { AudioTransport } from '../platform/audio/audio-transport'
+import type { MetronomeScheduler } from '../platform/audio/metronome'
+import {
+  __overrideAudioTransportFactory,
+  __overrideMetronomeFactory,
+  useEditorStore,
+} from './editor-store'
 
-describe('editor store', () => {
+/**
+ * Creates a mock AudioTransport with controllable state for testing.
+ */
+function createMockAudioTransport(): {
+  transport: AudioTransport
+  isPlaying: () => boolean
+} {
+  let _playing = false
+  let _currentTime = 0
+  let _volume = 1
+  const _duration = 120
+
+  const transport: AudioTransport = {
+    loadFile: vi.fn().mockResolvedValue(undefined),
+    play: vi.fn(async () => {
+      _playing = true
+    }),
+    pause: vi.fn(() => {
+      _playing = false
+    }),
+    seek: vi.fn((time: number) => {
+      _currentTime = Math.max(0, time)
+    }),
+    getCurrentTime: vi.fn(() => _currentTime),
+    getDuration: vi.fn(() => _duration),
+    setVolume: vi.fn((value: number) => {
+      _volume = Math.max(0, Math.min(1, value))
+    }),
+    getVolume: vi.fn(() => _volume),
+    getIsPlaying: vi.fn(() => _playing),
+    destroy: vi.fn(),
+  }
+
+  return {
+    transport,
+    isPlaying: () => _playing,
+  }
+}
+
+/**
+ * Creates a mock MetronomeScheduler with controllable state for testing.
+ */
+function createMockMetronome(): {
+  scheduler: MetronomeScheduler
+  enabled: () => boolean
+  latchPending: () => boolean
+  setEnabledCalls: Array<boolean>
+} {
+  let _enabled = false
+  let _latchPending = false
+  const setEnabledCalls: Array<boolean> = []
+
+  const scheduler: MetronomeScheduler = {
+    setEnabled: vi.fn((value: boolean) => {
+      setEnabledCalls.push(value)
+      if (value) {
+        _latchPending = false
+      } else if (_enabled) {
+        _latchPending = true
+      }
+      _enabled = value
+    }),
+    setSfxVolume: vi.fn(),
+    syncToTimeline: vi.fn(),
+    hasPendingLatch: vi.fn(() => _latchPending),
+    destroy: vi.fn(),
+  }
+
+  return {
+    scheduler,
+    enabled: () => _enabled,
+    latchPending: () => _latchPending,
+    setEnabledCalls,
+  }
+}
+
+describe('editor store (phase 1)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it('initializes with an empty project', () => {
@@ -150,5 +232,309 @@ describe('editor store', () => {
 
     expect(result.ok).toBe(false)
     expect(store.lastError).toBe('unsupported')
+  })
+})
+
+describe('editor store (phase 2 - timing points)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('adds and removes timing points via store', () => {
+    const store = useEditorStore()
+
+    store.addTimingPoint({
+      time: 10,
+      bpm: 140,
+      timeSignatureNumerator: 3,
+      timeSignatureDenominator: 4,
+      offsetMs: 5,
+    })
+    expect(store.project.timingPoints).toHaveLength(2)
+    expect(store.project.timingPoints[1].bpm).toBe(140)
+
+    store.undo()
+    expect(store.project.timingPoints).toHaveLength(1)
+  })
+
+  it('updateTimingPoint modifies fields and undo restores', () => {
+    const store = useEditorStore()
+    const tpId = store.project.timingPoints[0].id
+
+    store.updateTimingPoint(tpId, { bpm: 160 })
+    expect(store.project.timingPoints[0].bpm).toBe(160)
+
+    store.undo()
+    expect(store.project.timingPoints[0].bpm).toBe(120)
+  })
+
+  it('removeTimingPoint removes and undo restores', () => {
+    const store = useEditorStore()
+    const tpId = store.project.timingPoints[0].id
+
+    store.removeTimingPoint(tpId)
+    expect(store.project.timingPoints).toHaveLength(0)
+
+    store.undo()
+    expect(store.project.timingPoints).toHaveLength(1)
+    expect(store.project.timingPoints[0].id).toBe(tpId)
+  })
+})
+
+describe('editor store (phase 2 - volume)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('updates musicVolume and sfxVolume independently', () => {
+    const store = useEditorStore()
+
+    store.setMusicVolume(0.2)
+    store.setSfxVolume(0.7)
+
+    expect(store.project.audio.musicVolume).toBe(0.2)
+    expect(store.project.audio.sfxVolume).toBe(0.7)
+  })
+
+  it('volume commands go through command history (undo/redo works)', () => {
+    const store = useEditorStore()
+
+    store.setMusicVolume(0.3)
+    expect(store.project.audio.musicVolume).toBe(0.3)
+
+    store.undo()
+    expect(store.project.audio.musicVolume).toBe(1) // default
+
+    store.redo()
+    expect(store.project.audio.musicVolume).toBe(0.3)
+  })
+})
+
+describe('editor store (phase 2 - audio transport)', () => {
+  let mockTransport: AudioTransport
+  let transportPlaying: () => boolean
+
+  beforeEach(() => {
+    const mock = createMockAudioTransport()
+    mockTransport = mock.transport
+    transportPlaying = mock.isPlaying
+    __overrideAudioTransportFactory(() => mockTransport)
+    setActivePinia(createPinia())
+  })
+
+  it('importAudioFile creates transport and loads file', async () => {
+    const store = useEditorStore()
+    const file = new File(['x'], 'song.mp3', { type: 'audio/mpeg' })
+
+    await store.importAudioFile(file)
+
+    expect(mockTransport.loadFile).toHaveBeenCalledWith(file)
+    expect(store.isPlaying).toBe(false)
+  })
+
+  it('togglePlayback toggles isPlaying', async () => {
+    const store = useEditorStore()
+    // Need to initialize transport first
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    expect(store.isPlaying).toBe(false)
+
+    await store.togglePlayback()
+    expect(mockTransport.play).toHaveBeenCalled()
+    expect(transportPlaying()).toBe(true)
+
+    store.togglePlayback()
+    expect(mockTransport.pause).toHaveBeenCalled()
+    expect(transportPlaying()).toBe(false)
+  })
+
+  it('pausePlayback sets isPlaying to false', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    // Play first
+    await store.togglePlayback()
+    expect(transportPlaying()).toBe(true)
+
+    // Then pause
+    store.pausePlayback()
+    expect(mockTransport.pause).toHaveBeenCalled()
+  })
+
+  it('togglePlayback is a no-op when no transport loaded', async () => {
+    const store = useEditorStore()
+
+    // Should not throw
+    await store.togglePlayback()
+    expect(store.isPlaying).toBe(false)
+  })
+
+  it('pausePlayback is a no-op when no transport loaded', () => {
+    const store = useEditorStore()
+
+    // Should not throw
+    store.pausePlayback()
+    expect(store.isPlaying).toBe(false)
+  })
+})
+
+describe('editor store (phase 2 - TAP BPM)', () => {
+  let mockTransport: AudioTransport
+  let transportPlaying: () => boolean
+
+  beforeEach(() => {
+    const mock = createMockAudioTransport()
+    mockTransport = mock.transport
+    transportPlaying = mock.isPlaying
+    __overrideAudioTransportFactory(() => mockTransport)
+    setActivePinia(createPinia())
+  })
+
+  it('applies tap bpm to active timing point after >8 taps', () => {
+    const store = useEditorStore()
+
+    // 10 taps at 0.5s intervals → 120 BPM
+    for (let i = 0; i < 10; i++) {
+      store.tapBpm(i * 0.5)
+    }
+
+    expect(store.project.timingPoints[0].bpm).toBeGreaterThan(100)
+  })
+
+  it('starts playback from active timing point when tapping while paused', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    // First play then pause to ensure transport exists and is paused
+    await store.togglePlayback()
+    store.pausePlayback()
+    expect(transportPlaying()).toBe(false)
+
+    // Tap should seek to active timing point (time 0) and start playback
+    store.tapBpm(1.0)
+
+    expect(mockTransport.seek).toHaveBeenCalled()
+    expect(mockTransport.play).toHaveBeenCalled()
+  })
+
+  it('updates tapSampleCount and tapEstimatedBpm reactively', () => {
+    const store = useEditorStore()
+
+    expect(store.tapSampleCount).toBe(0)
+    expect(store.tapEstimatedBpm).toBeNull()
+
+    // 10 taps at 0.5s intervals
+    for (let i = 0; i < 10; i++) {
+      store.tapBpm(i * 0.5)
+    }
+
+    expect(store.tapSampleCount).toBeGreaterThan(8)
+    expect(store.tapEstimatedBpm).toBeGreaterThan(100)
+  })
+
+  it('does not apply BPM before >8 taps', () => {
+    const store = useEditorStore()
+
+    // Only 5 taps
+    for (let i = 0; i < 5; i++) {
+      store.tapBpm(i * 0.5)
+    }
+
+    // BPM should not have been applied yet (still default 120)
+    expect(store.project.timingPoints[0].bpm).toBe(120)
+    expect(store.tapEstimatedBpm).toBeNull()
+  })
+})
+
+describe('editor store (phase 2 - metronome)', () => {
+  let mockMetronome: MetronomeScheduler
+  let schedulerEnabled: () => boolean
+  let setEnabledCalls: Array<boolean>
+
+  beforeEach(() => {
+    const mock = createMockMetronome()
+    mockMetronome = mock.scheduler
+    schedulerEnabled = mock.enabled
+    setEnabledCalls = mock.setEnabledCalls
+    __overrideMetronomeFactory(() => mockMetronome)
+    setActivePinia(createPinia())
+  })
+
+  it('toggles metronome through off -> on -> latch_pending states', () => {
+    const store = useEditorStore()
+
+    // Initial state
+    expect(store.metronomeState).toBe('off')
+    expect(store.isMetronomeEnabled).toBe(false)
+
+    // off → on
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('on')
+    expect(store.isMetronomeEnabled).toBe(true)
+    expect(schedulerEnabled()).toBe(true)
+
+    // on → latch_pending
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('latch_pending')
+    expect(store.isMetronomeEnabled).toBe(false)
+    expect(setEnabledCalls).toContain(false)
+  })
+
+  it('completes full metronome cycle: off -> on -> latch_pending -> off', () => {
+    const store = useEditorStore()
+
+    // off → on
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('on')
+    expect(store.isMetronomeEnabled).toBe(true)
+
+    // on → latch_pending
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('latch_pending')
+    expect(store.isMetronomeEnabled).toBe(false)
+    expect(setEnabledCalls).toContain(false)
+
+    // latch_pending → off
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('off')
+    expect(store.isMetronomeEnabled).toBe(false)
+  })
+
+  it('setSfxVolume applies volume to metronome after it is created', () => {
+    const store = useEditorStore()
+
+    // Create metronome first by toggling
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('on')
+
+    // Now set SFX volume
+    store.setSfxVolume(0.5)
+    expect(mockMetronome.setSfxVolume).toHaveBeenCalledWith(0.5)
+  })
+
+  it('setMusicVolume does not affect metronome sfx volume', () => {
+    const store = useEditorStore()
+
+    store.setMusicVolume(0.3)
+    expect(store.project.audio.musicVolume).toBe(0.3)
+    expect(store.project.audio.sfxVolume).toBe(0.8) // unchanged default
+  })
+})
+
+describe('editor store (phase 2 - reactive state)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('activeTimingPointId reflects current time', () => {
+    const store = useEditorStore()
+
+    // Default timing point at time=0
+    expect(store.activeTimingPointId).toBe('tp-1')
+  })
+
+  it('initial reactive state has correct defaults', () => {
+    const store = useEditorStore()
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.currentTime).toBe(0)
+    expect(store.metronomeState).toBe('off')
+    expect(store.isMetronomeEnabled).toBe(false)
+    expect(store.tapSampleCount).toBe(0)
+    expect(store.tapEstimatedBpm).toBeNull()
   })
 })
