@@ -123,3 +123,11 @@ UI 继续作为薄层，触发 store action / command，不直接做时轴计算
 - 节拍器在播放时与音乐拍点同步，且小节首拍重音明显
 - 关闭节拍器时允许当前拍点自然结束，并按规则处理 `latch`
 - 音乐音量与音效音量可分别调节并即时生效
+
+## 7. 实现备注（Post-Hotfix）
+
+- editor-store 在播放中通过 RAF 循环同步 currentTime
+- "在此添加 Timing Point" 使用实时 currentTime，不再固定 0.0s
+- TransportBar 新增播放进度条（展示 currentTime/duration，支持拖动 seek）
+- Metronome 点击音源来自 /public/assets 三个 WAV 文件
+- TAP BPM 写回 Timing Point 时四舍五入为整数
