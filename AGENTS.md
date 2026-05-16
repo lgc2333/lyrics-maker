@@ -19,12 +19,20 @@ pnpm check            # vue-tsc --noEmit (faster type-only check, no build)
 
 Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its package manager.
 
+If `pnpm` is not on PATH, fall back to: `fnm --using default exec pnpm.cmd`
+
+CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Edit tool refuses to write through symlinks.
+
 ## Architecture: Three-Layer Design
 
 ```txt
 src/
 ├── core/                  # Pure business logic (no Vue dependency)
 │   ├── domain/project.ts  # Data model: ProjectDocument, LyricLine, LyricWord
+│   ├── timing/             # Timing engine (no Vue dependency)
+│   │   ├── timing-engine.ts    # Beat/bar computation from timing points
+│   │   ├── timing-point.ts     # Sort + validate timing points
+│   │   └── tap-bpm.ts          # Tap-based BPM estimator
 │   └── commands/          # Command pattern for undo/redo
 │       ├── command.ts     # Command<TState> interface {label, do, undo}
 │       ├── history.ts     # createCommandHistory<T>() — undo/redo stack
@@ -39,9 +47,12 @@ src/
 ├── composables/           # Vue composables
 │   ├── useEditorShortcuts.ts    # Keyboard → action dispatch (accepts {onAction})
 │   └── useProjectPersistence.ts # Ctrl+S save pipeline (wires store to file service)
-├── components/shell/      # Phase 1 UI shell (thin placeholder components)
+├── components/shell/      # Editor shell — layout, transport, mode controls
 │   ├── AppShell.vue       # Root layout, wires shortcuts + persistence to store
-│   ├── MenuBar.vue / TransportBar.vue / MainView.vue / ModePanel.vue
+│   ├── TransportBar.vue   # Playback controls + progress slider with seek
+│   ├── ModePanel.vue      # Tap BPM, metronome, time signature settings
+│   ├── MenuBar.vue        # Top menu bar
+│   └── MainView.vue       # Main content area
 ├── pages/index.vue        # Route page — renders AppShell
 └── main.ts                # App bootstrap (Pinia → router → i18n)
 ```
@@ -52,6 +63,8 @@ src/
 - **Time is always seconds (float).** Snap-to-grid is a UI-layer concern only.
 - **`core/` and `platform/` are Vue-free.** They import zero Vue APIs. Only `stores/` and `composables/` use Vue reactivity (`shallowRef`, `computed`, `triggerRef`).
 - **Persistence is decoupled from business logic.** The save pipeline (`project-file-service.ts` → `editor-store.saveProject` → `useProjectPersistence`) exchanges JSON strings. Replace the backend without touching `core/`.
+- **After async mutations on `shallowRef` objects, call `triggerRef`.** Platform objects (AudioTransport, MetronomeScheduler) are held in `shallowRef`. Async operations that change internal state (loadFile, play, etc.) must be followed by `triggerRef(ref)` to wake computed properties that depend on those objects.
+- **Metronome seek safety:** In `syncToTimeline`, always run backward-seek reset before duplicate-beat guard (`reset lastScheduledBeatTime` first, then `nextBeat.at <= lastScheduledBeatTime` check), and keep regression test `reschedules immediately after a backward timeline jump` green.
 
 ## Current Phase
 
