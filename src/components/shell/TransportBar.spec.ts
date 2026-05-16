@@ -60,7 +60,7 @@ describe('TransportBar', () => {
   })
 
   it('calls store.seekPlayback and updates currentTime', async () => {
-    const wrapper = mount(TransportBar)
+    mount(TransportBar)
     const store = useEditorStore()
 
     // Import audio so duration > 0 (unlocks slider)
