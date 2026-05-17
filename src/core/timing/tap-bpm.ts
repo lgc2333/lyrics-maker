@@ -10,10 +10,10 @@ export function createTapBpmEstimator(maxSamples = 128): {
   let buffer: number[] = []
 
   function push(timestampSeconds: number): TapEstimate | null {
-    // If gap > 1 second since last tap, reset buffer first
+    // If gap > 1 second since last tap, or timestamp goes backwards > 0.1s, reset buffer
     if (buffer.length > 0) {
       const gap = timestampSeconds - buffer[buffer.length - 1]
-      if (gap > 1.0) {
+      if (gap > 1.0 || gap < -0.1) {
         buffer = []
       }
     }

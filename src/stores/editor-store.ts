@@ -31,6 +31,7 @@ function makeId(prefix: string) {
 
 export interface ProjectFileService {
   saveAs: (content: string) => Promise<SaveResult>
+  save: (content: string) => Promise<SaveResult>
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +87,7 @@ export const useEditorStore = defineStore('editor', () => {
   const _tapCount = ref(0) // incremented on every tap call, reset after idle timeout
   const _tapSampleCount = ref(0)
   const _tapEstimatedBpm = ref<number | null>(null)
-  let _tapResetTimerId: ReturnType<typeof setTimeout> | null = null
+  let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
   const project = computed(() => history.value.state)
@@ -205,7 +206,19 @@ export const useEditorStore = defineStore('editor', () => {
 
   async function saveProject(service: ProjectFileService) {
     const json = JSON.stringify(project.value, null, 2)
-    const result = await service.saveAs(json)
+    const result = await service.save(json)
+
+    // Fall back to saveAs if no cached handle exists
+    if (!result.ok && result.reason === 'unsupported') {
+      const saveAsResult = await service.saveAs(json)
+      if (saveAsResult.ok) {
+        markClean()
+        lastError.value = null
+      } else if (saveAsResult.reason !== 'cancelled') {
+        lastError.value = saveAsResult.reason ?? 'unknown'
+      }
+      return saveAsResult
+    }
 
     if (result.ok) {
       markClean()
@@ -323,6 +336,16 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   // ---- Phase 2: Metronome ----
+  //
+  // State machine:  off ──(click)──▶ on ──(click when playing)──▶ latch_pending
+  //                 ▲               │                               │
+  //                 │               │ (click when paused)           │ (click again)
+  //                 └───────────────┘                               │
+  //                 ▲                                               │
+  //                 └───(latch fires or pausePlayback called)───────┘
+  //
+  // latch_pending schedules one final click at the next beat, then auto-clears.
+  // Clicking again while latch_pending immediately re-enables (on), never goes to off.
 
   function toggleMetronome(): void {
     const m = _ensureMetronome()

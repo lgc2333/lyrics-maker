@@ -130,17 +130,26 @@ describe('createTapBpmEstimator', () => {
     expect(estimate!.bpm).toBe(120)
   })
 
-  // --- Edge: decreasing timestamps (should still work, interval is absolute) ---
-  it('handles non-monotonic timestamps gracefully', () => {
+  // --- Edge: decreasing timestamps should reset the buffer ---
+  it('resets buffer when timestamp goes backwards by more than 0.1s', () => {
     const estimator = createTapBpmEstimator()
     // Build 9 taps normally
     for (let i = 0; i < 9; i++) estimator.push(i * 0.5)
-    // Push a timestamp that goes backwards — gap would be negative, triggers reset
-    const result = estimator.push(3.0) // gap from 4.0 to 3.0 = -1.0, not > 1s, no reset
-    // This would give a negative interval which would mess up the average
-    // The implementation should handle this or the user just shouldn't do it
-    // We just verify it doesn't throw
-    expect(result).toBeDefined()
+    // Push a timestamp that goes backwards by > 0.1s
+    const result = estimator.push(3.0) // last was 4.0, gap = -1.0
+    // Should trigger reset, so after one more tap buffer only has 2 entries
+    expect(result).toBeNull()
+  })
+
+  it('does not reset when timestamp goes backwards by < 0.1s', () => {
+    const estimator = createTapBpmEstimator()
+    for (let i = 0; i < 9; i++) estimator.push(i * 0.5)
+    // Very small backward jump (< 0.1s)
+    estimator.push(3.96) // last was 4.0, gap = -0.04, minor noise — no reset
+    // Continue with one more tap to see if we get an estimate
+    const estimate = estimator.push(4.0) // buffer still intact, now > 8 samples
+    expect(estimate).not.toBeNull()
+    expect(estimate!.bpm).toBeGreaterThan(0)
   })
 
   // --- Regression: integer rounding ---

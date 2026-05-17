@@ -359,6 +359,27 @@ describe('metronome', () => {
     })
   })
 
+  describe('load error', () => {
+    it('returns null when all samples loaded successfully', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+
+      expect(m.getLoadError()).toBeNull()
+    })
+
+    it('returns error when sample fetch fails', async () => {
+      fetchMock.mockRejectedValueOnce(new Error('Network error'))
+      fetchMock.mockRejectedValueOnce(new Error('Network error'))
+      fetchMock.mockRejectedValueOnce(new Error('Network error'))
+
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+
+      expect(m.getLoadError()).toBeInstanceOf(Error)
+      expect(m.getLoadError()!.message).toContain('Network error')
+    })
+  })
+
   // --- Regression: WAV sample loading ---
   it('loads three wav samples from /assets', async () => {
     createMetronome(fakeCtx as unknown as AudioContext)

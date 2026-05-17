@@ -74,6 +74,7 @@ function createMockMetronome(): {
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
+    getLoadError: vi.fn(() => null),
     destroy: vi.fn(),
   }
 
@@ -203,8 +204,12 @@ describe('editor store (phase 1)', () => {
   })
 
   it('saveProject serializes project and calls saveAs', async () => {
+    const save = vi.fn(async (_content: string) => ({
+      ok: false as const,
+      reason: 'unsupported' as const,
+    }))
     const saveAs = vi.fn(async (_content: string) => ({ ok: true as const }))
-    const service = { saveAs }
+    const service = { save, saveAs }
     const store = useEditorStore()
 
     store.addLyricLine('hello world')
@@ -221,11 +226,15 @@ describe('editor store (phase 1)', () => {
   })
 
   it('saveProject sets lastError on failure', async () => {
+    const save = vi.fn(async (_content: string) => ({
+      ok: false as const,
+      reason: 'unsupported' as const,
+    }))
     const saveAs = vi.fn(async (_content: string) => ({
       ok: false as const,
       reason: 'unsupported' as const,
     }))
-    const service = { saveAs }
+    const service = { save, saveAs }
     const store = useEditorStore()
 
     const result = await store.saveProject(service)

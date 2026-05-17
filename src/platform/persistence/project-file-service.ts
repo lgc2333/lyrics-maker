@@ -8,16 +8,13 @@ export interface SaveResult {
 }
 
 export function createProjectFileService(api: SaveFilePickerApi) {
-  async function saveAs(content: string): Promise<SaveResult> {
-    if (!hasSaveFilePicker(api)) return { ok: false, reason: 'unsupported' }
+  let cachedHandle: SaveFileHandleLike | null = null
 
+  async function writeToHandle(
+    handle: SaveFileHandleLike,
+    content: string,
+  ): Promise<SaveResult> {
     try {
-      const handle = await api.showSaveFilePicker({
-        suggestedName: 'lyrics-project.json',
-        types: [
-          { description: 'Lyrics Project', accept: { 'application/json': ['.json'] } },
-        ],
-      })
       const writable = await handle.createWritable()
       await writable.write(content)
       await writable.close()
@@ -34,5 +31,36 @@ export function createProjectFileService(api: SaveFilePickerApi) {
     }
   }
 
-  return { saveAs }
+  async function saveAs(content: string): Promise<SaveResult> {
+    if (!hasSaveFilePicker(api)) return { ok: false, reason: 'unsupported' }
+
+    let handle: SaveFileHandleLike
+    try {
+      handle = await api.showSaveFilePicker({
+        suggestedName: 'lyrics-project.json',
+        types: [
+          { description: 'Lyrics Project', accept: { 'application/json': ['.json'] } },
+        ],
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return { ok: false, reason: 'cancelled' }
+      }
+      return {
+        ok: false,
+        reason: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'unknown',
+      }
+    }
+
+    cachedHandle = handle
+    return writeToHandle(handle, content)
+  }
+
+  async function save(content: string): Promise<SaveResult> {
+    if (!cachedHandle) return { ok: false, reason: 'unsupported' }
+    return writeToHandle(cachedHandle, content)
+  }
+
+  return { saveAs, save }
 }

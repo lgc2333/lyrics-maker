@@ -5,7 +5,8 @@ import { createShortcutRegistry } from '../platform/shortcuts/registry'
 import type { ShortcutAction } from '../platform/shortcuts/registry'
 
 export function useEditorShortcuts(options: {
-  onAction: (action: ShortcutAction) => void
+  onAction: (action: ShortcutAction) => void | Promise<void>
+  onError?: (error: unknown, action: ShortcutAction) => void
 }) {
   const registry = createShortcutRegistry()
 
@@ -15,6 +16,14 @@ export function useEditorShortcuts(options: {
   registry.register('Space', 'transport.togglePlay')
   registry.register('B', 'timing.tapBpm')
   registry.register('M', 'metronome.toggle')
+
+  function reportActionError(error: unknown, action: ShortcutAction): void {
+    if (options.onError) {
+      options.onError(error, action)
+      return
+    }
+    console.error('Unhandled shortcut action error:', error)
+  }
 
   function onKeydown(event: KeyboardEvent) {
     const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
@@ -26,7 +35,9 @@ export function useEditorShortcuts(options: {
 
     registry.dispatch(key, (action) => {
       event.preventDefault()
-      options.onAction(action)
+      void Promise.resolve()
+        .then(() => options.onAction(action))
+        .catch((error) => reportActionError(error, action))
     })
   }
 

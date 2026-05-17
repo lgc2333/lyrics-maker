@@ -2,21 +2,13 @@
 import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 
+import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
 
 const store = useEditorStore()
 
 const musicPopoverOpen = ref(false)
 const sfxPopoverOpen = ref(false)
-
-function formatTime(sec: number): string {
-  if (!Number.isFinite(sec) || sec < 0) return '00:00.000'
-  const totalMs = Math.round(sec * 1000)
-  const minutes = Math.floor(totalMs / 60000)
-  const seconds = Math.floor((totalMs % 60000) / 1000)
-  const milliseconds = totalMs % 1000
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`
-}
 
 function onSeek(event: Event): void {
   const input = event.target as HTMLInputElement
@@ -94,7 +86,7 @@ function onSfxWheel(event: WheelEvent): void {
     </button>
 
     <span data-testid="time-display" class="text-xs tabular-nums">
-      {{ formatTime(store.currentTime) }} / {{ formatTime(store.duration) }}
+      {{ formatTimestamp(store.currentTime) }} / {{ formatTimestamp(store.duration) }}
     </span>
 
     <input

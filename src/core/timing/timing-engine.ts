@@ -1,6 +1,8 @@
 import type { TimingPoint } from '../domain/project'
 import { sortTimingPoints } from './timing-point'
 
+const BEAT_EPSILON = 1e-9
+
 export interface BeatInfo {
   pointId: string
   beatIndex: number
@@ -83,7 +85,7 @@ export function getBeatInfoAtTime(
   const elapsed = (time - point.time) / dur
 
   // Use epsilon to handle floating point near-exact beats
-  const beatIdx = Math.floor(elapsed + 1e-9)
+  const beatIdx = Math.floor(elapsed + BEAT_EPSILON)
 
   const barIdx = Math.floor(beatIdx / bpBar)
   const beatTimeAbs = point.time + beatIdx * dur
@@ -143,11 +145,11 @@ export function getPreviousBarTime(
   )
 
   const elapsed = (time - point.time) / dur
-  const beatIdx = Math.floor(elapsed + 1e-9)
+  const beatIdx = Math.floor(elapsed + BEAT_EPSILON)
   const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
 
   const currentBarStartTime = point.time + currentBarStartBeat * dur
-  const isExactlyOnBarStart = Math.abs(time - currentBarStartTime) < 1e-9
+  const isExactlyOnBarStart = Math.abs(time - currentBarStartTime) < BEAT_EPSILON
 
   const prevBarStartBeat = isExactlyOnBarStart
     ? currentBarStartBeat - bpBar
@@ -171,7 +173,7 @@ export function getNextBarBoundaryTime(
   )
 
   const elapsed = (time - point.time) / dur
-  const beatIdx = Math.floor(elapsed + 1e-9)
+  const beatIdx = Math.floor(elapsed + BEAT_EPSILON)
   const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
   const nextBarStartBeat = currentBarStartBeat + bpBar
 

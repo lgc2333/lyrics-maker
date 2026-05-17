@@ -37,6 +37,7 @@ function createMockMetronome(): MetronomeScheduler {
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => false),
+    getLoadError: vi.fn(() => null),
     destroy: vi.fn(),
   }
 }

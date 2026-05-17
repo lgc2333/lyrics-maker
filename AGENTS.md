@@ -91,10 +91,13 @@ Avoid `vi.spyOn(store, 'actionName')` — Pinia wraps actions, making spies unre
 
 ## Before Committing
 
-Before committing or claiming work is done, always run `pnpm format` to normalize formatting.
+Before committing or claiming work is done, always run `pnpm lint` then `pnpm format` to catch lint errors and normalize formatting .
 
 ## Gotchas & Patterns
 
+- **`@iconify/vue` triggers real CDN fetches in happy-dom.** The `<Icon>` component lazily fetches icon JSON on first render; in happy-dom teardown these get aborted, producing `DOMException [AbortError]` noise. Global mock lives in `src/test/setup.ts` (`vi.mock('@iconify/vue', ...)`) — do not remove it.
+- **`useEditorShortcuts` dispatches actions asynchronously (microtask).** Keyboard event handlers resolve via `Promise.resolve().then(...)`, so assertions after dispatching a key event must use `await vi.waitFor(() => expect(...))`, not synchronous `expect` or `await Promise.resolve()`.
+- **Composable async error handling pattern.** When a composable wraps async callbacks, expose an `onError?: (error, context) => void` hook instead of silently swallowing or always `console.error`-ing. This keeps tests deterministic and production behavior observable.
 - **`shallowRef` + `computed` 不追踪内部状态变化。** `computed(() => shallowRef.value?.getIsPlaying())` 永远不会重新求值。对需要跟踪的布尔值，要用独立的 `ref<boolean>` 并在每个状态转换点显式更新。
 - **`async` 函数中的响应式更新要放在第一个 `await` 之前。** `ref.value++` 若在 `await transport.play()` 之后，测试中调用 `store.action()` 不加 `await` 时不会立即生效。
 - **秒↔毫秒转换用 `Math.round` 而非 `Math.floor`。** `Math.floor(sec * 1000)` 会把 `8.030`（IEEE 754 实为 `8.02999...`）显示为 `8.029`，与 `.toFixed(3)` 的四舍五入不一致。统一用 `Math.round`。

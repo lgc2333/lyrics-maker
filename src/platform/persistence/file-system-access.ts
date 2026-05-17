@@ -1,3 +1,7 @@
+export function getPlatformSavePickerApi(): SaveFilePickerApi {
+  return window as unknown as SaveFilePickerApi
+}
+
 export interface WritableFileLike {
   write: (content: string) => Promise<void>
   close: () => Promise<void>

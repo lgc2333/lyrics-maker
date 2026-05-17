@@ -6,6 +6,7 @@ export interface MetronomeScheduler {
     nextBeat: { at: number; isBarStart: boolean } | null,
   ) => void
   hasPendingLatch: () => boolean
+  getLoadError: () => Error | null
   destroy: () => void
 }
 
@@ -113,6 +114,10 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
 
     hasPendingLatch(): boolean {
       return latchPending
+    },
+
+    getLoadError(): Error | null {
+      return loadError
     },
 
     destroy(): void {

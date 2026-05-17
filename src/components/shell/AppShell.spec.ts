@@ -32,6 +32,7 @@ function createMockMetronome(): {
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
+    getLoadError: vi.fn(() => null),
     destroy: vi.fn(),
   }
 
@@ -74,7 +75,7 @@ describe('appShell', () => {
     expect(wrapper.text()).toContain('导入歌词或逐句输入以开始打轴')
   })
 
-  it('dispatches undo on Ctrl+Z', () => {
+  it('dispatches undo on Ctrl+Z', async () => {
     mount(AppShell)
     const store = useEditorStore()
     store.addLyricLine('test')
@@ -83,10 +84,12 @@ describe('appShell', () => {
     window.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
     )
-    expect(store.project.lyrics).toHaveLength(0)
+    await vi.waitFor(() => {
+      expect(store.project.lyrics).toHaveLength(0)
+    })
   })
 
-  it('dispatches M to toggle metronome action', () => {
+  it('dispatches M to toggle metronome action', async () => {
     const mock = createMockMetronome()
     __overrideMetronomeFactory(() => mock.scheduler)
 
@@ -94,13 +97,22 @@ describe('appShell', () => {
     const store = useEditorStore()
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
-    expect(store.metronomeState).toBe('on')
+    await vi.waitFor(() => {
+      expect(store.metronomeState).toBe('on')
+    })
   })
 
   it('theme toggle updates html data-theme attribute', async () => {
     const wrapper = mount(AppShell)
     await wrapper.get('[data-testid="theme-toggle"]').trigger('click')
     expect(document.documentElement.getAttribute('data-theme')).toBeTruthy()
+  })
+
+  it('does not issue network requests while mounting shell icons', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    mount(AppShell)
+    await Promise.resolve()
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('contains hidden audio input for file import workflow', () => {
