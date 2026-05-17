@@ -16,7 +16,10 @@ function onTapBpm() {
 </script>
 
 <template>
-  <section class="flex-1 border-t border-base-300 p-4">
+  <section
+    data-testid="timing-points-panel"
+    class="flex-1 border-t border-base-300 p-4"
+  >
     <div class="flex flex-col gap-3">
       <!-- TAP BPM -->
       <div class="flex items-center gap-2">

@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { useEditorStore } from '../../stores/editor-store'
+import LyricsPanel from './LyricsPanel.vue'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
-import ModePanel from './ModePanel.vue'
+import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
 
 const store = useEditorStore()
 const persistence = useProjectPersistence()
+
+const editorMode = ref<'timing' | 'lyrics'>('timing')
 
 useEditorShortcuts({
   onAction: async (action) => {
@@ -24,9 +29,17 @@ useEditorShortcuts({
 
 <template>
   <div class="flex h-screen flex-col">
-    <MenuBar data-testid="menu-bar" />
+    <MenuBar
+      data-testid="menu-bar"
+      :mode="editorMode"
+      @switch-mode="editorMode = $event"
+    />
     <TransportBar data-testid="transport-bar" />
     <MainView data-testid="main-view" />
-    <ModePanel data-testid="mode-panel" />
+    <TimingPointsPanel
+      v-if="editorMode === 'timing'"
+      data-testid="timing-points-panel"
+    />
+    <LyricsPanel v-else data-testid="lyrics-panel" />
   </div>
 </template>

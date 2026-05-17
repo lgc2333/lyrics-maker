@@ -53,7 +53,24 @@ describe('appShell', () => {
     expect(wrapper.find('[data-testid="menu-bar"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="transport-bar"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="main-view"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="mode-panel"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(true)
+  })
+
+  it('renders timing panel by default and can switch to lyrics panel', async () => {
+    const wrapper = mount(AppShell)
+    expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
+  })
+
+  it('lyrics panel scaffold contains placeholder text', async () => {
+    const wrapper = mount(AppShell)
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('歌词编辑区')
   })
 
   it('dispatches undo on Ctrl+Z', () => {
