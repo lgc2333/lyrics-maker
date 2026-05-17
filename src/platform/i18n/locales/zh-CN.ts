@@ -1,6 +1,21 @@
 export const zhCN = {
   shell: {
-    menu: { file: '文件' },
+    menu: {
+      file: '文件',
+      newProject: '新建项目',
+      openFile: '打开文件...',
+      save: '保存',
+      saveAs: '另存为...',
+      edit: '编辑',
+      undo: '撤销',
+      redo: '重做',
+      view: '查看',
+      zoomFit: '缩放至合适',
+      zoomSelection: '缩放至选区',
+      help: '帮助',
+      shortcuts: '快捷键列表',
+      about: '关于',
+    },
     mode: { timing: '时轴模式', lyrics: '歌词模式' },
   },
   transport: {
