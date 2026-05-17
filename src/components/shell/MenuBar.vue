@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 defineProps<{ mode: 'timing' | 'lyrics' }>()
-const emit = defineEmits<{ switchMode: [mode: 'timing' | 'lyrics'] }>()
+const emit = defineEmits<{
+  switchMode: [mode: 'timing' | 'lyrics']
+  toggleTheme: []
+}>()
 
 type MenuName = 'file' | 'edit' | 'view' | 'help'
 const openMenu = ref<MenuName | null>(null)
@@ -11,6 +14,20 @@ const openMenu = ref<MenuName | null>(null)
 function toggleMenu(name: MenuName) {
   openMenu.value = openMenu.value === name ? null : name
 }
+
+function onDocumentClick(e: MouseEvent) {
+  const target = e.target as HTMLElement | null
+  if (!target || typeof target.closest !== 'function') return
+  if (
+    !target.closest('[data-testid^="menu-trigger-"]') &&
+    !target.closest('[data-testid^="menu-popup-"]')
+  ) {
+    openMenu.value = null
+  }
+}
+
+onMounted(() => document.addEventListener('click', onDocumentClick, true))
+onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, true))
 </script>
 
 <template>
@@ -120,6 +137,7 @@ function toggleMenu(name: MenuName) {
       <button
         data-testid="theme-toggle"
         class="cursor-pointer p-0.5 hover:bg-base-300 rounded"
+        @click="emit('toggleTheme')"
       >
         <Icon icon="material-symbols:light-mode-rounded" class="text-sm" />
       </button>
