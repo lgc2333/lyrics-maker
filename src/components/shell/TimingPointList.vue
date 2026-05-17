@@ -55,11 +55,11 @@ function isActive(id: string): boolean {
         v-for="point in store.project.timingPoints"
         :key="point.id"
         data-testid="timing-point-row"
-        class="relative flex cursor-pointer items-center gap-3 border-b border-base-200 px-3 py-2 text-sm transition-colors hover:bg-base-200/80"
+        class="flex cursor-pointer items-center gap-3 border-b border-l-[3px] border-base-200 px-3 py-2 text-sm transition-colors hover:bg-base-200/80"
         :class="{
-          'is-selected': selectedId === point.id,
-          'is-active': isActive(point.id),
-          'is-selected-active': selectedId === point.id && isActive(point.id),
+          'bg-primary/10': selectedId === point.id,
+          'border-l-success rounded-r-sm': isActive(point.id),
+          'border-l-transparent': !isActive(point.id),
         }"
         @click="$emit('select', point.id)"
       >
@@ -78,32 +78,3 @@ function isActive(id: string): boolean {
     </ul>
   </div>
 </template>
-
-<style scoped>
-.is-selected {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary, oklch(0.55 0.2 260)) 10%,
-    transparent
-  );
-}
-
-.is-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: var(--color-success, oklch(0.6 0.2 140));
-  border-radius: 0 2px 2px 0;
-}
-
-.is-selected-active {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary, oklch(0.55 0.2 260)) 10%,
-    transparent
-  );
-}
-</style>

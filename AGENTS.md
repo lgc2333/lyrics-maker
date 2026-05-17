@@ -98,10 +98,11 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **`@iconify/vue` triggers real CDN fetches in happy-dom.** The `<Icon>` component lazily fetches icon JSON on first render; in happy-dom teardown these get aborted, producing `DOMException [AbortError]` noise. Global mock lives in `src/test/setup.ts` (`vi.mock('@iconify/vue', ...)`) — do not remove it.
 - **`useEditorShortcuts` dispatches actions asynchronously (microtask).** Keyboard event handlers resolve via `Promise.resolve().then(...)`, so assertions after dispatching a key event must use `await vi.waitFor(() => expect(...))`, not synchronous `expect` or `await Promise.resolve()`.
 - **Composable async error handling pattern.** When a composable wraps async callbacks, expose an `onError?: (error, context) => void` hook instead of silently swallowing or always `console.error`-ing. This keeps tests deterministic and production behavior observable.
-- **`shallowRef` + `computed` 不追踪内部状态变化。** `computed(() => shallowRef.value?.getIsPlaying())` 永远不会重新求值。对需要跟踪的布尔值，要用独立的 `ref<boolean>` 并在每个状态转换点显式更新。
-- **`async` 函数中的响应式更新要放在第一个 `await` 之前。** `ref.value++` 若在 `await transport.play()` 之后，测试中调用 `store.action()` 不加 `await` 时不会立即生效。
-- **秒↔毫秒转换用 `Math.round` 而非 `Math.floor`。** `Math.floor(sec * 1000)` 会把 `8.030`（IEEE 754 实为 `8.02999...`）显示为 `8.029`，与 `.toFixed(3)` 的四舍五入不一致。统一用 `Math.round`。
-- **CSS `rotate` 不改变布局盒子。** 对竖向滑条用 `-rotate-90`，需配合 `absolute` 定位 + `w-{N}` 等于容器 `h-{N}`，避免 flex/grid 容器把元素压缩到内容宽度。
+- **`shallowRef` + `computed` does not track internal state changes.** `computed(() => shallowRef.value?.getIsPlaying())` will never re-evaluate. For booleans that need tracking, use a separate `ref<boolean>` and explicitly update it at every state transition.
+- **In `async` functions, place reactive updates before the first `await`.** If `ref.value++` comes after `await transport.play()`, tests calling `store.action()` without `await` won't see the update immediately.
+- **Use `Math.round`, not `Math.floor`, for seconds↔milliseconds conversion.** `Math.floor(sec * 1000)` turns `8.030` (IEEE 754 actually `8.02999...`) into `8.029`, inconsistent with `.toFixed(3)` rounding. Always use `Math.round`.
+- **CSS `rotate` does not change the layout box.** For vertical sliders with `-rotate-90`, pair with `absolute` positioning and set `w-{N}` equal to the container's `h-{N}` to prevent flex/grid from collapsing the element to its content width.
+- **Tailwind mutually-exclusive utilities must use conditional binding, not `class` + `:class` together.** When `border-l-transparent` and `border-l-success` both appear on an element, the generated CSS order determines precedence — HTML class order is irrelevant. Use `:class="{ 'border-l-success': active, 'border-l-transparent': !active }"` to keep them mutually exclusive. Apply a shared `border-l-[3px]` for consistent alignment across all rows.
 
 ## Tooling
 

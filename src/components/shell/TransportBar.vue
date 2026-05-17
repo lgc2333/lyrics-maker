@@ -168,7 +168,3 @@ function onSfxWheel(event: WheelEvent): void {
     </div>
   </section>
 </template>
-
-<style scoped>
-/* no custom styles needed — volume slider uses Tailwind rotation utilities */
-</style>

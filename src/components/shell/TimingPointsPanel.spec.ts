@@ -81,13 +81,13 @@ describe('timingPointsPanel', () => {
     expect(rows).toHaveLength(2)
   })
 
-  it('applies is-selected class on row click', async () => {
+  it('applies selected background on row click', async () => {
     addTwoPoints()
     const wrapper = mount(TimingPointsPanel)
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
     await rows[0].trigger('click')
-    expect(rows[0].classes()).toContain('is-selected')
-    expect(rows[1].classes()).not.toContain('is-selected')
+    expect(rows[0].classes()).toContain('bg-primary/10')
+    expect(rows[1].classes()).not.toContain('bg-primary/10')
   })
 
   it('shows offset adjust buttons and applies time changes', async () => {
@@ -105,7 +105,7 @@ describe('timingPointsPanel', () => {
     expect(after - before).toBeCloseTo(0.005, 6)
   })
 
-  it('applies is-active class when playback time matches a timing point', async () => {
+  it('applies active border when playback time matches a timing point', async () => {
     const store = useEditorStore()
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
     addTwoPoints()
@@ -114,7 +114,7 @@ describe('timingPointsPanel', () => {
     await wrapper.vm.$nextTick()
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
     // Row at index 1 is the 5s timing point which should be active
-    expect(rows[1].classes()).toContain('is-active')
+    expect(rows[1].classes()).toContain('border-l-success')
   })
 
   it('shows add-at-current-time button', () => {
