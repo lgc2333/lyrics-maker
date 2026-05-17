@@ -64,6 +64,7 @@ Expected: FAIL with missing `timing-points-panel` / mode-switch selectors.
 <!-- AppShell.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
+
 const editorMode = ref<'timing' | 'lyrics'>('timing')
 </script>
 
@@ -130,6 +131,7 @@ Expected: FAIL because `MenuBar.spec.ts` and selectors are not implemented yet.
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
+
 const props = defineProps<{ mode: 'timing' | 'lyrics' }>()
 const emit = defineEmits<{ 'switch-mode': ['timing' | 'lyrics'] }>()
 const openMenu = ref<'file' | 'edit' | 'view' | 'help' | null>(null)
@@ -175,7 +177,7 @@ it('resizes height between min and max via drag handle', async () => {
   await handle.trigger('pointerdown', { clientY: 300 })
   window.dispatchEvent(new PointerEvent('pointermove', { clientY: 360 }))
   window.dispatchEvent(new PointerEvent('pointerup'))
-  expect(parseInt((root.element as HTMLElement).style.height, 10)).toBeGreaterThanOrEqual(250)
+  expect(Number.parseInt((root.element as HTMLElement).style.height, 10)).toBeGreaterThanOrEqual(250)
 })
 ```
 
@@ -189,6 +191,7 @@ Expected: FAIL because no resize handle/state exists.
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
+
 const height = ref(250)
 const min = 180
 const max = 520
@@ -364,6 +367,7 @@ Expected: FAIL due missing selector/classes/control section.
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useEditorStore } from '../../stores/editor-store'
+
 const store = useEditorStore()
 const selectedId = ref<string | null>(null)
 const activeId = computed(() => store.activeTimingPointId)

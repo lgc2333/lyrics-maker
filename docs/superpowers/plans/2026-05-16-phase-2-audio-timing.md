@@ -268,13 +268,13 @@ Expected: FAIL with missing module.
 
 ```ts
 export interface AudioTransport {
-  loadFile(file: File): Promise<void>
-  play(): Promise<void>
-  pause(): void
-  seek(time: number): void
-  getCurrentTime(): number
-  getDuration(): number
-  setVolume(value: number): void
+  loadFile: (file: File) => Promise<void>
+  play: () => Promise<void>
+  pause: () => void
+  seek: (time: number) => void
+  getCurrentTime: () => number
+  getDuration: () => number
+  setVolume: (value: number) => void
 }
 ```
 
@@ -466,8 +466,11 @@ type ShortcutAction =
 ```vue
 <!-- TransportBar -->
 <input type="file" accept="audio/*" />
+
 <button>播放/暂停</button>
+
 <input type="range" v-model="musicVolume" />
+
 <input type="range" v-model="sfxVolume" />
 ```
 

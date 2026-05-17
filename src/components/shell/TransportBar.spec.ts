@@ -41,7 +41,7 @@ function createMockMetronome(): MetronomeScheduler {
   }
 }
 
-describe('TransportBar', () => {
+describe('transportBar', () => {
   beforeEach(() => {
     __overrideAudioTransportFactory(() => createMockTransport())
     __overrideMetronomeFactory(() => createMockMetronome())

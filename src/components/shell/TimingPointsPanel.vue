@@ -260,12 +260,26 @@ async function onTapBpm() {
 
 <style scoped>
 .is-selected {
-  @apply bg-primary/10;
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary, oklch(0.55 0.2 260)) 10%,
+    transparent
+  );
 }
 .is-active {
-  @apply bg-success/10;
+  background-color: color-mix(
+    in srgb,
+    var(--color-success, oklch(0.55 0.2 140)) 10%,
+    transparent
+  );
 }
 .is-selected-active {
-  @apply bg-primary/20 ring-1 ring-primary/30;
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary, oklch(0.55 0.2 260)) 20%,
+    transparent
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-primary, oklch(0.55 0.2 260)) 30%, transparent);
 }
 </style>

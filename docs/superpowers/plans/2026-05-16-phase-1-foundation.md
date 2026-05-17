@@ -328,7 +328,8 @@ export function createAddLyricLineCommand(payload: { id: string; text: string })
 ```ts
 // src/stores/editor-store.ts
 import { defineStore } from 'pinia'
-import { createEmptyProject, type ProjectDocument } from '../core/domain/project'
+import { createEmptyProject  } from '../core/domain/project'
+import type {ProjectDocument} from '../core/domain/project';
 import { createCommandHistory } from '../core/commands/history'
 import { createAddLyricLineCommand } from '../core/commands/project-commands'
 

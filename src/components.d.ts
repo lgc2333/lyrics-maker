@@ -12,11 +12,12 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
+    LyricsPanel: typeof import('./components/shell/LyricsPanel.vue')['default']
     MainView: typeof import('./components/shell/MainView.vue')['default']
     MenuBar: typeof import('./components/shell/MenuBar.vue')['default']
-    ModePanel: typeof import('./components/shell/ModePanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TimingPointsPanel: typeof import('./components/shell/TimingPointsPanel.vue')['default']
     TransportBar: typeof import('./components/shell/TransportBar.vue')['default']
   }
 }
