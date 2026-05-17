@@ -19,7 +19,6 @@ describe('createEmptyProject', () => {
           bpm: 120,
           timeSignatureNumerator: 4,
           timeSignatureDenominator: 4,
-          offsetMs: 0,
         },
       ],
       audio: {
@@ -33,7 +32,6 @@ describe('createEmptyProject', () => {
     const project = createEmptyProject()
     expect(project.timingPoints).toHaveLength(1)
     expect(project.timingPoints[0].time).toBe(0)
-    expect(project.timingPoints[0].offsetMs).toBe(0)
     expect(project.audio.musicVolume).toBe(1)
     expect(project.audio.sfxVolume).toBe(0.8)
   })

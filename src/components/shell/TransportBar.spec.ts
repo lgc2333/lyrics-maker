@@ -142,6 +142,17 @@ describe('transportBar', () => {
     expect(Number((slider.element as HTMLInputElement).max)).toBe(120)
   })
 
+  it('formats combined time display as mm:ss.mmm / mm:ss.mmm', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.seekPlayback(1.234)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[data-testid="time-display"]').text()).toContain(
+      '00:01.234 / 02:00.000',
+    )
+  })
+
   // ---- Bar-step seek ----
 
   it('previous bar button calls store.seekToPreviousBar', async () => {
@@ -153,7 +164,6 @@ describe('transportBar', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
 
     const btn = wrapper.get('[data-testid="prev-bar"]')
@@ -171,7 +181,6 @@ describe('transportBar', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
 
     const btn = wrapper.get('[data-testid="next-bar"]')

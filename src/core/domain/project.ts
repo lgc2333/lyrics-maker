@@ -24,7 +24,6 @@ export interface TimingPoint {
   bpm: number
   timeSignatureNumerator: number
   timeSignatureDenominator: number
-  offsetMs: number
 }
 
 export interface ProjectDocument {
@@ -52,7 +51,6 @@ export function createEmptyProject(): ProjectDocument {
         bpm: 120,
         timeSignatureNumerator: 4,
         timeSignatureDenominator: 4,
-        offsetMs: 0,
       },
     ],
     audio: {

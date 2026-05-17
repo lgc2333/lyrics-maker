@@ -80,11 +80,7 @@ export function getBeatInfoAtTime(
     point.timeSignatureDenominator,
   )
 
-  // Offset shifts the query time relative to the beat grid
-  const effectiveTime = time + point.offsetMs / 1000
-
-  // Elapsed beats from segment start (point.time is absolute, no offset)
-  const elapsed = (effectiveTime - point.time) / dur
+  const elapsed = (time - point.time) / dur
 
   // Use epsilon to handle floating point near-exact beats
   const beatIdx = Math.floor(elapsed + 1e-9)
@@ -146,19 +142,16 @@ export function getPreviousBarTime(
     point.timeSignatureDenominator,
   )
 
-  // Effective time with offset
-  const effectiveTime = time + point.offsetMs / 1000
-  const elapsed = (effectiveTime - point.time) / dur
+  const elapsed = (time - point.time) / dur
   const beatIdx = Math.floor(elapsed + 1e-9)
   const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
 
-  let prevBarStartBeat: number
-  if (beatIdx === currentBarStartBeat) {
-    // We're exactly on a bar boundary — go to previous bar
-    prevBarStartBeat = currentBarStartBeat - bpBar
-  } else {
-    prevBarStartBeat = currentBarStartBeat
-  }
+  const currentBarStartTime = point.time + currentBarStartBeat * dur
+  const isExactlyOnBarStart = Math.abs(time - currentBarStartTime) < 1e-9
+
+  const prevBarStartBeat = isExactlyOnBarStart
+    ? currentBarStartBeat - bpBar
+    : currentBarStartBeat
 
   return point.time + prevBarStartBeat * dur
 }
@@ -177,8 +170,7 @@ export function getNextBarBoundaryTime(
     point.timeSignatureDenominator,
   )
 
-  const effectiveTime = time + point.offsetMs / 1000
-  const elapsed = (effectiveTime - point.time) / dur
+  const elapsed = (time - point.time) / dur
   const beatIdx = Math.floor(elapsed + 1e-9)
   const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
   const nextBarStartBeat = currentBarStartBeat + bpBar

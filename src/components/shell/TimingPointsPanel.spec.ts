@@ -64,14 +64,12 @@ describe('timingPointsPanel', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
     store.addTimingPoint({
       time: 5,
       bpm: 140,
       timeSignatureNumerator: 3,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
   }
 
@@ -91,7 +89,7 @@ describe('timingPointsPanel', () => {
     expect(rows[1].classes()).not.toContain('is-selected')
   })
 
-  it('shows offset adjust buttons and applies offset changes', async () => {
+  it('shows offset adjust buttons and applies time changes', async () => {
     addTwoPoints()
     const wrapper = mount(TimingPointsPanel)
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
@@ -99,9 +97,11 @@ describe('timingPointsPanel', () => {
 
     const store = useEditorStore()
     const pointId = store.project.timingPoints[0].id
+    const before = store.project.timingPoints.find((p) => p.id === pointId)!.time
 
     await wrapper.get('[data-testid="offset-plus-5"]').trigger('click')
-    expect(store.project.timingPoints.find((p) => p.id === pointId)!.offsetMs).toBe(5)
+    const after = store.project.timingPoints.find((p) => p.id === pointId)!.time
+    expect(after - before).toBeCloseTo(0.005, 6)
   })
 
   it('applies is-active class when playback time matches a timing point', async () => {
@@ -123,6 +123,13 @@ describe('timingPointsPanel', () => {
     )
   })
 
+  it('shows clone-selected-at-current-time button', () => {
+    const wrapper = mount(TimingPointsPanel)
+    expect(
+      wrapper.find('[data-testid="clone-selected-point-at-current-time"]').exists(),
+    ).toBe(true)
+  })
+
   it('has tap bpm button that triggers store action', async () => {
     const wrapper = mount(TimingPointsPanel)
     const store = useEditorStore()
@@ -133,7 +140,6 @@ describe('timingPointsPanel', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
 
     // Import audio so tapBpm can access the mock transport (getCurrentTime)

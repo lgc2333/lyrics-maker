@@ -46,6 +46,7 @@ function createMockMetronome(): {
 describe('appShell', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    document.documentElement.removeAttribute('data-theme')
   })
 
   it('renders all phase-1 shell sections', () => {
@@ -94,5 +95,48 @@ describe('appShell', () => {
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }))
     expect(store.metronomeState).toBe('on')
+  })
+
+  it('theme toggle updates html data-theme attribute', async () => {
+    const wrapper = mount(AppShell)
+    await wrapper.get('[data-testid="theme-toggle"]').trigger('click')
+    expect(document.documentElement.getAttribute('data-theme')).toBeTruthy()
+  })
+
+  it('contains hidden audio input for file import workflow', () => {
+    const wrapper = mount(AppShell)
+    expect(wrapper.find('[data-testid="audio-file-input"]').exists()).toBe(true)
+  })
+
+  it('opens audio picker when menu open-file action is clicked', async () => {
+    const wrapper = mount(AppShell)
+    const inputEl = wrapper.get('[data-testid="audio-file-input"]')
+      .element as HTMLInputElement
+    const clickSpy = vi.spyOn(inputEl, 'click')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-audio"]').trigger('click')
+
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('defaults theme based on system preference', async () => {
+    const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(((
+      query: string,
+    ) => ({
+      matches: query.includes('prefers-color-scheme'),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as typeof window.matchMedia)
+
+    const wrapper = mount(AppShell)
+    await wrapper.vm.$nextTick()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    matchMediaSpy.mockRestore()
   })
 })

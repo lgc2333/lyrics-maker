@@ -2,21 +2,22 @@
 import { Icon } from '@iconify/vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-defineProps<{ mode: 'timing' | 'lyrics' }>()
+defineProps<{ mode: 'timing' | 'lyrics'; theme: 'light' | 'dark' }>()
 const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
   toggleTheme: []
+  openAudioFile: []
 }>()
 
 type MenuName = 'file' | 'edit' | 'view' | 'help'
 const openMenu = ref<MenuName | null>(null)
 
-function toggleMenu(name: MenuName) {
+function toggleMenu(name: MenuName): void {
   openMenu.value = openMenu.value === name ? null : name
 }
 
-function onDocumentClick(e: MouseEvent) {
-  const target = e.target as HTMLElement | null
+function onDocumentClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement | null
   if (!target || typeof target.closest !== 'function') return
   if (
     !target.closest('[data-testid^="menu-trigger-"]') &&
@@ -31,16 +32,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
 </script>
 
 <template>
-  <header class="flex h-8 items-center border-b border-base-300 px-2 text-xs">
-    <!-- App title -->
-    <span class="font-semibold">歌词打轴软件</span>
-
-    <!-- Menus -->
-    <nav class="ml-3 flex gap-1">
+  <header
+    class="grid h-8 grid-cols-[1fr_auto_1fr] items-center border-b border-base-300 px-2 text-xs"
+  >
+    <nav data-testid="menu-left" class="flex items-center gap-1">
       <div class="relative">
         <button
           data-testid="menu-trigger-file"
-          class="cursor-pointer px-1 hover:bg-base-300 rounded"
+          class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('file')"
         >
           文件
@@ -48,19 +47,23 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'file'"
           data-testid="menu-popup-file"
-          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] border border-base-300 bg-base-100 rounded shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             新建项目
           </div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <button
+            data-testid="menu-open-audio"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="emit('openAudioFile')"
+          >
             打开文件...
-          </div>
-          <div class="border-t border-base-300 my-0.5"></div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          </button>
+          <div class="my-0.5 border-t border-base-300" />
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             保存 (Ctrl+S)
           </div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             另存为...
           </div>
         </div>
@@ -69,7 +72,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
       <div class="relative">
         <button
           data-testid="menu-trigger-edit"
-          class="cursor-pointer px-1 hover:bg-base-300 rounded"
+          class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('edit')"
         >
           编辑
@@ -77,12 +80,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'edit'"
           data-testid="menu-popup-edit"
-          class="absolute left-0 top-full z-50 mt-0.5 min-w-[140px] border border-base-300 bg-base-100 rounded shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             撤销 (Ctrl+Z)
           </div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             重做 (Ctrl+Y)
           </div>
         </div>
@@ -91,7 +94,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
       <div class="relative">
         <button
           data-testid="menu-trigger-view"
-          class="cursor-pointer px-1 hover:bg-base-300 rounded"
+          class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('view')"
         >
           查看
@@ -99,12 +102,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'view'"
           data-testid="menu-popup-view"
-          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] border border-base-300 bg-base-100 rounded shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             缩放至合适
           </div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             缩放至选区
           </div>
         </div>
@@ -113,7 +116,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
       <div class="relative">
         <button
           data-testid="menu-trigger-help"
-          class="cursor-pointer px-1 hover:bg-base-300 rounded"
+          class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('help')"
         >
           帮助
@@ -121,44 +124,68 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'help'"
           data-testid="menu-popup-help"
-          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] border border-base-300 bg-base-100 rounded shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
             快捷键列表
           </div>
-          <div class="px-2 py-1 hover:bg-base-200 cursor-pointer text-[11px]">关于</div>
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">关于</div>
         </div>
       </div>
     </nav>
 
-    <!-- Right-side controls -->
-    <div class="ml-auto flex items-center gap-2">
-      <!-- Theme toggle -->
+    <div data-testid="menu-title" class="justify-self-center text-sm font-semibold">
+      歌词打轴软件
+    </div>
+
+    <div
+      data-testid="menu-right"
+      class="ml-auto flex items-center gap-2 justify-self-end"
+    >
       <button
         data-testid="theme-toggle"
-        class="cursor-pointer p-0.5 hover:bg-base-300 rounded"
+        class="btn btn-ghost btn-xs btn-square"
         @click="emit('toggleTheme')"
       >
-        <Icon icon="material-symbols:light-mode-rounded" class="text-sm" />
+        <Icon
+          :icon="
+            theme === 'dark'
+              ? 'material-symbols:dark-mode-rounded'
+              : 'material-symbols:light-mode-rounded'
+          "
+          class="text-sm"
+        />
       </button>
 
-      <!-- Mode switch -->
-      <button
-        data-testid="mode-switch-timing"
-        class="cursor-pointer px-1 hover:bg-base-300 rounded"
-        :class="{ 'font-bold underline': mode === 'timing' }"
-        @click="emit('switchMode', 'timing')"
+      <div
+        data-testid="mode-switch-group"
+        class="inline-flex items-center rounded-md bg-base-300 p-0.5"
       >
-        时轴
-      </button>
-      <button
-        data-testid="mode-switch-lyrics"
-        class="cursor-pointer px-1 hover:bg-base-300 rounded"
-        :class="{ 'font-bold underline': mode === 'lyrics' }"
-        @click="emit('switchMode', 'lyrics')"
-      >
-        歌词
-      </button>
+        <button
+          data-testid="mode-switch-timing"
+          class="rounded px-2 py-0.5 transition-colors"
+          :class="
+            mode === 'timing'
+              ? 'bg-base-100 font-semibold shadow'
+              : 'text-base-content/70 hover:text-base-content'
+          "
+          @click="emit('switchMode', 'timing')"
+        >
+          时轴
+        </button>
+        <button
+          data-testid="mode-switch-lyrics"
+          class="rounded px-2 py-0.5 transition-colors"
+          :class="
+            mode === 'lyrics'
+              ? 'bg-base-100 font-semibold shadow'
+              : 'text-base-content/70 hover:text-base-content'
+          "
+          @click="emit('switchMode', 'lyrics')"
+        >
+          歌词
+        </button>
+      </div>
     </div>
   </header>
 </template>

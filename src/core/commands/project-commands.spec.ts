@@ -16,7 +16,6 @@ describe('timing point commands', () => {
       bpm: 150,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 5,
     }
     const command = createAddTimingPointCommand(payload)
     const afterAdd = command.do(createEmptyProject())

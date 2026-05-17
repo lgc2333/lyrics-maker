@@ -246,7 +246,6 @@ describe('editor store (phase 2 - timing points)', () => {
       bpm: 140,
       timeSignatureNumerator: 3,
       timeSignatureDenominator: 4,
-      offsetMs: 5,
     })
     expect(store.project.timingPoints).toHaveLength(2)
     expect(store.project.timingPoints[1].bpm).toBe(140)
@@ -425,7 +424,6 @@ describe('editor store (phase 2 - audio transport)', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
 
     const inserted = store.project.timingPoints[store.project.timingPoints.length - 1]
@@ -618,7 +616,6 @@ describe('editor store (phase 2 - bar-step seek)', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
     store.seekPlayback(2.5) // middle of bar 1 (bar 1 = beats 4-7 = 2s-4s)
     store.seekToPreviousBar()
@@ -634,7 +631,6 @@ describe('editor store (phase 2 - bar-step seek)', () => {
       bpm: 120,
       timeSignatureNumerator: 4,
       timeSignatureDenominator: 4,
-      offsetMs: 0,
     })
     store.seekPlayback(1.0)
     store.seekToNextBar()

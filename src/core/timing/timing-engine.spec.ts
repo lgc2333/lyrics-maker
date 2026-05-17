@@ -17,7 +17,6 @@ function tp(overrides: Partial<TimingPoint> & { id: string }): TimingPoint {
     bpm: 120,
     timeSignatureNumerator: 4,
     timeSignatureDenominator: 4,
-    offsetMs: 0,
     ...overrides,
   }
 }
@@ -266,16 +265,6 @@ describe('getBeatInfoAtTime', () => {
     expect(getBeatInfoAtTime(points, 1.5).barIndex).toBe(1)
   })
 
-  // --- Offset ---
-  it('shifts beat grid forward by offset (effective time = time + offsetMs/1000)', () => {
-    const points: TimingPoint[] = [tp({ id: 'tp-1', time: 0, bpm: 120, offsetMs: 50 })]
-    // beat duration = 0.5s, offsetMs = 50ms = 0.05s
-    // effective_time(0.45) = 0.45 + 0.05 = 0.50 → beat 1
-    const info = getBeatInfoAtTime(points, 0.45)
-    expect(info.beatIndex).toBe(1)
-    expect(info.beatTime).toBe(0.5)
-  })
-
   // --- Backward projection ---
   it('uses first timing point for times before first point', () => {
     const points: TimingPoint[] = [tp({ id: 'tp-1', time: 10, bpm: 120 })]
@@ -439,20 +428,8 @@ describe('getPreviousBarTime', () => {
     expect(prev).toBeCloseTo(-2, 5) // one bar back = -4 beats at 0.5s = -2s
   })
 
-  it('works with offset', () => {
-    const ptsWithOffset = [
-      tp({
-        id: '1',
-        time: 0,
-        bpm: 120,
-        timeSignatureNumerator: 4,
-        timeSignatureDenominator: 4,
-        offsetMs: 100,
-      }),
-    ]
-    // offsetMs=100 means effective time = time + 0.1
-    const prev = getPreviousBarTime(ptsWithOffset, 2.4)
-    // effective time = 2.5, beat 5, bar 1 (beats 4-7), previous bar boundary at beat 4 = 2s
+  it('uses point.time directly without offset adjustment', () => {
+    const prev = getPreviousBarTime(points, 2.4)
     expect(prev).toBeCloseTo(2, 5)
   })
 })
@@ -489,20 +466,8 @@ describe('getNextBarBoundaryTime', () => {
     expect(next).toBeCloseTo(2, 5)
   })
 
-  it('works with offset', () => {
-    const ptsWithOffset = [
-      tp({
-        id: '1',
-        time: 0,
-        bpm: 120,
-        timeSignatureNumerator: 4,
-        timeSignatureDenominator: 4,
-        offsetMs: 100,
-      }),
-    ]
-    // offsetMs=100 means effective time = time + 0.1
-    const next = getNextBarBoundaryTime(ptsWithOffset, 1.4)
-    // effective time = 1.5, beat 3, next bar at beat 4 = 2s
+  it('uses current beat position directly to compute next boundary', () => {
+    const next = getNextBarBoundaryTime(points, 1.4)
     expect(next).toBeCloseTo(2, 5)
   })
 })

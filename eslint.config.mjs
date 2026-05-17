@@ -5,7 +5,9 @@ import prettier from 'eslint-config-prettier'
 // import eslintParserVue from 'vue-eslint-parser'
 
 export default antfu(
-  {},
+  {
+    markdown: false,
+  },
   // disable temporarily because this is slowing down eslint
   // {
   //   extends: [eslintPluginBetterTailwindcss.configs.recommended],

@@ -19,7 +19,7 @@ pnpm check            # vue-tsc --noEmit (faster type-only check, no build)
 
 Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its package manager.
 
-If `pnpm` is not on PATH, fall back to: `fnm --using default exec pnpm.cmd`
+If `pnpm` is not on PATH, fall back to: `fnm exec --using default pnpm.cmd`
 
 CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Edit tool refuses to write through symlinks.
 
