@@ -32,7 +32,7 @@ useEditorShortcuts({
     <MenuBar
       data-testid="menu-bar"
       :mode="editorMode"
-      @switch-mode="editorMode = $event"
+      @switchMode="editorMode = $event"
     />
     <TransportBar data-testid="transport-bar" />
     <MainView data-testid="main-view" />

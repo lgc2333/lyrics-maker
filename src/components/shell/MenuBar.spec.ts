@@ -20,13 +20,13 @@ describe('menuBar', () => {
   it('emits switch-mode when lyrics mode button clicked', async () => {
     const wrapper = mount(MenuBar, { props: { mode: 'timing' } })
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
-    expect(wrapper.emitted('switch-mode')?.[0]).toEqual(['lyrics'])
+    expect(wrapper.emitted('switchMode')?.[0]).toEqual(['lyrics'])
   })
 
   it('emits switch-mode when timing mode button clicked', async () => {
     const wrapper = mount(MenuBar, { props: { mode: 'lyrics' } })
     await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
-    expect(wrapper.emitted('switch-mode')?.[0]).toEqual(['timing'])
+    expect(wrapper.emitted('switchMode')?.[0]).toEqual(['timing'])
   })
 
   it('has theme toggle button', () => {

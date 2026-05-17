@@ -2,8 +2,8 @@
 import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 
-const props = defineProps<{ mode: 'timing' | 'lyrics' }>()
-const emit = defineEmits<{ 'switch-mode': [mode: 'timing' | 'lyrics'] }>()
+defineProps<{ mode: 'timing' | 'lyrics' }>()
+const emit = defineEmits<{ switchMode: [mode: 'timing' | 'lyrics'] }>()
 
 type MenuName = 'file' | 'edit' | 'view' | 'help'
 const openMenu = ref<MenuName | null>(null)
@@ -129,7 +129,7 @@ function toggleMenu(name: MenuName) {
         data-testid="mode-switch-timing"
         class="cursor-pointer px-1 hover:bg-base-300 rounded"
         :class="{ 'font-bold underline': mode === 'timing' }"
-        @click="emit('switch-mode', 'timing')"
+        @click="emit('switchMode', 'timing')"
       >
         时轴
       </button>
@@ -137,7 +137,7 @@ function toggleMenu(name: MenuName) {
         data-testid="mode-switch-lyrics"
         class="cursor-pointer px-1 hover:bg-base-300 rounded"
         :class="{ 'font-bold underline': mode === 'lyrics' }"
-        @click="emit('switch-mode', 'lyrics')"
+        @click="emit('switchMode', 'lyrics')"
       >
         歌词
       </button>
