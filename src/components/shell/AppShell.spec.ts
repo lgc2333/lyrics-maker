@@ -70,7 +70,7 @@ describe('appShell', () => {
     const wrapper = mount(AppShell)
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('歌词编辑区')
+    expect(wrapper.text()).toContain('导入歌词或逐句输入以开始打轴')
   })
 
   it('dispatches undo on Ctrl+Z', () => {

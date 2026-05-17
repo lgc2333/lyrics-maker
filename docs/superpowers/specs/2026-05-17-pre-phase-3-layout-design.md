@@ -145,3 +145,9 @@
   - 波形/频谱渲染
   - 网格与播放头同步
   - 分隔线密度与频率缩放
+
+## 9. 实现记录
+
+- 2026-05-17: Pre Phase 3 layout refresh 实现完成。MenuBar 采用 click 打开菜单，支持 click-outside-close；TransportBar 按严格从左到右顺序排列控件，音量使用 hover 弹出竖向滑条；TimingPointsPanel 支持 selected/active/combined 三态行高亮；MainView 支持拖拽缩放高度（180px–520px）。
+- MenuBar 菜单项当前为占位，待后续 Phase 接入实际操作。
+- LyricsPanel 为骨架占位，待 Phase 4 接入歌词编辑功能。
