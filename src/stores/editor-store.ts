@@ -81,16 +81,19 @@ export const useEditorStore = defineStore('editor', () => {
   const _tapEstimator = createTapBpmEstimator()
 
   const _currentTime = ref(0)
+  const _isPlaying = ref(false)
   const _metronomeState = ref<'off' | 'on' | 'latch_pending'>('off')
+  const _tapCount = ref(0) // incremented on every tap call, reset after idle timeout
   const _tapSampleCount = ref(0)
   const _tapEstimatedBpm = ref<number | null>(null)
+  let _tapResetTimerId: ReturnType<typeof setTimeout> | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
   const project = computed(() => history.value.state)
   const canUndo = computed(() => history.value.canUndo)
   const canRedo = computed(() => history.value.canRedo)
 
-  const isPlaying = computed(() => _audioTransport.value?.getIsPlaying() ?? false)
+  const isPlaying = computed(() => _isPlaying.value)
   const currentTime = computed(() => _currentTime.value)
   const activeTimingPointId = computed(() => {
     const points = project.value.timingPoints
@@ -103,6 +106,7 @@ export const useEditorStore = defineStore('editor', () => {
   })
   const isMetronomeEnabled = computed(() => _metronomeState.value === 'on')
   const metronomeState = computed(() => _metronomeState.value)
+  const tapCount = computed(() => _tapCount.value)
   const tapSampleCount = computed(() => _tapSampleCount.value)
   const tapEstimatedBpm = computed(() => _tapEstimatedBpm.value)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
@@ -145,6 +149,7 @@ export const useEditorStore = defineStore('editor', () => {
     const transport = _audioTransport.value
     if (!transport || !transport.getIsPlaying()) {
       _rafId = null
+      _isPlaying.value = false
       return
     }
 
@@ -227,8 +232,12 @@ export const useEditorStore = defineStore('editor', () => {
     if (transport.getIsPlaying()) {
       transport.pause()
       _stopPlaybackLoop()
+      _isPlaying.value = false
+      // Clear any pending metronome latch — no more syncToTimeline calls until next play
+      if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
     } else {
       await transport.play()
+      _isPlaying.value = true
       _startPlaybackLoop()
     }
   }
@@ -236,6 +245,9 @@ export const useEditorStore = defineStore('editor', () => {
   function pausePlayback(): void {
     _audioTransport.value?.pause()
     _stopPlaybackLoop()
+    _isPlaying.value = false
+    // Clear any pending metronome latch — no more syncToTimeline calls until next play
+    if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
   }
 
   // ---- Phase 2: Timing Points ----
@@ -255,25 +267,44 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ---- Phase 2: TAP BPM ----
 
+  function _resetTapState(): void {
+    _tapCount.value = 0
+    _tapSampleCount.value = 0
+    _tapEstimatedBpm.value = null
+    _tapEstimator.reset()
+    _tapResetTimerId = null
+  }
+
   async function tapBpm(sourceTime?: number): Promise<void> {
     const transport = _audioTransport.value
+
+    // Guard: require a loaded transport so timestamps are meaningful
+    if (!transport) return
 
     // Determine tap timestamp
     let t: number
     if (sourceTime !== undefined) {
       t = sourceTime
     } else {
-      t = transport?.getCurrentTime() ?? 0
+      t = transport.getCurrentTime()
     }
 
-    // If paused and transport exists, start playback from active timing point
-    if (transport && !transport.getIsPlaying()) {
+    // Always increment visible tap count immediately (before any await)
+    _tapCount.value++
+
+    // Schedule reset after 1.5 s of no tapping (matches estimator's 1 s gap reset)
+    if (_tapResetTimerId !== null) clearTimeout(_tapResetTimerId)
+    _tapResetTimerId = setTimeout(_resetTapState, 1500)
+
+    // If paused, start playback from active timing point
+    if (!transport.getIsPlaying()) {
       const activePoint = getActiveTimingPoint(
         project.value.timingPoints,
         _currentTime.value,
       )
       transport.seek(activePoint.time)
       await transport.play()
+      _isPlaying.value = true
       _startPlaybackLoop()
     }
 
@@ -296,16 +327,20 @@ export const useEditorStore = defineStore('editor', () => {
   function toggleMetronome(): void {
     const m = _ensureMetronome()
 
-    if (_metronomeState.value === 'off') {
+    if (_metronomeState.value === 'on') {
+      if (_isPlaying.value) {
+        // Playing → schedule one latch click at next beat, then stop
+        m.setEnabled(false)
+        _metronomeState.value = 'latch_pending'
+      } else {
+        // Not playing → skip latch, go directly to off
+        m.setEnabled(false)
+        _metronomeState.value = 'off'
+      }
+    } else {
+      // off or latch_pending → turn on (setEnabled(true) also cancels any pending latch)
       m.setEnabled(true)
       _metronomeState.value = 'on'
-    } else if (_metronomeState.value === 'on') {
-      m.setEnabled(false) // arms the latch
-      _metronomeState.value = 'latch_pending'
-    } else {
-      // latch_pending -> off
-      // The latch will fire on next beat and auto-clear.
-      _metronomeState.value = 'off'
     }
   }
 
@@ -374,6 +409,7 @@ export const useEditorStore = defineStore('editor', () => {
     activeTimingPointId,
     isMetronomeEnabled,
     metronomeState,
+    tapCount,
     tapSampleCount,
     tapEstimatedBpm,
     duration,

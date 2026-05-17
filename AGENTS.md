@@ -50,7 +50,8 @@ src/
 ├── components/shell/      # Editor shell — layout, transport, mode controls
 │   ├── AppShell.vue       # Root layout, wires shortcuts + persistence to store
 │   ├── TransportBar.vue   # Playback controls + progress slider with seek
-│   ├── ModePanel.vue      # Tap BPM, metronome, time signature settings
+│   ├── TimingPointsPanel.vue  # Timing point list (active/selected states, right-side controls)
+│   ├── LyricsPanel.vue        # Lyrics workspace scaffold
 │   ├── MenuBar.vue        # Top menu bar
 │   └── MainView.vue       # Main content area
 ├── pages/index.vue        # Route page — renders AppShell
@@ -68,7 +69,7 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base) and Phase 2 (audio + timing core) are complete. Remaining phases:
+Phase 1 (infrastructure base) and Phase 2 (audio + timing core) are complete. Pre-phase-3 scaffold (lyrics/timing panels, resizable layout) is in progress. Remaining:
 
 - Phase 3: Waveform/spectrogram views + grid system
 - Phase 4: Lyrics timing (word-level editing, WordTimelineBar)
@@ -91,6 +92,13 @@ Avoid `vi.spyOn(store, 'actionName')` — Pinia wraps actions, making spies unre
 ## Before Committing
 
 Before committing or claiming work is done, always run `pnpm format` to normalize formatting.
+
+## Gotchas & Patterns
+
+- **`shallowRef` + `computed` 不追踪内部状态变化。** `computed(() => shallowRef.value?.getIsPlaying())` 永远不会重新求值。对需要跟踪的布尔值，要用独立的 `ref<boolean>` 并在每个状态转换点显式更新。
+- **`async` 函数中的响应式更新要放在第一个 `await` 之前。** `ref.value++` 若在 `await transport.play()` 之后，测试中调用 `store.action()` 不加 `await` 时不会立即生效。
+- **秒↔毫秒转换用 `Math.round` 而非 `Math.floor`。** `Math.floor(sec * 1000)` 会把 `8.030`（IEEE 754 实为 `8.02999...`）显示为 `8.029`，与 `.toFixed(3)` 的四舍五入不一致。统一用 `Math.round`。
+- **CSS `rotate` 不改变布局盒子。** 对竖向滑条用 `-rotate-90`，需配合 `absolute` 定位 + `w-{N}` 等于容器 `h-{N}`，避免 flex/grid 容器把元素压缩到内容宽度。
 
 ## Tooling
 

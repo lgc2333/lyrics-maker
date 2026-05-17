@@ -36,11 +36,26 @@ function adjustPointTime(deltaMs: number): void {
   })
 }
 
+function setOffsetToCurrentTime(): void {
+  if (!focusedPoint.value) return
+  store.updateTimingPoint(focusedPoint.value.id, { time: store.currentTime })
+}
+
+function setOffsetFromSeconds(seconds: number): void {
+  if (!focusedPoint.value || !Number.isFinite(seconds)) return
+  store.updateTimingPoint(focusedPoint.value.id, { time: Math.max(0, seconds) })
+}
+
 function adjustBpm(delta: number): void {
   if (!focusedPoint.value) return
   store.updateTimingPoint(focusedPoint.value.id, {
     bpm: Math.max(1, Number((focusedPoint.value.bpm + delta).toFixed(3))),
   })
+}
+
+function setBpmFromInput(bpm: number): void {
+  if (!focusedPoint.value || !Number.isFinite(bpm)) return
+  store.updateTimingPoint(focusedPoint.value.id, { bpm: Math.max(1, bpm) })
 }
 
 function updateTimeSignatureNumerator(value: number): void {
@@ -77,9 +92,36 @@ function cloneSelectedPointAtCurrentTime(): void {
   })
 }
 
-function formatSeconds(value: number): string {
-  return `${value.toFixed(3)} s`
+/** Format seconds as MM:SS.mmm */
+function formatPointTime(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) return '00:00.000'
+  const totalMs = Math.round(sec * 1000)
+  const minutes = Math.floor(totalMs / 60000)
+  const seconds = Math.floor((totalMs % 60000) / 1000)
+  const milliseconds = totalMs % 1000
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`
 }
+
+/** Label for the Tap BPM button based on tap state */
+const TAP_MIN_SAMPLES = 9 // estimator needs > 8 taps
+
+const tapBpmLabel = computed(() => {
+  const count = store.tapCount
+  const bpm = store.tapEstimatedBpm
+  if (count === 0) return 'Tap to get BPM! (B)'
+  if (bpm === null) {
+    const remaining = TAP_MIN_SAMPLES - count
+    return `Tap${'.'.repeat(Math.max(1, remaining))}`
+  }
+  return `${bpm.toFixed(1)} BPM / ${count} Taps`
+})
+
+const tapBpmClass = computed(() => {
+  const count = store.tapCount
+  if (count === 0) return 'btn btn-sm w-full mb-2'
+  if (store.tapEstimatedBpm === null) return 'btn btn-sm w-full mb-2 btn-warning'
+  return 'btn btn-sm w-full mb-2 btn-success'
+})
 
 async function onTapBpm(): Promise<void> {
   await store.tapBpm()
@@ -118,7 +160,7 @@ async function onTapBpm(): Promise<void> {
           v-for="point in store.project.timingPoints"
           :key="point.id"
           data-testid="timing-point-row"
-          class="flex cursor-pointer items-center gap-3 border-b border-base-200 px-3 py-2 text-sm transition-colors hover:bg-base-200/80"
+          class="relative flex cursor-pointer items-center gap-3 border-b border-base-200 px-3 py-2 text-sm transition-colors hover:bg-base-200/80"
           :class="{
             'is-selected': isSelected(point.id),
             'is-active': isActive(point.id),
@@ -126,7 +168,7 @@ async function onTapBpm(): Promise<void> {
           }"
           @click="selectedId = point.id"
         >
-          <span class="w-24 tabular-nums">{{ point.time.toFixed(3) }}</span>
+          <span class="w-24 tabular-nums">{{ formatPointTime(point.time) }}</span>
           <span class="w-20 tabular-nums">{{ point.bpm.toFixed(1) }} BPM</span>
           <span class="w-20 tabular-nums"
             >{{ point.timeSignatureNumerator }}/{{
@@ -150,11 +192,24 @@ async function onTapBpm(): Promise<void> {
       <div class="border-b border-base-300 px-3 py-2">
         <div class="flex items-center justify-between">
           <span>Offset</span>
-          <span class="tabular-nums underline underline-offset-2">
-            {{ formatSeconds(focusedPoint?.time ?? store.currentTime) }}
-          </span>
+          <div class="flex items-center gap-1">
+            <input
+              class="input input-xs w-24 text-right tabular-nums"
+              type="number"
+              step="0.001"
+              :value="(focusedPoint?.time ?? store.currentTime).toFixed(3)"
+              @change="
+                setOffsetFromSeconds(Number(($event.target as HTMLInputElement).value))
+              "
+            />
+            <span class="text-xs opacity-50">s</span>
+          </div>
         </div>
-        <button data-testid="tap-bpm-button" class="btn btn-sm w-full mt-2">
+        <button
+          data-testid="set-offset-to-current-time"
+          class="btn btn-sm w-full mt-2"
+          @click="setOffsetToCurrentTime"
+        >
           Set offset to current time
         </button>
         <div class="mt-2 flex items-center justify-center gap-1">
@@ -223,16 +278,22 @@ async function onTapBpm(): Promise<void> {
       <div class="border-b border-base-300 px-3 py-2">
         <div class="mb-2 flex items-center justify-between">
           <span>BPM</span>
-          <span class="tabular-nums">{{
-            (focusedPoint?.bpm ?? activePoint?.bpm ?? 120).toFixed(1)
-          }}</span>
+          <input
+            class="input input-xs w-26 text-right tabular-nums"
+            type="number"
+            step="0.1"
+            min="1"
+            :value="(focusedPoint?.bpm ?? activePoint?.bpm ?? 120).toFixed(1)"
+            @change="setBpmFromInput(Number(($event.target as HTMLInputElement).value))"
+          />
         </div>
         <button
           data-testid="tap-bpm-button"
-          class="btn btn-sm w-full mb-2"
+          :class="tapBpmClass"
+          :disabled="store.duration <= 0"
           @click="onTapBpm"
         >
-          Tap to get BPM! (B)
+          {{ tapBpmLabel }}
         </button>
         <div class="flex items-center justify-center gap-1">
           <button class="btn btn-xs" @click="adjustBpm(-1)">1</button>
@@ -296,21 +357,23 @@ async function onTapBpm(): Promise<void> {
   );
 }
 
-.is-active {
-  background-color: color-mix(
-    in srgb,
-    var(--color-success, oklch(0.55 0.2 140)) 10%,
-    transparent
-  );
+/* Active state: left border indicator only, no background */
+.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--color-success, oklch(0.6 0.2 140));
+  border-radius: 0 2px 2px 0;
 }
 
 .is-selected-active {
   background-color: color-mix(
     in srgb,
-    var(--color-primary, oklch(0.55 0.2 260)) 20%,
+    var(--color-primary, oklch(0.55 0.2 260)) 10%,
     transparent
   );
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--color-primary, oklch(0.55 0.2 260)) 30%, transparent);
 }
 </style>

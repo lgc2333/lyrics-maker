@@ -130,6 +130,37 @@ describe('timingPointsPanel', () => {
     ).toBe(true)
   })
 
+  it('set-offset-to-current-time button sets time to currentTime', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    addTwoPoints()
+    store.seekPlayback(3.5)
+
+    const wrapper = mount(TimingPointsPanel)
+    const rows = wrapper.findAll('[data-testid="timing-point-row"]')
+    await rows[0].trigger('click')
+
+    const pointId = store.project.timingPoints[0].id
+    await wrapper.get('[data-testid="set-offset-to-current-time"]').trigger('click')
+
+    const updatedPoint = store.project.timingPoints.find((p) => p.id === pointId)!
+    expect(updatedPoint.time).toBeCloseTo(3.5, 5)
+  })
+
+  it('formats timing point time as MM:SS.mmm', () => {
+    const store = useEditorStore()
+    store.removeTimingPoint(store.project.timingPoints[0].id)
+    store.addTimingPoint({
+      time: 65.123,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
+    const wrapper = mount(TimingPointsPanel)
+    const row = wrapper.get('[data-testid="timing-point-row"]')
+    expect(row.text()).toContain('01:05.123')
+  })
+
   it('has tap bpm button that triggers store action', async () => {
     const wrapper = mount(TimingPointsPanel)
     const store = useEditorStore()
@@ -145,12 +176,17 @@ describe('timingPointsPanel', () => {
     // Import audio so tapBpm can access the mock transport (getCurrentTime)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
-    // Tap multiple times to accumulate > 8 samples for the estimator to produce a result.
-    // The mock transport's getCurrentTime returns 0, but the estimator only needs N taps.
-    for (let i = 0; i < 9; i++) {
+    // Tap multiple times — tapCount increments on every call
+    for (let i = 0; i < 5; i++) {
       await wrapper.get('[data-testid="tap-bpm-button"]').trigger('click')
     }
 
-    expect(store.tapSampleCount).toBeGreaterThan(0)
+    expect(store.tapCount).toBeGreaterThan(0)
+  })
+
+  it('tap bpm button is disabled when no audio loaded', () => {
+    const wrapper = mount(TimingPointsPanel)
+    const btn = wrapper.get('[data-testid="tap-bpm-button"]')
+    expect((btn.element as HTMLButtonElement).disabled).toBe(true)
   })
 })

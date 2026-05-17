@@ -16,9 +16,6 @@
 
 ## 2. 分阶段交付规划
 
-> 补充：在正式 Phase 3 前，新增一轮布局先行改造，见  
-> `docs/superpowers/specs/2026-05-17-pre-phase-3-layout-design.md`。
-
 ### Phase 1：基础设施基座
 
 - 统一工程数据模型（项目、歌词行、词块、配置）
@@ -37,6 +34,9 @@
 - 音乐音量与音效音量独立控制
 
 ### Phase 3：主视图与网格系统
+
+> 补充：在正式 Phase 3 前，新增一轮布局先行改造，见  
+> `docs/superpowers/specs/2026-05-17-pre-phase-3-layout-design.md`。
 
 - 波形/频谱切换显示
 - 主视图高度缩放、自动居中/滚动

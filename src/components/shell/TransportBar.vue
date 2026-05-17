@@ -11,7 +11,7 @@ const sfxPopoverOpen = ref(false)
 
 function formatTime(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '00:00.000'
-  const totalMs = Math.floor(sec * 1000)
+  const totalMs = Math.round(sec * 1000)
   const minutes = Math.floor(totalMs / 60000)
   const seconds = Math.floor((totalMs % 60000) / 1000)
   const milliseconds = totalMs % 1000
@@ -121,22 +121,24 @@ function onSfxWheel(event: WheelEvent): void {
       </button>
       <div
         v-show="musicPopoverOpen"
-        class="absolute bottom-full left-1/2 z-50 mb-0 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
+        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
       >
         <div class="mb-1 text-center text-[10px] tabular-nums">
           {{ Math.round(store.project.audio.musicVolume * 100) }}%
         </div>
-        <input
-          class="volume-slider"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          :value="store.project.audio.musicVolume"
-          @input="
-            store.setMusicVolume(($event.target as HTMLInputElement).valueAsNumber)
-          "
-        />
+        <div class="relative h-24 w-6">
+          <input
+            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="store.project.audio.musicVolume"
+            @input="
+              store.setMusicVolume(($event.target as HTMLInputElement).valueAsNumber)
+            "
+          />
+        </div>
       </div>
     </div>
 
@@ -152,29 +154,29 @@ function onSfxWheel(event: WheelEvent): void {
       </button>
       <div
         v-show="sfxPopoverOpen"
-        class="absolute bottom-full left-1/2 z-50 mb-0 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
+        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
       >
         <div class="mb-1 text-center text-[10px] tabular-nums">
           {{ Math.round(store.project.audio.sfxVolume * 100) }}%
         </div>
-        <input
-          class="volume-slider"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          :value="store.project.audio.sfxVolume"
-          @input="store.setSfxVolume(($event.target as HTMLInputElement).valueAsNumber)"
-        />
+        <div class="relative h-24 w-6">
+          <input
+            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="store.project.audio.sfxVolume"
+            @input="
+              store.setSfxVolume(($event.target as HTMLInputElement).valueAsNumber)
+            "
+          />
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.volume-slider {
-  width: 84px;
-  transform: rotate(-90deg);
-  transform-origin: center;
-}
+/* no custom styles needed — volume slider uses Tailwind rotation utilities */
 </style>
