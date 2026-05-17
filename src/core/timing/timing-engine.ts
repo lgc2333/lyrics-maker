@@ -1,3 +1,4 @@
+import zhCN from '../../platform/i18n/locales/zh-CN.json'
 import type { TimingPoint } from '../domain/project'
 import { sortTimingPoints } from './timing-point'
 
@@ -25,7 +26,7 @@ export function getActiveTimingPoint(
   const sorted = sortTimingPoints(points)
 
   if (sorted.length === 0) {
-    throw new Error('Cannot get active timing point: no timing points available')
+    throw new Error(zhCN.errors.noTimingPoints)
   }
 
   // Backward projection: time before first point
@@ -109,7 +110,7 @@ export function getNextBeatTime(points: readonly TimingPoint[], time: number): n
   const sorted = sortTimingPoints(points)
 
   if (sorted.length === 0) {
-    throw new Error('Cannot get next beat time: no timing points available')
+    throw new Error(zhCN.errors.noTimingPoints)
   }
 
   const point = getActiveTimingPoint(sorted, time)

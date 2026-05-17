@@ -1,3 +1,4 @@
+import zhCN from '../i18n/locales/zh-CN.json'
 import type { SaveFilePickerApi } from './file-system-access'
 import { hasSaveFilePicker } from './file-system-access'
 
@@ -26,7 +27,7 @@ export function createProjectFileService(api: SaveFilePickerApi) {
       return {
         ok: false,
         reason: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'unknown',
+        errorMessage: error instanceof Error ? error.message : zhCN.errors.unknownError,
       }
     }
   }
@@ -37,9 +38,12 @@ export function createProjectFileService(api: SaveFilePickerApi) {
     let handle: SaveFileHandleLike
     try {
       handle = await api.showSaveFilePicker({
-        suggestedName: 'lyrics-project.json',
+        suggestedName: zhCN.project.suggestedFileName,
         types: [
-          { description: 'Lyrics Project', accept: { 'application/json': ['.json'] } },
+          {
+            description: zhCN.project.fileTypeDescription,
+            accept: { 'application/json': ['.json'] },
+          },
         ],
       })
     } catch (error) {
@@ -49,7 +53,7 @@ export function createProjectFileService(api: SaveFilePickerApi) {
       return {
         ok: false,
         reason: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'unknown',
+        errorMessage: error instanceof Error ? error.message : zhCN.errors.unknownError,
       }
     }
 

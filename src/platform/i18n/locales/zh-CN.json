@@ -1,0 +1,73 @@
+{
+  "shell": {
+    "menu": {
+      "file": "文件",
+      "newProject": "新建项目",
+      "openFile": "打开文件...",
+      "save": "保存 (Ctrl+S)",
+      "saveAs": "另存为...",
+      "edit": "编辑",
+      "undo": "撤销 (Ctrl+Z)",
+      "redo": "重做 (Ctrl+Y)",
+      "view": "查看",
+      "zoomFit": "缩放至合适",
+      "zoomSelection": "缩放至选区",
+      "help": "帮助",
+      "shortcuts": "快捷键列表",
+      "about": "关于"
+    },
+    "appTitle": "歌词打轴软件",
+    "mode": { "timing": "时轴", "lyrics": "歌词" }
+  },
+  "transport": {
+    "metronome": "节拍器",
+    "snap": "吸附",
+    "prevBar": "上一小节",
+    "playPause": "播放/暂停",
+    "nextBar": "下一小节",
+    "musicVolume": "音乐音量",
+    "sfxVolume": "音效音量"
+  },
+  "timing": {
+    "pointList": {
+      "title": "Timing Points",
+      "cloneSelected": "克隆选中时轴到此处",
+      "addAtCurrentTime": "在此处添加时轴",
+      "delete": "删除"
+    },
+    "controls": {
+      "offset": "Offset",
+      "setToCurrentTime": "Set offset to current time",
+      "bpm": "BPM",
+      "timeSignature": "拍号",
+      "tapBpmIdle": "Tap to get BPM! (B)",
+      "tapBpmHint": "Tap",
+      "tapBpmActive": "{bpm} BPM / {count} Taps"
+    }
+  },
+  "lyrics": {
+    "title": "歌词编辑器",
+    "emptyHint": "导入歌词或逐句输入以开始打轴",
+    "timingControl": "打轴控制",
+    "shortcuts": "快捷键: D 打轴前进 | Shift+D 打轴 | Enter 下一行 | Ctrl+D 切词"
+  },
+  "project": {
+    "defaultTitle": "Untitled Project",
+    "suggestedFileName": "lyrics-project.json",
+    "fileTypeDescription": "Lyrics Project"
+  },
+  "errors": {
+    "unsupportedFsApi": "当前浏览器不支持实时写盘",
+    "saveFailed": "保存失败，请重试",
+    "bpmMustBePositive": "BPM 必须为正数",
+    "timeSignatureNumeratorMustBePositive": "拍号分子必须为正数",
+    "timeSignatureDenominatorMustBePositive": "拍号分母必须为正数",
+    "noTimingPoints": "没有可用的 Timing Point",
+    "failedToLoadAudio": "音频文件加载失败",
+    "unknownError": "未知错误"
+  },
+  "status": {
+    "dirty": "未保存更改",
+    "saved": "已保存"
+  }
+}

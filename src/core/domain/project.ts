@@ -1,3 +1,5 @@
+import zhCN from '../../platform/i18n/locales/zh-CN.json'
+
 export type LocaleCode = 'zh-CN'
 
 export interface ProjectSettings {
@@ -38,7 +40,7 @@ export interface ProjectDocument {
 export function createEmptyProject(): ProjectDocument {
   return {
     version: 1,
-    title: 'Untitled Project',
+    title: zhCN.project.defaultTitle,
     settings: {
       locale: 'zh-CN',
       snapDivisor: 4,

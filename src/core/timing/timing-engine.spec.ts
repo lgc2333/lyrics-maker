@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { TimingPoint } from '../domain/project'
+import zhCN from '../../platform/i18n/locales/zh-CN.json'
 import {
   getActiveTimingPoint,
   getBeatInfoAtTime,
@@ -65,25 +66,25 @@ describe('validateTimingPoint', () => {
 
   it('returns error for bpm <= 0', () => {
     const point = tp({ id: 'tp-1', bpm: 0 })
-    expect(validateTimingPoint(point)).toContain('bpm must be positive')
+    expect(validateTimingPoint(point)).toContain(zhCN.errors.bpmMustBePositive)
   })
 
   it('returns error for negative bpm', () => {
     const point = tp({ id: 'tp-1', bpm: -10 })
-    expect(validateTimingPoint(point)).toContain('bpm must be positive')
+    expect(validateTimingPoint(point)).toContain(zhCN.errors.bpmMustBePositive)
   })
 
   it('returns error for non-positive numerator', () => {
     const point = tp({ id: 'tp-1', timeSignatureNumerator: 0 })
     expect(validateTimingPoint(point)).toContain(
-      'timeSignatureNumerator must be positive',
+      zhCN.errors.timeSignatureNumeratorMustBePositive,
     )
   })
 
   it('returns error for non-positive denominator', () => {
     const point = tp({ id: 'tp-1', timeSignatureDenominator: 0 })
     expect(validateTimingPoint(point)).toContain(
-      'timeSignatureDenominator must be positive',
+      zhCN.errors.timeSignatureDenominatorMustBePositive,
     )
   })
 

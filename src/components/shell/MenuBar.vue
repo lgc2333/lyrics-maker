@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 defineProps<{ mode: 'timing' | 'lyrics'; theme: 'light' | 'dark' }>()
 const emit = defineEmits<{
@@ -8,6 +9,8 @@ const emit = defineEmits<{
   toggleTheme: []
   openAudioFile: []
 }>()
+
+const { t } = useI18n()
 
 type MenuName = 'file' | 'edit' | 'view' | 'help'
 const openMenu = ref<MenuName | null>(null)
@@ -42,7 +45,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('file')"
         >
-          文件
+          {{ t('shell.menu.file') }}
         </button>
         <div
           v-if="openMenu === 'file'"
@@ -50,21 +53,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            新建项目
+            {{ t('shell.menu.newProject') }}
           </div>
           <button
             data-testid="menu-open-audio"
             class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
             @click="emit('openAudioFile')"
           >
-            打开文件...
+            {{ t('shell.menu.openFile') }}
           </button>
           <div class="my-0.5 border-t border-base-300" />
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            保存 (Ctrl+S)
+            {{ t('shell.menu.save') }}
           </div>
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            另存为...
+            {{ t('shell.menu.saveAs') }}
           </div>
         </div>
       </div>
@@ -75,7 +78,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('edit')"
         >
-          编辑
+          {{ t('shell.menu.edit') }}
         </button>
         <div
           v-if="openMenu === 'edit'"
@@ -83,10 +86,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
         >
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            撤销 (Ctrl+Z)
+            {{ t('shell.menu.undo') }}
           </div>
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            重做 (Ctrl+Y)
+            {{ t('shell.menu.redo') }}
           </div>
         </div>
       </div>
@@ -97,7 +100,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('view')"
         >
-          查看
+          {{ t('shell.menu.view') }}
         </button>
         <div
           v-if="openMenu === 'view'"
@@ -105,10 +108,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            缩放至合适
+            {{ t('shell.menu.zoomFit') }}
           </div>
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            缩放至选区
+            {{ t('shell.menu.zoomSelection') }}
           </div>
         </div>
       </div>
@@ -119,7 +122,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('help')"
         >
-          帮助
+          {{ t('shell.menu.help') }}
         </button>
         <div
           v-if="openMenu === 'help'"
@@ -127,15 +130,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
           <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
-            快捷键列表
+            {{ t('shell.menu.shortcuts') }}
           </div>
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">关于</div>
+          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+            {{ t('shell.menu.about') }}
+          </div>
         </div>
       </div>
     </nav>
 
     <div data-testid="menu-title" class="justify-self-center text-sm font-semibold">
-      歌词打轴软件
+      {{ t('shell.appTitle') }}
     </div>
 
     <div
@@ -171,7 +176,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           "
           @click="emit('switchMode', 'timing')"
         >
-          时轴
+          {{ t('shell.mode.timing') }}
         </button>
         <button
           data-testid="mode-switch-lyrics"
@@ -183,7 +188,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           "
           @click="emit('switchMode', 'lyrics')"
         >
-          歌词
+          {{ t('shell.mode.lyrics') }}
         </button>
       </div>
     </div>

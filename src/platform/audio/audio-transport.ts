@@ -1,3 +1,5 @@
+import zhCN from '../i18n/locales/zh-CN.json'
+
 export interface AudioTransport {
   loadFile: (file: File) => Promise<void>
   play: () => Promise<void>
@@ -44,7 +46,7 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
         }
         function handleError() {
           removeListeners()
-          reject(new Error('Failed to load audio file'))
+          reject(new Error(zhCN.errors.failedToLoadAudio))
         }
         function handleLoaded() {
           removeListeners()

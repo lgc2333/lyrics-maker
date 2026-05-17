@@ -2,6 +2,8 @@ import { config } from '@vue/test-utils'
 import { afterEach, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 
+import { i18n } from '../platform/i18n'
+
 vi.mock('@iconify/vue', () => ({
   Icon: defineComponent({
     name: 'Icon',
@@ -25,6 +27,7 @@ const defaultStubs = {
   Icon: true,
 }
 
+config.global.plugins = [i18n]
 config.global.stubs = { ...defaultStubs }
 
 afterEach(() => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import type { TimingPoint } from '../../core/domain/project'
 import { useEditorStore } from '../../stores/editor-store'
@@ -20,6 +21,8 @@ const emit = defineEmits<{
   tapBpm: []
 }>()
 
+const { t } = useI18n()
+
 const store = useEditorStore()
 
 /** Label for the Tap BPM button based on tap state */
@@ -28,12 +31,12 @@ const TAP_MIN_SAMPLES = 9
 const tapBpmLabel = computed(() => {
   const count = store.tapCount
   const bpm = store.tapEstimatedBpm
-  if (count === 0) return 'Tap to get BPM! (B)'
+  if (count === 0) return t('timing.controls.tapBpmIdle')
   if (bpm === null) {
     const remaining = TAP_MIN_SAMPLES - count
-    return `Tap${'.'.repeat(Math.max(1, remaining))}`
+    return `${t('timing.controls.tapBpmHint')}${'.'.repeat(Math.max(1, remaining))}`
   }
-  return `${bpm.toFixed(1)} BPM / ${count} Taps`
+  return t('timing.controls.tapBpmActive', { bpm: bpm.toFixed(1), count })
 })
 
 const tapBpmClass = computed(() => {
@@ -51,7 +54,7 @@ const tapBpmClass = computed(() => {
   >
     <div class="border-b border-base-300 px-3 py-2">
       <div class="flex items-center justify-between">
-        <span>Offset</span>
+        <span>{{ t('timing.controls.offset') }}</span>
         <div class="flex items-center gap-1">
           <input
             class="input input-xs w-24 text-right tabular-nums"
@@ -72,7 +75,7 @@ const tapBpmClass = computed(() => {
         class="btn btn-sm w-full mt-2"
         @click="$emit('setOffsetToCurrentTime')"
       >
-        Set offset to current time
+        {{ t('timing.controls.setToCurrentTime') }}
       </button>
       <div class="mt-2 flex items-center justify-center gap-1">
         <button
@@ -139,7 +142,7 @@ const tapBpmClass = computed(() => {
 
     <div class="border-b border-base-300 px-3 py-2">
       <div class="mb-2 flex items-center justify-between">
-        <span>BPM</span>
+        <span>{{ t('timing.controls.bpm') }}</span>
         <input
           class="input input-xs w-26 text-right tabular-nums"
           type="number"
@@ -174,7 +177,7 @@ const tapBpmClass = computed(() => {
 
     <div class="px-3 py-2">
       <div class="mb-1 flex items-center justify-between">
-        <span>拍号</span>
+        <span>{{ t('timing.controls.timeSignature') }}</span>
         <div class="flex items-center gap-2">
           <input
             class="input input-xs w-12 text-center"

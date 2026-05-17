@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
+
+const { t } = useI18n()
 
 const store = useEditorStore()
 
@@ -36,7 +39,7 @@ function onSfxWheel(event: WheelEvent): void {
       data-testid="metronome-toggle"
       class="btn btn-ghost btn-sm btn-square"
       :class="{ 'btn-active text-primary': store.isMetronomeEnabled }"
-      title="节拍器"
+      :title="t('transport.metronome')"
       @click="store.toggleMetronome()"
     >
       <Icon icon="lucide:metronome" class="h-5 w-5" />
@@ -45,7 +48,7 @@ function onSfxWheel(event: WheelEvent): void {
     <button
       data-testid="snap-toggle"
       class="btn btn-ghost btn-sm btn-square"
-      title="吸附"
+      :title="t('transport.snap')"
       disabled
     >
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
@@ -56,7 +59,7 @@ function onSfxWheel(event: WheelEvent): void {
     <button
       data-testid="prev-bar"
       class="btn btn-ghost btn-sm btn-square"
-      title="上一小节"
+      :title="t('transport.prevBar')"
       @click="store.seekToPreviousBar()"
     >
       <Icon icon="material-symbols:skip-previous-rounded" class="h-5 w-5" />
@@ -65,7 +68,7 @@ function onSfxWheel(event: WheelEvent): void {
     <button
       data-testid="play-pause"
       class="btn btn-ghost btn-sm btn-square"
-      title="播放/暂停"
+      :title="t('transport.playPause')"
       @click="store.togglePlayback()"
     >
       <Icon
@@ -79,7 +82,7 @@ function onSfxWheel(event: WheelEvent): void {
     <button
       data-testid="next-bar"
       class="btn btn-ghost btn-sm btn-square"
-      title="下一小节"
+      :title="t('transport.nextBar')"
       @click="store.seekToNextBar()"
     >
       <Icon icon="material-symbols:skip-next-rounded" class="h-5 w-5" />
@@ -108,7 +111,10 @@ function onSfxWheel(event: WheelEvent): void {
       @mouseleave="musicPopoverOpen = false"
       @wheel="onMusicWheel"
     >
-      <button class="btn btn-ghost btn-sm btn-square" title="音乐音量">
+      <button
+        class="btn btn-ghost btn-sm btn-square"
+        :title="t('transport.musicVolume')"
+      >
         <Icon icon="material-symbols:music-note-rounded" class="h-5 w-5" />
       </button>
       <div
@@ -141,7 +147,7 @@ function onSfxWheel(event: WheelEvent): void {
       @mouseleave="sfxPopoverOpen = false"
       @wheel="onSfxWheel"
     >
-      <button class="btn btn-ghost btn-sm btn-square" title="音效音量">
+      <button class="btn btn-ghost btn-sm btn-square" :title="t('transport.sfxVolume')">
         <Icon icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
       </button>
       <div

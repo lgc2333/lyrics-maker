@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 import { getActiveTimingPoint } from '../../core/timing/timing-engine'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
@@ -13,6 +15,8 @@ defineEmits<{
   cloneSelected: [id: string]
   addAtCurrentTime: []
 }>()
+
+const { t } = useI18n()
 
 const store = useEditorStore()
 
@@ -30,7 +34,7 @@ function isActive(id: string): boolean {
 <template>
   <div class="flex min-w-0 flex-1 flex-col">
     <header class="flex items-center border-b border-base-300 px-3 py-1.5 text-xs">
-      <span class="opacity-70">Timing Points</span>
+      <span class="opacity-70">{{ t('timing.pointList.title') }}</span>
       <div class="ml-auto flex items-center gap-2">
         <button
           data-testid="clone-selected-point-at-current-time"
@@ -38,14 +42,14 @@ function isActive(id: string): boolean {
           :disabled="!selectedId"
           @click="$emit('cloneSelected', selectedId!)"
         >
-          克隆选中时轴到此处
+          {{ t('timing.pointList.cloneSelected') }}
         </button>
         <button
           data-testid="add-point-at-current-time"
           class="btn btn-xs"
           @click="$emit('addAtCurrentTime')"
         >
-          在此处添加时轴
+          {{ t('timing.pointList.addAtCurrentTime') }}
         </button>
       </div>
     </header>
@@ -64,7 +68,9 @@ function isActive(id: string): boolean {
         @click="$emit('select', point.id)"
       >
         <span class="w-24 tabular-nums">{{ formatTimestamp(point.time) }}</span>
-        <span class="w-20 tabular-nums">{{ point.bpm.toFixed(1) }} BPM</span>
+        <span class="w-20 tabular-nums"
+          >{{ point.bpm.toFixed(1) }} {{ t('timing.controls.bpm') }}</span
+        >
         <span class="w-20 tabular-nums"
           >{{ point.timeSignatureNumerator }}/{{ point.timeSignatureDenominator }}</span
         >
@@ -72,7 +78,7 @@ function isActive(id: string): boolean {
           class="btn btn-xs btn-ghost ml-auto"
           @click.stop="$emit('remove', point.id)"
         >
-          删除
+          {{ t('timing.pointList.delete') }}
         </button>
       </li>
     </ul>
