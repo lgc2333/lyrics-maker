@@ -131,3 +131,57 @@ export function getNextBeatTime(points: readonly TimingPoint[], time: number): n
 
   return nextBeatTime
 }
+
+/**
+ * Returns the time of the nearest previous bar boundary strictly before the given time.
+ */
+export function getPreviousBarTime(
+  points: readonly TimingPoint[],
+  time: number,
+): number {
+  const point = getActiveTimingPoint(points, time)
+  const dur = beatDuration(point.bpm)
+  const bpBar = beatsPerBar(
+    point.timeSignatureNumerator,
+    point.timeSignatureDenominator,
+  )
+
+  // Effective time with offset
+  const effectiveTime = time + point.offsetMs / 1000
+  const elapsed = (effectiveTime - point.time) / dur
+  const beatIdx = Math.floor(elapsed + 1e-9)
+  const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
+
+  let prevBarStartBeat: number
+  if (beatIdx === currentBarStartBeat) {
+    // We're exactly on a bar boundary — go to previous bar
+    prevBarStartBeat = currentBarStartBeat - bpBar
+  } else {
+    prevBarStartBeat = currentBarStartBeat
+  }
+
+  return point.time + prevBarStartBeat * dur
+}
+
+/**
+ * Returns the time of the next bar boundary strictly after the given time.
+ */
+export function getNextBarBoundaryTime(
+  points: readonly TimingPoint[],
+  time: number,
+): number {
+  const point = getActiveTimingPoint(points, time)
+  const dur = beatDuration(point.bpm)
+  const bpBar = beatsPerBar(
+    point.timeSignatureNumerator,
+    point.timeSignatureDenominator,
+  )
+
+  const effectiveTime = time + point.offsetMs / 1000
+  const elapsed = (effectiveTime - point.time) / dur
+  const beatIdx = Math.floor(elapsed + 1e-9)
+  const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
+  const nextBarStartBeat = currentBarStartBeat + bpBar
+
+  return point.time + nextBarStartBeat * dur
+}

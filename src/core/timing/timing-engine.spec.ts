@@ -4,7 +4,9 @@ import type { TimingPoint } from '../domain/project'
 import {
   getActiveTimingPoint,
   getBeatInfoAtTime,
+  getNextBarBoundaryTime,
   getNextBeatTime,
+  getPreviousBarTime,
 } from './timing-engine'
 import { sortTimingPoints, validateTimingPoint } from './timing-point'
 
@@ -402,5 +404,105 @@ describe('getNextBeatTime', () => {
     const points: TimingPoint[] = [tp({ id: 'tp-1', time: 0, bpm: 120 })]
     // time 0.001 is just after beat 0, next beat = 0.5
     expect(getNextBeatTime(points, 0.001)).toBe(0.5)
+  })
+})
+
+// ============================================================
+// getPreviousBarTime
+// ============================================================
+describe('getPreviousBarTime', () => {
+  const points = [
+    tp({
+      id: '1',
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    }),
+  ]
+
+  it('returns time of previous bar boundary when in the middle of a bar', () => {
+    // At time 3s (beat 6 in 4/4 at 120bpm, bar 1), previous bar starts at beat 4 = 2s
+    const prev = getPreviousBarTime(points, 3)
+    expect(prev).toBeCloseTo(2, 5)
+  })
+
+  it('returns time of previous bar when exactly on a bar boundary', () => {
+    // At time 2s (beat 4 = bar 1 start), previous bar starts at beat 0 = 0s
+    const prev = getPreviousBarTime(points, 2)
+    expect(prev).toBeCloseTo(0, 5)
+  })
+
+  it('returns time of previous bar when at the very beginning', () => {
+    // At time 0s (beat 0), previous bar would be negative
+    const prev = getPreviousBarTime(points, 0)
+    expect(prev).toBeCloseTo(-2, 5) // one bar back = -4 beats at 0.5s = -2s
+  })
+
+  it('works with offset', () => {
+    const ptsWithOffset = [
+      tp({
+        id: '1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+        offsetMs: 100,
+      }),
+    ]
+    // offsetMs=100 means effective time = time + 0.1
+    const prev = getPreviousBarTime(ptsWithOffset, 2.4)
+    // effective time = 2.5, beat 5, bar 1 (beats 4-7), previous bar boundary at beat 4 = 2s
+    expect(prev).toBeCloseTo(2, 5)
+  })
+})
+
+// ============================================================
+// getNextBarBoundaryTime
+// ============================================================
+describe('getNextBarBoundaryTime', () => {
+  const points = [
+    tp({
+      id: '1',
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    }),
+  ]
+
+  it('returns time of next bar boundary', () => {
+    // At time 1s (beat 2 in 4/4), next bar starts at beat 4 = 2s
+    const next = getNextBarBoundaryTime(points, 1)
+    expect(next).toBeCloseTo(2, 5)
+  })
+
+  it('returns the next bar boundary when exactly on bar start', () => {
+    // At time 2s (beat 4 = bar 1 start), next bar is bar 2 at beat 8 = 4s
+    const next = getNextBarBoundaryTime(points, 2)
+    expect(next).toBeCloseTo(4, 5)
+  })
+
+  it('returns the bar boundary after current position', () => {
+    // At time 0, next bar boundary is at beat 4 = 2s
+    const next = getNextBarBoundaryTime(points, 0)
+    expect(next).toBeCloseTo(2, 5)
+  })
+
+  it('works with offset', () => {
+    const ptsWithOffset = [
+      tp({
+        id: '1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+        offsetMs: 100,
+      }),
+    ]
+    // offsetMs=100 means effective time = time + 0.1
+    const next = getNextBarBoundaryTime(ptsWithOffset, 1.4)
+    // effective time = 1.5, beat 3, next bar at beat 4 = 2s
+    expect(next).toBeCloseTo(2, 5)
   })
 })

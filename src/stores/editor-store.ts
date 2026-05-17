@@ -15,7 +15,9 @@ import { createTapBpmEstimator } from '../core/timing/tap-bpm'
 import {
   getActiveTimingPoint,
   getBeatInfoAtTime,
+  getNextBarBoundaryTime,
   getNextBeatTime,
+  getPreviousBarTime,
 } from '../core/timing/timing-engine'
 import type { AudioTransport } from '../platform/audio/audio-transport'
 import { createAudioTransport } from '../platform/audio/audio-transport'
@@ -338,6 +340,19 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  function seekToPreviousBar(): void {
+    if (project.value.timingPoints.length === 0) return
+    const t = getPreviousBarTime(project.value.timingPoints, _currentTime.value)
+    seekPlayback(Math.max(0, t))
+  }
+
+  function seekToNextBar(): void {
+    if (project.value.timingPoints.length === 0) return
+    const t = getNextBarBoundaryTime(project.value.timingPoints, _currentTime.value)
+    const d = duration.value
+    seekPlayback(Math.min(d, t))
+  }
+
   // ---- Return ----
 
   return {
@@ -382,6 +397,8 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Phase 2: seek
     seekPlayback,
+    seekToPreviousBar,
+    seekToNextBar,
 
     // Phase 2: volume
     setMusicVolume,

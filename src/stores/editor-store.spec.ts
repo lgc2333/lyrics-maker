@@ -598,3 +598,46 @@ describe('editor store (phase 2 - reactive state)', () => {
     expect(store.tapEstimatedBpm).toBeNull()
   })
 })
+
+describe('editor store (phase 2 - bar-step seek)', () => {
+  let mockTransport: AudioTransport
+
+  beforeEach(() => {
+    const mock = createMockAudioTransport()
+    mockTransport = mock.transport
+    __overrideAudioTransportFactory(() => mockTransport)
+    setActivePinia(createPinia())
+  })
+
+  it('seekToPreviousBar jumps to previous bar boundary', async () => {
+    const store = useEditorStore()
+    // Import audio so seekPlayback works
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+      offsetMs: 0,
+    })
+    store.seekPlayback(2.5) // middle of bar 1 (bar 1 = beats 4-7 = 2s-4s)
+    store.seekToPreviousBar()
+    expect(store.currentTime).toBeLessThan(2.5)
+  })
+
+  it('seekToNextBar jumps to next bar boundary', async () => {
+    const store = useEditorStore()
+    // Import audio so seekPlayback works
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+      offsetMs: 0,
+    })
+    store.seekPlayback(1.0)
+    store.seekToNextBar()
+    expect(store.currentTime).toBeCloseTo(2.0, 3)
+  })
+})
