@@ -48,4 +48,19 @@ describe('mainView', () => {
     const heightAfterMax = getHeight(wrapper)
     expect(heightAfterMax).toBeLessThanOrEqual(520)
   })
+
+  it('renders waveform-container div', () => {
+    const wrapper = mount(MainView)
+    expect(wrapper.find('[data-testid="waveform-container"]').exists()).toBe(true)
+  })
+
+  it('renders word-timeline-bar-slot placeholder', () => {
+    const wrapper = mount(MainView)
+    expect(wrapper.find('[data-testid="word-timeline-bar-slot"]').exists()).toBe(true)
+  })
+
+  it('vertical-zoom-slider is not rendered in waveform mode (default)', () => {
+    const wrapper = mount(MainView)
+    expect(wrapper.find('[data-testid="vertical-zoom-slider"]').exists()).toBe(false)
+  })
 })

@@ -1,14 +1,25 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
 
 const { t } = useI18n()
 
 const store = useEditorStore()
+
+const timeline = inject(TIMELINE_VIEW_KEY)
+
+const SUBDIVISION_OPTIONS = [
+  { value: 1 as const, label: '1x' },
+  { value: 2 as const, label: '2x' },
+  { value: 4 as const, label: '4x' },
+  { value: 8 as const, label: '8x' },
+  { value: 16 as const, label: '16x' },
+]
 
 const musicPopoverOpen = ref(false)
 const sfxPopoverOpen = ref(false)
@@ -35,6 +46,24 @@ function onSfxWheel(event: WheelEvent): void {
 
 <template>
   <section class="flex items-center gap-2 border-b border-base-300 px-2 py-1.5">
+    <!-- Waveform / Spectrogram toggle -->
+    <button
+      v-if="timeline"
+      data-testid="view-mode-toggle"
+      class="btn btn-ghost btn-sm btn-square"
+      :title="t('transport.toggleViewMode')"
+      @click="timeline.setViewMode(
+        timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform'
+      )"
+    >
+      <Icon
+        v-if="timeline.viewMode.value === 'waveform'"
+        icon="material-symbols:waveform"
+        class="h-5 w-5"
+      />
+      <Icon v-else icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
+    </button>
+
     <button
       data-testid="metronome-toggle"
       class="btn btn-ghost btn-sm btn-square"
@@ -53,6 +82,47 @@ function onSfxWheel(event: WheelEvent): void {
     >
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
+
+    <!-- Subdivision divisor dropdown -->
+    <select
+      v-if="timeline"
+      data-testid="subdivision-select"
+      class="select select-xs w-20"
+      :title="t('transport.subdivisionDivisor')"
+      :value="timeline.divisor.value"
+      @change="
+        timeline.divisor.value = Number(($event.target as HTMLSelectElement).value) as 1|2|4|8|16
+      "
+    >
+      <option
+        v-for="opt in SUBDIVISION_OPTIONS"
+        :key="opt.value"
+        :value="opt.value"
+      >
+        {{ opt.label }}
+      </option>
+    </select>
+
+    <!-- Rhythm mode dropdown -->
+    <select
+      v-if="timeline"
+      data-testid="rhythm-mode-select"
+      class="select select-xs w-24"
+      :title="t('transport.rhythmMode')"
+      :value="timeline.rhythmMode.value"
+      @change="
+        timeline.rhythmMode.value = ($event.target as HTMLSelectElement).value as 'common'|'triplets'
+      "
+    >
+      <option value="common">{{ t('transport.rhythmCommon') }}</option>
+      <option value="triplets">
+        {{
+          timeline.altTripletActive.value
+            ? t('transport.rhythmTripletsAlt')
+            : t('transport.rhythmTriplets')
+        }}
+      </option>
+    </select>
 
     <div class="mx-1 h-5 w-px bg-base-300" />
 

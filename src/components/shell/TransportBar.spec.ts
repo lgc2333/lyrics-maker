@@ -288,6 +288,25 @@ describe('transportBar', () => {
 
   // ---- Play/Pause ----
 
+  // ---- New controls without timeline context ----
+
+  it('view-mode-toggle is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="view-mode-toggle"]').exists()).toBe(false)
+  })
+
+  it('subdivision-select is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="subdivision-select"]').exists()).toBe(false)
+  })
+
+  it('rhythm-mode-select is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(false)
+  })
+
+  // ---- Play/Pause ----
+
   it('play/pause button triggers togglePlayback without error', async () => {
     const mockTransport = createMockTransport()
     __overrideAudioTransportFactory(() => mockTransport)
