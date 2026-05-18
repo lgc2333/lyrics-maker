@@ -3,6 +3,10 @@ export type ShortcutAction =
   | 'history.redo'
   | 'project.save'
   | 'transport.togglePlay'
+  | 'transport.prevBeat'
+  | 'transport.nextBeat'
+  | 'transport.prevBar'
+  | 'transport.nextBar'
   | 'timing.tapBpm'
   | 'metronome.toggle'
 

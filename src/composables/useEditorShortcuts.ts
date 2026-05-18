@@ -16,6 +16,10 @@ export function useEditorShortcuts(options: {
   registry.register('Space', 'transport.togglePlay')
   registry.register('B', 'timing.tapBpm')
   registry.register('M', 'metronome.toggle')
+  registry.register('ArrowLeft', 'transport.prevBeat')
+  registry.register('ArrowRight', 'transport.nextBeat')
+  registry.register('Shift+ArrowLeft', 'transport.prevBar')
+  registry.register('Shift+ArrowRight', 'transport.nextBar')
 
   function reportActionError(error: unknown, action: ShortcutAction): void {
     if (options.onError) {
