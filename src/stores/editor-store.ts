@@ -7,6 +7,8 @@ import {
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
   createSetAudioVolumeCommand,
+  createSetRhythmModeCommand,
+  createSetSnapDivisorCommand,
   createUpdateTimingPointCommand,
 } from '../core/commands/project-commands'
 import { createEmptyProject } from '../core/domain/project'
@@ -17,7 +19,9 @@ import {
   getBeatInfoAtTime,
   getNextBarBoundaryTime,
   getNextBeatTime,
+  getNextSubdivisionTime,
   getPreviousBarTime,
+  getPreviousSubdivisionTime,
 } from '../core/timing/timing-engine'
 import type { AudioTransport } from '../platform/audio/audio-transport'
 import { createAudioTransport } from '../platform/audio/audio-transport'
@@ -81,6 +85,7 @@ export const useEditorStore = defineStore('editor', () => {
   const _metronome = shallowRef<MetronomeScheduler | null>(null)
   const _tapEstimator = createTapBpmEstimator()
 
+  const _audioFile = shallowRef<File | null>(null)
   const _currentTime = ref(0)
   const _isPlaying = ref(false)
   const _metronomeState = ref<'off' | 'on' | 'latch_pending'>('off')
@@ -233,6 +238,7 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 2: Audio ----
 
   async function importAudioFile(file: File): Promise<void> {
+    _audioFile.value = file
     const transport = _ensureAudioTransport()
     await transport.loadFile(file)
     triggerRef(_audioTransport)
@@ -411,6 +417,40 @@ export const useEditorStore = defineStore('editor', () => {
     seekPlayback(Math.min(d, t))
   }
 
+  // ---- Phase 3: Settings ----
+
+  function setRhythmMode(mode: 'common' | 'triplets'): void {
+    execute(createSetRhythmModeCommand(mode))
+  }
+
+  function setSnapDivisor(divisor: 1 | 2 | 4 | 8 | 16): void {
+    execute(createSetSnapDivisorCommand(divisor))
+  }
+
+  // ---- Phase 3: Subdivision seek ----
+
+  function seekToNextBeat(divisor: number, triplets: boolean): void {
+    if (project.value.timingPoints.length === 0) return
+    const t = getNextSubdivisionTime(
+      project.value.timingPoints,
+      _currentTime.value,
+      divisor,
+      triplets,
+    )
+    seekPlayback(Math.min(duration.value, t))
+  }
+
+  function seekToPrevBeat(divisor: number, triplets: boolean): void {
+    if (project.value.timingPoints.length === 0) return
+    const t = getPreviousSubdivisionTime(
+      project.value.timingPoints,
+      _currentTime.value,
+      divisor,
+      triplets,
+    )
+    seekPlayback(Math.max(0, t))
+  }
+
   // ---- Return ----
 
   return {
@@ -462,5 +502,16 @@ export const useEditorStore = defineStore('editor', () => {
     // Phase 2: volume
     setMusicVolume,
     setSfxVolume,
+
+    // Phase 3: audio file reference (for WaveSurfer)
+    audioFile: computed(() => _audioFile.value),
+
+    // Phase 3: settings
+    setRhythmMode,
+    setSnapDivisor,
+
+    // Phase 3: beat-level seek
+    seekToNextBeat,
+    seekToPrevBeat,
   }
 })
