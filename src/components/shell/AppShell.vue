@@ -3,10 +3,7 @@ import { onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
-import {
-  TIMELINE_VIEW_KEY,
-  useTimelineView,
-} from '../../composables/useTimelineView'
+import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import { useEditorStore } from '../../stores/editor-store'
 import LyricsPanel from './LyricsPanel.vue'
 import MainView from './MainView.vue'
@@ -79,24 +76,27 @@ watch(
 
 useEditorShortcuts({
   onAction: async (action) => {
-    if (action === 'history.undo') store.undo()
-    else if (action === 'history.redo') store.redo()
-    else if (action === 'project.save') await persistence.saveByShortcut()
-    else if (action === 'transport.togglePlay') store.togglePlayback()
-    else if (action === 'timing.tapBpm') store.tapBpm()
-    else if (action === 'metronome.toggle') store.toggleMetronome()
-    else if (action === 'transport.prevBeat')
-      store.seekToPrevBeat(
-        timeline.divisor.value,
-        timeline.effectiveTriplets.value,
-      )
-    else if (action === 'transport.nextBeat')
-      store.seekToNextBeat(
-        timeline.divisor.value,
-        timeline.effectiveTriplets.value,
-      )
-    else if (action === 'transport.prevBar') store.seekToPreviousBar()
-    else if (action === 'transport.nextBar') store.seekToNextBar()
+    if (action === 'history.undo') {
+      store.undo()
+    } else if (action === 'history.redo') {
+      store.redo()
+    } else if (action === 'project.save') {
+      await persistence.saveByShortcut()
+    } else if (action === 'transport.togglePlay') {
+      store.togglePlayback()
+    } else if (action === 'timing.tapBpm') {
+      store.tapBpm()
+    } else if (action === 'metronome.toggle') {
+      store.toggleMetronome()
+    } else if (action === 'transport.prevBeat') {
+      store.seekToPrevBeat(timeline.divisor.value, timeline.effectiveTriplets.value)
+    } else if (action === 'transport.nextBeat') {
+      store.seekToNextBeat(timeline.divisor.value, timeline.effectiveTriplets.value)
+    } else if (action === 'transport.prevBar') {
+      store.seekToPreviousBar()
+    } else if (action === 'transport.nextBar') {
+      store.seekToNextBar()
+    }
   },
 })
 </script>

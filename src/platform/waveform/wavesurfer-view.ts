@@ -1,5 +1,5 @@
 import WaveSurfer from 'wavesurfer.js'
-import type { BasePlugin } from 'wavesurfer.js'
+import type { GenericPlugin } from 'wavesurfer.js/dist/base-plugin.js'
 
 export interface WaveSurferViewOptions {
   mode: 'waveform' | 'spectrogram'
@@ -7,7 +7,7 @@ export interface WaveSurferViewOptions {
 }
 
 export interface WaveSurferView {
-  registerPlugin: <T extends BasePlugin>(plugin: T) => T
+  registerPlugin: <T extends GenericPlugin>(plugin: T) => T
   loadBlob: (blob: Blob) => Promise<void>
   zoom: (pxPerSec: number) => void
   scrollTo: (time: number) => void
@@ -55,7 +55,7 @@ export function createWaveSurferView(
   }
 
   return {
-    registerPlugin<T extends BasePlugin>(plugin: T): T {
+    registerPlugin<T extends GenericPlugin>(plugin: T): T {
       return ws.registerPlugin(plugin)
     },
 

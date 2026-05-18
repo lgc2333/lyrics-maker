@@ -1,21 +1,9 @@
-import {
-  
-  
-  computed,
-  onMounted,
-  onUnmounted,
-  ref,
-  watch,
-  watchEffect
-} from 'vue'
-import type {InjectionKey, ShallowRef} from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import type { InjectionKey, ShallowRef } from 'vue'
 
 import { GridOverlayPlugin } from '../platform/waveform/grid-overlay-plugin'
-import {
-  
-  createWaveSurferView
-} from '../platform/waveform/wavesurfer-view'
-import type {WaveSurferView} from '../platform/waveform/wavesurfer-view';
+import { createWaveSurferView } from '../platform/waveform/wavesurfer-view'
+import type { WaveSurferView } from '../platform/waveform/wavesurfer-view'
 import { useEditorStore } from '../stores/editor-store'
 
 export type TimelineViewContext = ReturnType<typeof useTimelineView>
@@ -61,16 +49,19 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     }
   }
 
-  function _initWaveSurfer(container: HTMLElement): void {
-    wavesurferView = createWaveSurferView(container, {
+  function _initWaveSurfer(container: HTMLElement): WaveSurferView {
+    const view = createWaveSurferView(container, {
       mode: viewMode.value,
       minPxPerSec: pxPerSec.value,
     })
-    gridPlugin = wavesurferView.registerPlugin(GridOverlayPlugin.create())
+    wavesurferView = view
+    gridPlugin = view.registerPlugin(GridOverlayPlugin.create())
 
     if (store.audioFile) {
-      void wavesurferView.loadBlob(store.audioFile)
+      void view.loadBlob(store.audioFile)
     }
+
+    return view
   }
 
   // Initialize when container becomes available
@@ -146,12 +137,10 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     viewMode.value = mode
 
     if (container) {
-      _initWaveSurfer(container)
+      const view = _initWaveSurfer(container)
       // Restore scroll position after audio reloads
       if (store.audioFile) {
-        wavesurferView
-          ?.loadBlob(store.audioFile)
-          .then(() => wavesurferView?.scrollTo(scrollTime))
+        view.loadBlob(store.audioFile).then(() => view.scrollTo(scrollTime))
       }
     }
   }

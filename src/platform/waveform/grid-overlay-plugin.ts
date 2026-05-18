@@ -1,5 +1,5 @@
-import { BasePlugin  } from 'wavesurfer.js'
-import type {BasePluginEvents} from 'wavesurfer.js';
+import BasePlugin from 'wavesurfer.js/dist/base-plugin.js'
+import type { BasePluginEvents } from 'wavesurfer.js/dist/base-plugin.js'
 
 import type { TimingPoint } from '../../core/domain/project'
 import { getBeatGridLines } from '../../core/timing/timing-engine'

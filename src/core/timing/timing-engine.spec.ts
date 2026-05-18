@@ -584,11 +584,17 @@ describe('getNextSubdivisionTime', () => {
   it('returns next subdivision strictly after given time (divisor=4, 120bpm)', () => {
     // beatDur=0.5, subDur=0.5/4=0.125
     // at time 0.05: current sub=0 (0.0), next=0.125
-    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(0.125, 6)
+    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(
+      0.125,
+      6,
+    )
   })
 
   it('returns next sub when exactly on sub boundary', () => {
-    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(0.25, 6)
+    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(
+      0.25,
+      6,
+    )
   })
 
   it('triplets divisor=2 gives subDur=beatDur/3', () => {
@@ -618,19 +624,28 @@ describe('getNextSubdivisionTime', () => {
 describe('getPreviousSubdivisionTime', () => {
   it('returns current sub start when not on a boundary (divisor=4)', () => {
     // at 0.05: sub index=0, sub start=0.0
-    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(0.0, 6)
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(
+      0.0,
+      6,
+    )
   })
 
   it('returns previous sub when exactly on sub boundary', () => {
     // at 0.125: sub index=1, previous=0.0
-    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(0.0, 6)
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(
+      0.0,
+      6,
+    )
   })
 
   it('handles triplets', () => {
     // beatDur=0.5, actualDivisor=3, subDur=0.5/3
     // at time 0.5/3 (exactly on first sub): goes to 0.0
     const subDur = 0.5 / 3
-    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], subDur, 2, true)).toBeCloseTo(0.0, 4)
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], subDur, 2, true)).toBeCloseTo(
+      0.0,
+      4,
+    )
   })
 
   it('throws for empty timingPoints', () => {

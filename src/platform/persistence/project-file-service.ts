@@ -1,5 +1,5 @@
 import zhCN from '../i18n/locales/zh-CN.json'
-import type { SaveFilePickerApi } from './file-system-access'
+import type { SaveFileHandleLike, SaveFilePickerApi } from './file-system-access'
 import { hasSaveFilePicker } from './file-system-access'
 
 export interface SaveResult {

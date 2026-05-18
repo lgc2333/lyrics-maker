@@ -52,9 +52,11 @@ function onSfxWheel(event: WheelEvent): void {
       data-testid="view-mode-toggle"
       class="btn btn-ghost btn-sm btn-square"
       :title="t('transport.toggleViewMode')"
-      @click="timeline.setViewMode(
-        timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform'
-      )"
+      @click="
+        timeline.setViewMode(
+          timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
+        )
+      "
     >
       <Icon
         v-if="timeline.viewMode.value === 'waveform'"
@@ -91,14 +93,15 @@ function onSfxWheel(event: WheelEvent): void {
       :title="t('transport.subdivisionDivisor')"
       :value="timeline.divisor.value"
       @change="
-        timeline.divisor.value = Number(($event.target as HTMLSelectElement).value) as 1|2|4|8|16
+        timeline.divisor.value = Number(($event.target as HTMLSelectElement).value) as
+          | 1
+          | 2
+          | 4
+          | 8
+          | 16
       "
     >
-      <option
-        v-for="opt in SUBDIVISION_OPTIONS"
-        :key="opt.value"
-        :value="opt.value"
-      >
+      <option v-for="opt in SUBDIVISION_OPTIONS" :key="opt.value" :value="opt.value">
         {{ opt.label }}
       </option>
     </select>
@@ -111,7 +114,9 @@ function onSfxWheel(event: WheelEvent): void {
       :title="t('transport.rhythmMode')"
       :value="timeline.rhythmMode.value"
       @change="
-        timeline.rhythmMode.value = ($event.target as HTMLSelectElement).value as 'common'|'triplets'
+        timeline.rhythmMode.value = ($event.target as HTMLSelectElement).value as
+          | 'common'
+          | 'triplets'
       "
     >
       <option value="common">{{ t('transport.rhythmCommon') }}</option>

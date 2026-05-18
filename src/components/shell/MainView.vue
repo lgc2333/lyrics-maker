@@ -117,9 +117,7 @@ function onVerticalZoomWheel(e: WheelEvent): void {
           step="0.1"
           :value="timeline?.verticalZoom.value ?? 1"
           @input="
-            timeline?.setVerticalZoom(
-              Number(($event.target as HTMLInputElement).value),
-            )
+            timeline?.setVerticalZoom(Number(($event.target as HTMLInputElement).value))
           "
         />
       </div>

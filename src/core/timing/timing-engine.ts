@@ -310,7 +310,5 @@ export function getPreviousSubdivisionTime(
   const currentSubStart = point.time + subIdx * subDur
   const isExactlyOnSub = Math.abs(time - currentSubStart) < BEAT_EPSILON
 
-  return isExactlyOnSub
-    ? point.time + (subIdx - 1) * subDur
-    : currentSubStart
+  return isExactlyOnSub ? point.time + (subIdx - 1) * subDur : currentSubStart
 }
