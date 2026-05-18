@@ -7,13 +7,13 @@ export interface WaveSurferViewOptions {
 }
 
 export interface WaveSurferView {
-  registerPlugin<T extends BasePlugin>(plugin: T): T
-  loadBlob(blob: Blob): Promise<void>
-  zoom(pxPerSec: number): void
-  scrollTo(time: number): void
-  getScrollTime(): number
-  on(event: string, handler: (...args: unknown[]) => void): () => void
-  destroy(): void
+  registerPlugin: <T extends BasePlugin>(plugin: T) => T
+  loadBlob: (blob: Blob) => Promise<void>
+  zoom: (pxPerSec: number) => void
+  scrollTo: (time: number) => void
+  getScrollTime: () => number
+  on: (event: string, handler: (...args: unknown[]) => void) => () => void
+  destroy: () => void
 }
 
 export function createWaveSurferView(
@@ -37,7 +37,7 @@ export function createWaveSurferView(
   async function _initSpectrogram(instance: WaveSurfer): Promise<void> {
     try {
       const { default: SpectrogramPlugin } = await import(
-        /* @vite-ignore */ 'wavesurfer.js/dist/spectrogram.esm.js'
+        /* @vite-ignore */ 'wavesurfer.js/dist/plugins/spectrogram.esm.js'
       )
       instance.registerPlugin(
         SpectrogramPlugin.create({

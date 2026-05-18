@@ -1,7 +1,8 @@
-import { BasePlugin, type BasePluginEvents } from 'wavesurfer.js'
+import { BasePlugin  } from 'wavesurfer.js'
+import type {BasePluginEvents} from 'wavesurfer.js';
 
-import { getBeatGridLines } from '../../core/timing/timing-engine'
 import type { TimingPoint } from '../../core/domain/project'
+import { getBeatGridLines } from '../../core/timing/timing-engine'
 
 export interface GridOverlayParams {
   timingPoints: TimingPoint[]
@@ -18,6 +19,7 @@ export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
     divisor: 4,
     triplets: false,
   }
+
   private visibleStart = 0
   private visibleEnd = 0
 
@@ -119,7 +121,8 @@ export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
     }
 
     // Draw playhead
-    const px = Math.round((this.params.currentTime - this.visibleStart) * pxPerSec) + 0.5
+    const px =
+      Math.round((this.params.currentTime - this.visibleStart) * pxPerSec) + 0.5
     if (px >= -2 && px <= w + 2) {
       ctx.strokeStyle = 'rgba(255,50,50,0.9)'
       ctx.lineWidth = 2
