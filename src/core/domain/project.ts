@@ -4,7 +4,8 @@ export type LocaleCode = 'zh-CN'
 
 export interface ProjectSettings {
   locale: LocaleCode
-  snapDivisor: 4 | 8 | 16
+  snapDivisor: 1 | 2 | 4 | 8 | 16
+  rhythmMode: 'common' | 'triplets'
 }
 
 export interface LyricWord {
@@ -44,6 +45,7 @@ export function createEmptyProject(): ProjectDocument {
     settings: {
       locale: 'zh-CN',
       snapDivisor: 4,
+      rhythmMode: 'common',
     },
     lyrics: [],
     timingPoints: [

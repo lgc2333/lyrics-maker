@@ -10,6 +10,7 @@ describe('createEmptyProject', () => {
       settings: {
         locale: 'zh-CN',
         snapDivisor: 4,
+        rhythmMode: 'common',
       },
       lyrics: [],
       timingPoints: [
@@ -34,5 +35,15 @@ describe('createEmptyProject', () => {
     expect(project.timingPoints[0].time).toBe(0)
     expect(project.audio.musicVolume).toBe(1)
     expect(project.audio.sfxVolume).toBe(0.8)
+  })
+
+  it('has snapDivisor defaulting to 4', () => {
+    const p = createEmptyProject()
+    expect(p.settings.snapDivisor).toBe(4)
+  })
+
+  it('has rhythmMode defaulting to common', () => {
+    const p = createEmptyProject()
+    expect(p.settings.rhythmMode).toBe('common')
   })
 })
