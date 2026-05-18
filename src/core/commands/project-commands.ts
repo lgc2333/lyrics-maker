@@ -82,6 +82,43 @@ export function createRemoveTimingPointCommand(id: string): Command<ProjectDocum
   }
 }
 
+export function createSetRhythmModeCommand(
+  mode: 'common' | 'triplets',
+): Command<ProjectDocument> {
+  let previous: 'common' | 'triplets' | undefined
+  return {
+    label: 'settings.setRhythmMode',
+    do: (state) => {
+      previous = state.settings.rhythmMode
+      return { ...state, settings: { ...state.settings, rhythmMode: mode } }
+    },
+    undo: (state) => {
+      if (previous === undefined) return state
+      return { ...state, settings: { ...state.settings, rhythmMode: previous } }
+    },
+  }
+}
+
+export function createSetSnapDivisorCommand(
+  divisor: 1 | 2 | 4 | 8 | 16,
+): Command<ProjectDocument> {
+  let previous: 1 | 2 | 4 | 8 | 16 | undefined
+  return {
+    label: 'settings.setSnapDivisor',
+    do: (state) => {
+      previous = state.settings.snapDivisor
+      return { ...state, settings: { ...state.settings, snapDivisor: divisor } }
+    },
+    undo: (state) => {
+      if (previous === undefined) return state
+      return {
+        ...state,
+        settings: { ...state.settings, snapDivisor: previous },
+      }
+    },
+  }
+}
+
 export function createSetAudioVolumeCommand(
   kind: 'music' | 'sfx',
   value: number,

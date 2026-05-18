@@ -5,6 +5,8 @@ import {
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
   createSetAudioVolumeCommand,
+  createSetRhythmModeCommand,
+  createSetSnapDivisorCommand,
   createUpdateTimingPointCommand,
 } from './project-commands'
 
@@ -60,5 +62,23 @@ describe('audio volume commands', () => {
     expect(afterSet.audio.musicVolume).toBe(1) // unchanged
     const afterUndo = command.undo(afterSet)
     expect(afterUndo.audio.sfxVolume).toBe(0.8)
+  })
+})
+
+describe('settings commands', () => {
+  it('createSetRhythmModeCommand sets rhythmMode and is undoable', () => {
+    const cmd = createSetRhythmModeCommand('triplets')
+    const after = cmd.do(createEmptyProject())
+    expect(after.settings.rhythmMode).toBe('triplets')
+    const undone = cmd.undo(after)
+    expect(undone.settings.rhythmMode).toBe('common')
+  })
+
+  it('createSetSnapDivisorCommand sets snapDivisor and is undoable', () => {
+    const cmd = createSetSnapDivisorCommand(16)
+    const after = cmd.do(createEmptyProject())
+    expect(after.settings.snapDivisor).toBe(16)
+    const undone = cmd.undo(after)
+    expect(undone.settings.snapDivisor).toBe(4)
   })
 })
