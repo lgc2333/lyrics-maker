@@ -3,6 +3,7 @@ import type { TimingPoint } from '../domain/project'
 import { sortTimingPoints } from './timing-point'
 
 const BEAT_EPSILON = 1e-9
+const SUBDIV_EPSILON = 1e-9
 
 export interface BeatInfo {
   pointId: string
@@ -179,4 +180,71 @@ export function getNextBarBoundaryTime(
   const nextBarStartBeat = currentBarStartBeat + bpBar
 
   return point.time + nextBarStartBeat * dur
+}
+
+export interface GridLine {
+  time: number
+  type: 'bar' | 'beat' | 'subdivision'
+}
+
+/**
+ * Returns beat-grid lines within [startSec, endSec].
+ * divisor: subdivisions per beat (1, 2, 4, 8, 16).
+ * triplets: if true and divisor >= 2, actualDivisor = round(divisor * 3 / 2).
+ * Returns [] when timingPoints is empty (never throws).
+ */
+export function getBeatGridLines(
+  timingPoints: TimingPoint[],
+  divisor: number,
+  triplets: boolean,
+  startSec: number,
+  endSec: number,
+): GridLine[] {
+  if (timingPoints.length === 0) return []
+
+  const sorted = sortTimingPoints(timingPoints)
+  const result: GridLine[] = []
+
+  for (let i = 0; i < sorted.length; i++) {
+    const point = sorted[i]
+    const segStart = point.time
+    const segEnd = i + 1 < sorted.length ? sorted[i + 1].time : Infinity
+
+    // Skip segments entirely outside the window
+    if (segEnd <= startSec || segStart >= endSec) continue
+
+    const beatDur = 60 / point.bpm
+    const bpBar = (point.timeSignatureNumerator * 4) / point.timeSignatureDenominator
+    const actualDivisor =
+      triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
+    const subDur = beatDur / actualDivisor
+
+    const windowStart = Math.max(segStart, startSec)
+    const windowEnd = Math.min(segEnd === Infinity ? endSec : segEnd, endSec)
+
+    // First sub index at or after windowStart (relative to segStart)
+    const rawStart = (windowStart - segStart) / subDur
+    let subIdx = Math.max(0, Math.ceil(rawStart - SUBDIV_EPSILON))
+
+    while (true) {
+      const t = segStart + subIdx * subDur
+      if (t >= windowEnd - SUBDIV_EPSILON) break
+
+      if (t >= windowStart - SUBDIV_EPSILON) {
+        const barsPerSeg = bpBar * actualDivisor
+        let type: 'bar' | 'beat' | 'subdivision'
+        if (subIdx % barsPerSeg === 0) {
+          type = 'bar'
+        } else if (subIdx % actualDivisor === 0) {
+          type = 'beat'
+        } else {
+          type = 'subdivision'
+        }
+        result.push({ time: t, type })
+      }
+      subIdx++
+    }
+  }
+
+  return result.sort((a, b) => a.time - b.time)
 }

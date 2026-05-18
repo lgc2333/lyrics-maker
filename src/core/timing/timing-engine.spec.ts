@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import type { TimingPoint } from '../domain/project'
 import zhCN from '../../platform/i18n/locales/zh-CN.json'
+import type { TimingPoint } from '../domain/project'
 import {
   getActiveTimingPoint,
+  getBeatGridLines,
   getBeatInfoAtTime,
   getNextBarBoundaryTime,
   getNextBeatTime,
@@ -470,5 +471,106 @@ describe('getNextBarBoundaryTime', () => {
   it('uses current beat position directly to compute next boundary', () => {
     const next = getNextBarBoundaryTime(points, 1.4)
     expect(next).toBeCloseTo(2, 5)
+  })
+})
+
+// ============================================================
+// getBeatGridLines
+// ============================================================
+describe('getBeatGridLines', () => {
+  const BEAT_EPSILON = 1e-9
+
+  it('returns empty array for empty timingPoints', () => {
+    expect(getBeatGridLines([], 4, false, 0, 10)).toEqual([])
+  })
+
+  it('generates correct lines for 120bpm 4/4, divisor=1 (one per beat), 2 bars', () => {
+    // 120bpm: beatDur=0.5s, bpBar=4, divisor=1 → 1 sub/beat → sub spacing=0.5s
+    // Bar starts: 0.0, 2.0; beats: 0.5,1.0,1.5,2.5,3.0,3.5; no subdivisions
+    const lines = getBeatGridLines(
+      [tp({ id: 'p1', time: 0, bpm: 120 })],
+      1,
+      false,
+      0,
+      4,
+    )
+    const bars = lines.filter((l) => l.type === 'bar')
+    const beats = lines.filter((l) => l.type === 'beat')
+    const subs = lines.filter((l) => l.type === 'subdivision')
+    expect(bars.map((l) => l.time)).toEqual([0, 2])
+    expect(beats.map((l) => l.time)).toEqual([0.5, 1.0, 1.5, 2.5, 3.0, 3.5])
+    expect(subs).toHaveLength(0)
+  })
+
+  it('generates subdivision lines for divisor=4', () => {
+    // 120bpm: beatDur=0.5s, divisor=4 → subDur=0.125s
+    // First beat (0→0.5): bar at 0, subdivisions at 0.125, 0.25, 0.375, beat at 0.5
+    const lines = getBeatGridLines(
+      [tp({ id: 'p1', time: 0, bpm: 120 })],
+      4,
+      false,
+      0,
+      0.5,
+    )
+    const times = lines.map((l) => l.time)
+    expect(times).toHaveLength(4) // 0 (bar), 0.125, 0.25, 0.375
+    expect(lines[0].type).toBe('bar')
+    expect(lines[1].type).toBe('subdivision')
+    expect(lines[2].type).toBe('subdivision')
+    expect(lines[3].type).toBe('subdivision')
+  })
+
+  it('triplets mode divisor=2 gives 3 subs per beat', () => {
+    // actualDivisor = round(2*3/2) = 3; beatDur=0.5, subDur=0.5/3≈0.1667
+    // In one beat (0→0.5): bar at 0, subs at 0.1667, 0.3333
+    const lines = getBeatGridLines(
+      [tp({ id: 'p1', time: 0, bpm: 120 })],
+      2,
+      true,
+      0,
+      0.5,
+    )
+    expect(lines).toHaveLength(3) // bar=0, sub=0.1667, sub=0.3333
+    expect(lines[0].type).toBe('bar')
+    expect(lines[1].type).toBe('subdivision')
+    expect(lines[2].type).toBe('subdivision')
+    expect(lines[2].time).toBeCloseTo(1 / 3, 4)
+  })
+
+  it('divisor=1 triplets has no effect (actualDivisor stays 1)', () => {
+    const normal = getBeatGridLines([tp({ id: 'p1' })], 1, false, 0, 4)
+    const triplets = getBeatGridLines([tp({ id: 'p1' })], 1, true, 0, 4)
+    expect(triplets).toEqual(normal)
+  })
+
+  it('returns lines sorted by time ascending', () => {
+    const lines = getBeatGridLines([tp({ id: 'p1' })], 4, false, 0, 2)
+    for (let i = 1; i < lines.length; i++) {
+      expect(lines[i].time).toBeGreaterThanOrEqual(lines[i - 1].time)
+    }
+  })
+
+  it('respects startSec and endSec window', () => {
+    // Only lines within [1.0, 2.0] should appear
+    const lines = getBeatGridLines([tp({ id: 'p1' })], 1, false, 1.0, 2.0)
+    expect(
+      lines.every((l) => l.time >= 1.0 - BEAT_EPSILON && l.time <= 2.0 + BEAT_EPSILON),
+    ).toBe(true)
+  })
+
+  it('handles two timing point segments correctly', () => {
+    // Segment 1: 0..4 at 120bpm, Segment 2: 4..∞ at 60bpm
+    // beatDur1=0.5, beatDur2=1.0
+    const lines = getBeatGridLines(
+      [tp({ id: 'p1', time: 0, bpm: 120 }), tp({ id: 'p2', time: 4, bpm: 60 })],
+      1,
+      false,
+      3.5,
+      5.5,
+    )
+    // Should include lines from both segments in the window
+    const times = lines.map((l) => l.time)
+    expect(times.some((t) => t < 4)).toBe(true)
+    expect(times.some((t) => t >= 4)).toBe(true)
   })
 })
