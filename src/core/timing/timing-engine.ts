@@ -248,3 +248,69 @@ export function getBeatGridLines(
 
   return result.sort((a, b) => a.time - b.time)
 }
+
+/**
+ * Returns the time of the next subdivision boundary strictly after `time`.
+ * Uses the same triplets formula as getBeatGridLines.
+ * Throws if timingPoints is empty.
+ */
+export function getNextSubdivisionTime(
+  points: readonly TimingPoint[],
+  time: number,
+  divisor: number,
+  triplets: boolean,
+): number {
+  const sorted = sortTimingPoints(points)
+  if (sorted.length === 0) throw new Error(zhCN.errors.noTimingPoints)
+
+  const point = getActiveTimingPoint(sorted, time)
+  const beatDur = 60 / point.bpm
+  const actualDivisor =
+    triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
+  const subDur = beatDur / actualDivisor
+
+  const elapsed = (time - point.time) / subDur
+  const subIdx = Math.floor(elapsed + BEAT_EPSILON)
+  const nextSubTime = point.time + (subIdx + 1) * subDur
+
+  // Cross-segment boundary check
+  const pointIndex = sorted.findIndex((p) => p.id === point.id)
+  if (pointIndex < sorted.length - 1) {
+    const nextPoint = sorted[pointIndex + 1]
+    if (nextSubTime >= nextPoint.time) {
+      return nextPoint.time
+    }
+  }
+
+  return nextSubTime
+}
+
+/**
+ * Returns the start time of the subdivision containing `time`,
+ * or the previous subdivision if `time` is exactly on a boundary.
+ * Throws if timingPoints is empty.
+ */
+export function getPreviousSubdivisionTime(
+  points: readonly TimingPoint[],
+  time: number,
+  divisor: number,
+  triplets: boolean,
+): number {
+  const sorted = sortTimingPoints(points)
+  if (sorted.length === 0) throw new Error(zhCN.errors.noTimingPoints)
+
+  const point = getActiveTimingPoint(sorted, time)
+  const beatDur = 60 / point.bpm
+  const actualDivisor =
+    triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
+  const subDur = beatDur / actualDivisor
+
+  const elapsed = (time - point.time) / subDur
+  const subIdx = Math.floor(elapsed + BEAT_EPSILON)
+  const currentSubStart = point.time + subIdx * subDur
+  const isExactlyOnSub = Math.abs(time - currentSubStart) < BEAT_EPSILON
+
+  return isExactlyOnSub
+    ? point.time + (subIdx - 1) * subDur
+    : currentSubStart
+}

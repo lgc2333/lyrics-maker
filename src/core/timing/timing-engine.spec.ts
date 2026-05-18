@@ -8,7 +8,9 @@ import {
   getBeatInfoAtTime,
   getNextBarBoundaryTime,
   getNextBeatTime,
+  getNextSubdivisionTime,
   getPreviousBarTime,
+  getPreviousSubdivisionTime,
 } from './timing-engine'
 import { sortTimingPoints, validateTimingPoint } from './timing-point'
 
@@ -572,5 +574,66 @@ describe('getBeatGridLines', () => {
     const times = lines.map((l) => l.time)
     expect(times.some((t) => t < 4)).toBe(true)
     expect(times.some((t) => t >= 4)).toBe(true)
+  })
+})
+
+// ============================================================
+// getNextSubdivisionTime
+// ============================================================
+describe('getNextSubdivisionTime', () => {
+  it('returns next subdivision strictly after given time (divisor=4, 120bpm)', () => {
+    // beatDur=0.5, subDur=0.5/4=0.125
+    // at time 0.05: current sub=0 (0.0), next=0.125
+    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(0.125, 6)
+  })
+
+  it('returns next sub when exactly on sub boundary', () => {
+    expect(getNextSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(0.25, 6)
+  })
+
+  it('triplets divisor=2 gives subDur=beatDur/3', () => {
+    // beatDur=0.5, actualDivisor=3, subDur=0.5/3≈0.1667
+    // at time 0.05: sub index=0, next=0.1667
+    const t = getNextSubdivisionTime([tp({ id: 'p1' })], 0.05, 2, true)
+    expect(t).toBeCloseTo(0.5 / 3, 4)
+  })
+
+  it('crosses segment boundary', () => {
+    const points = [
+      tp({ id: 'p1', time: 0, bpm: 120 }),
+      tp({ id: 'p2', time: 2, bpm: 60 }),
+    ]
+    // p1 beatDur=0.5, divisor=1: next sub after 1.9 = 2.0 (boundary)
+    expect(getNextSubdivisionTime(points, 1.9, 1, false)).toBeCloseTo(2.0, 6)
+  })
+
+  it('throws for empty timingPoints', () => {
+    expect(() => getNextSubdivisionTime([], 0, 4, false)).toThrow()
+  })
+})
+
+// ============================================================
+// getPreviousSubdivisionTime
+// ============================================================
+describe('getPreviousSubdivisionTime', () => {
+  it('returns current sub start when not on a boundary (divisor=4)', () => {
+    // at 0.05: sub index=0, sub start=0.0
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.05, 4, false)).toBeCloseTo(0.0, 6)
+  })
+
+  it('returns previous sub when exactly on sub boundary', () => {
+    // at 0.125: sub index=1, previous=0.0
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], 0.125, 4, false)).toBeCloseTo(0.0, 6)
+  })
+
+  it('handles triplets', () => {
+    // beatDur=0.5, actualDivisor=3, subDur=0.5/3
+    // at time 0.5/3 (exactly on first sub): goes to 0.0
+    const subDur = 0.5 / 3
+    expect(getPreviousSubdivisionTime([tp({ id: 'p1' })], subDur, 2, true)).toBeCloseTo(0.0, 4)
+  })
+
+  it('throws for empty timingPoints', () => {
+    expect(() => getPreviousSubdivisionTime([], 0, 4, false)).toThrow()
   })
 })
