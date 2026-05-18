@@ -29,6 +29,9 @@ importers:
       vue-router:
         specifier: ^5.0.7
         version: 5.0.7(@vue/compiler-sfc@3.5.34)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3)))(vue@3.5.34(typescript@6.0.3))
+      wavesurfer.js:
+        specifier: ^7.12.7
+        version: 7.12.7
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^9.0.0
@@ -2839,6 +2842,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  wavesurfer.js@7.12.7:
+    resolution: {integrity: sha512-TIe7hB6OCZysNOZ2cn2NR8Qpko22POWel6rauNcqOammFoH65NYQUM35unNLLMIlUMVYvjJ6w/TTl/G/m+w0nA==}
 
   webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
@@ -5796,6 +5802,8 @@ snapshots:
       '@vue/shared': 3.5.34
     optionalDependencies:
       typescript: 6.0.3
+
+  wavesurfer.js@7.12.7: {}
 
   webpack-virtual-modules@0.6.2: {}
 
