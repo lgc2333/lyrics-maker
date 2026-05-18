@@ -26,7 +26,21 @@
     "playPause": "播放/暂停",
     "nextBar": "下一小节",
     "musicVolume": "音乐音量",
-    "sfxVolume": "音效音量"
+    "sfxVolume": "音效音量",
+    "waveformMode": "波形",
+    "spectrogramMode": "频谱",
+    "toggleViewMode": "切换波形/频谱",
+    "subdivisionDivisor": "细分",
+    "rhythmMode": "节奏",
+    "rhythmCommon": "普通",
+    "rhythmTriplets": "三连音",
+    "rhythmTripletsAlt": "三连音 (Alt)",
+    "verticalZoom": "垂直缩放",
+    "subdivision1x": "1x (每拍1格)",
+    "subdivision2x": "2x (每拍2格)",
+    "subdivision4x": "4x (每拍4格)",
+    "subdivision8x": "8x (每拍8格)",
+    "subdivision16x": "16x (每拍16格)"
   },
   "timing": {
     "pointList": {
@@ -64,7 +78,8 @@
     "timeSignatureDenominatorMustBePositive": "拍号分母必须为正数",
     "noTimingPoints": "没有可用的 Timing Point",
     "failedToLoadAudio": "音频文件加载失败",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "waveformLoadFailed": "波形加载失败"
   },
   "status": {
     "dirty": "未保存更改",
