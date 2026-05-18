@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
+import {
+  TIMELINE_VIEW_KEY,
+  useTimelineView,
+} from '../../composables/useTimelineView'
 import { useEditorStore } from '../../stores/editor-store'
 import LyricsPanel from './LyricsPanel.vue'
 import MainView from './MainView.vue'
@@ -17,6 +21,13 @@ const editorMode = ref<'timing' | 'lyrics'>('timing')
 const theme = ref<'light' | 'dark'>('light')
 const followSystemTheme = ref(true)
 const audioInput = ref<HTMLInputElement | null>(null)
+
+// ---- Timeline view ----
+const timelineContainerRef = shallowRef<HTMLElement | null>(null)
+const timeline = useTimelineView(timelineContainerRef)
+
+provide(TIMELINE_VIEW_KEY, timeline)
+provide('timelineContainerRef', timelineContainerRef)
 
 function detectSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -74,6 +85,18 @@ useEditorShortcuts({
     else if (action === 'transport.togglePlay') store.togglePlayback()
     else if (action === 'timing.tapBpm') store.tapBpm()
     else if (action === 'metronome.toggle') store.toggleMetronome()
+    else if (action === 'transport.prevBeat')
+      store.seekToPrevBeat(
+        timeline.divisor.value,
+        timeline.effectiveTriplets.value,
+      )
+    else if (action === 'transport.nextBeat')
+      store.seekToNextBeat(
+        timeline.divisor.value,
+        timeline.effectiveTriplets.value,
+      )
+    else if (action === 'transport.prevBar') store.seekToPreviousBar()
+    else if (action === 'transport.nextBar') store.seekToNextBar()
   },
 })
 </script>
