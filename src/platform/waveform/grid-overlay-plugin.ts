@@ -76,7 +76,20 @@ export class GridOverlayPlugin extends BasePlugin<
         this._draw()
       }),
       ws.on('redraw', () => this._draw()),
-      ws.on('zoom', () => this._draw()),
+      ws.on('zoom', () => {
+        // Recompute visible range — zoom changes wrapper.scrollWidth so the
+        // old visibleStart/visibleEnd (from the last scroll event) are stale.
+        if (scrollContainer) {
+          const duration = ws.getDuration()
+          if (wrapper.scrollWidth > 0 && duration > 0) {
+            const pxPerSec = wrapper.scrollWidth / duration
+            this.visibleStart = scrollContainer.scrollLeft / pxPerSec
+            this.visibleEnd =
+              (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
+          }
+        }
+        this._draw()
+      }),
       ws.on('ready', () => {
         // Initialize visible range from the scroll container's current state
         if (scrollContainer) {
