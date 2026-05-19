@@ -108,9 +108,9 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **WaveSurfer spectrogram vertical zoom via `frequencyMax`.** Set `frequencyMax = Math.round(22050 / zoom)` in `WindowedSpectrogramPlugin.create()` — not a post-init method. Requires recreating the WaveSurfer instance to take effect.
 - **WaveSurfer waveform hidden in spectrogram mode:** set both `height: 0` and `waveColor: 'transparent'`. `height: 0` collapses the canvas; `waveColor: 'transparent'` prevents pixel bleed if height rounds up.
 - **WaveSurfer `progressColor: 'transparent'` + `hideScrollbar: true`** when drawing a custom playhead overlay and managing scrolling manually.
-- **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide('mainViewHeight', ref(250))` in the parent and `inject<Ref<number>>('mainViewHeight')` in the child. Tests pass it via `mount(C, { global: { provide: { mainViewHeight: ref(N) } } })`.
+- **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide('mainViewHeight', ref(250))` in the parent and `inject<Ref<number>>('mainViewHeight')` in the child. Tests pass it via `mount(C, { global: { provide: { mainViewHeight: ref(N) } } })`. **Do NOT use `.value` on injected refs inside templates** — top-level injected refs auto-unwrap in `<script setup>` templates; calling `.value` bypasses the reactive dependency and updates are not tracked.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` — routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.
-- **WaveSurfer container needs `bg-black`.** The spectrogram canvas renders on a transparent background; without `bg-black` on the container the "silence" areas look mismatched against the app background. Safe to use for waveform mode too.
+- **WaveSurfer container needs `bg-black` in spectrogram mode only.** The spectrogram canvas renders on a transparent background; without `bg-black` the silence pixels look mismatched. Do not apply to waveform mode.
 
 ## Tooling
 
