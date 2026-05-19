@@ -24,4 +24,13 @@ describe('shortcut registry', () => {
     registry.dispatch('Ctrl+Y', onAction)
     expect(onAction).toHaveBeenCalledWith('history.redo')
   })
+
+  it('does not dispatch when keystroke is null (IME composing)', () => {
+    const onAction = vi.fn()
+    const registry = createShortcutRegistry()
+    registry.register('Ctrl+Z', 'history.undo')
+    // @ts-expect-error testing null guard at runtime
+    registry.dispatch(null, onAction)
+    expect(onAction).not.toHaveBeenCalled()
+  })
 })

@@ -139,7 +139,8 @@ export function getPreviousBarTime(
   points: readonly TimingPoint[],
   time: number,
 ): number {
-  const point = getActiveTimingPoint(points, time)
+  const sorted = sortTimingPoints(points)
+  const point = getActiveTimingPoint(sorted, time)
   const dur = beatDuration(point.bpm)
   const bpBar = beatsPerBar(
     point.timeSignatureNumerator,
@@ -157,7 +158,32 @@ export function getPreviousBarTime(
     ? currentBarStartBeat - bpBar
     : currentBarStartBeat
 
-  return point.time + prevBarStartBeat * dur
+  const prevBarTime = point.time + prevBarStartBeat * dur
+
+  // If the computed bar time falls before the current segment,
+  // re-compute using the previous timing point's properties at the boundary.
+  if (prevBarTime < point.time) {
+    const pointIndex = sorted.findIndex((p) => p.id === point.id)
+    if (pointIndex > 0) {
+      const prevPoint = sorted[pointIndex - 1]
+      const prevDur = beatDuration(prevPoint.bpm)
+      const prevBpBar = beatsPerBar(
+        prevPoint.timeSignatureNumerator,
+        prevPoint.timeSignatureDenominator,
+      )
+      const boundaryElapsed = (point.time - prevPoint.time) / prevDur
+      const boundaryBeatIdx = Math.floor(boundaryElapsed + BEAT_EPSILON)
+      const boundaryBarStartBeat = Math.floor(boundaryBeatIdx / prevBpBar) * prevBpBar
+      const boundaryBarStartTime = prevPoint.time + boundaryBarStartBeat * prevDur
+      const isBoundaryOnBar = Math.abs(point.time - boundaryBarStartTime) < BEAT_EPSILON
+
+      return isBoundaryOnBar
+        ? prevPoint.time + (boundaryBarStartBeat - prevBpBar) * prevDur
+        : prevPoint.time + boundaryBarStartBeat * prevDur
+    }
+  }
+
+  return prevBarTime
 }
 
 /**

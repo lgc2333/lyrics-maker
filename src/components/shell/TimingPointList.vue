@@ -54,11 +54,13 @@ function isActive(id: string): boolean {
       </div>
     </header>
 
-    <ul class="min-h-0 flex-1 overflow-auto">
+    <ul role="listbox" tabindex="0" class="min-h-0 flex-1 overflow-auto">
       <li
         v-for="point in store.project.timingPoints"
         :key="point.id"
         data-testid="timing-point-row"
+        role="option"
+        :aria-selected="selectedId === point.id"
         class="flex cursor-pointer items-center gap-3 border-b border-l-[3px] border-base-200 px-3 py-2 text-sm transition-colors hover:bg-base-200/80"
         :class="{
           'bg-primary/10': selectedId === point.id,

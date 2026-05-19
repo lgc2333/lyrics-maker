@@ -36,6 +36,7 @@ export function useEditorShortcuts(options: {
     if (inInput) return
 
     const key = normalizeKeystroke(event)
+    if (!key) return
 
     registry.dispatch(key, (action) => {
       event.preventDefault()

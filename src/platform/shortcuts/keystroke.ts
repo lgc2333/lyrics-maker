@@ -1,13 +1,16 @@
-export function normalizeKeystroke(event: KeyboardEvent) {
-  // Space key needs special handling: event.key is ' ', but normalized form is 'Space'
-  let key: string
+export function normalizeKeystroke(event: KeyboardEvent): string | null {
+  if (event.isComposing) return null
+  const parts: string[] = []
+  if (event.metaKey) parts.push('Meta')
+  if (event.ctrlKey) parts.push('Ctrl')
+  if (event.altKey) parts.push('Alt')
+  if (event.shiftKey) parts.push('Shift')
   if (event.key === ' ') {
-    key = 'Space'
+    parts.push('Space')
+  } else if (event.key.length === 1) {
+    parts.push(event.key.toUpperCase())
   } else {
-    key = event.key.length === 1 ? event.key.toUpperCase() : event.key
+    parts.push(event.key)
   }
-  const ctrl = event.ctrlKey ? 'Ctrl+' : ''
-  const shift = event.shiftKey ? 'Shift+' : ''
-  const alt = event.altKey ? 'Alt+' : ''
-  return `${ctrl}${shift}${alt}${key}`
+  return parts.join('+')
 }

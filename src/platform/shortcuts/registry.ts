@@ -20,6 +20,7 @@ export function createShortcutRegistry() {
   }
 
   function dispatch(keys: string, handler: (action: ShortcutAction) => void) {
+    if (!keys) return
     const action = bindings.get(keys)
     if (action) handler(action)
   }

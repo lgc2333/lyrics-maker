@@ -16,6 +16,7 @@ export interface AudioTransport {
 export function createAudioTransport(audioElement: HTMLAudioElement): AudioTransport {
   let objectUrl: string | null = null
   let playing = false
+  let _pendingCleanup: (() => void) | null = null
 
   const onPlay = () => {
     playing = true
@@ -33,6 +34,12 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
 
   return {
     async loadFile(file: File): Promise<void> {
+      // Clean up any previous pending load before starting a new one
+      if (_pendingCleanup) {
+        _pendingCleanup()
+        _pendingCleanup = null
+      }
+
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl)
       }
@@ -43,6 +50,7 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
         const removeListeners = () => {
           audioElement.removeEventListener('loadedmetadata', handleLoaded)
           audioElement.removeEventListener('error', handleError)
+          _pendingCleanup = null
         }
         function handleError() {
           removeListeners()
@@ -52,6 +60,7 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
           removeListeners()
           resolve()
         }
+        _pendingCleanup = removeListeners
         audioElement.addEventListener('loadedmetadata', handleLoaded)
         audioElement.addEventListener('error', handleError)
       })

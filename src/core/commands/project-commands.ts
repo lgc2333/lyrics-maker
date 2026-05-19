@@ -38,12 +38,13 @@ export function createUpdateTimingPointCommand(
   id: string,
   patch: Partial<TimingPoint>,
 ): Command<ProjectDocument> {
-  let originalPoint: TimingPoint | undefined
+  let originalPoint: TimingPoint | null = null
   return {
     label: 'timing.updatePoint',
     do: (state) => {
-      originalPoint = state.timingPoints.find((p) => p.id === id)
-      if (!originalPoint) return state
+      const found = state.timingPoints.find((p) => p.id === id)
+      if (!found) return state
+      originalPoint = found
       return {
         ...state,
         timingPoints: state.timingPoints.map((p) =>
@@ -52,7 +53,7 @@ export function createUpdateTimingPointCommand(
       }
     },
     undo: (state) => {
-      if (!originalPoint) return state
+      if (originalPoint === null) return state
       return {
         ...state,
         timingPoints: state.timingPoints.map((p) => (p.id === id ? originalPoint! : p)),
@@ -62,18 +63,19 @@ export function createUpdateTimingPointCommand(
 }
 
 export function createRemoveTimingPointCommand(id: string): Command<ProjectDocument> {
-  let removed: TimingPoint | undefined
+  let removed: TimingPoint | null = null
   return {
     label: 'timing.removePoint',
     do: (state) => {
-      removed = state.timingPoints.find((p) => p.id === id)
+      const found = state.timingPoints.find((p) => p.id === id)
+      removed = found ?? null
       return {
         ...state,
         timingPoints: state.timingPoints.filter((p) => p.id !== id),
       }
     },
     undo: (state) => {
-      if (!removed) return state
+      if (removed === null) return state
       return {
         ...state,
         timingPoints: [...state.timingPoints, removed],
@@ -85,16 +87,16 @@ export function createRemoveTimingPointCommand(id: string): Command<ProjectDocum
 export function createSetRhythmModeCommand(
   mode: 'common' | 'triplets',
 ): Command<ProjectDocument> {
-  let previous: 'common' | 'triplets' | undefined
+  let previousMode: 'common' | 'triplets' | null = null
   return {
     label: 'settings.setRhythmMode',
     do: (state) => {
-      previous = state.settings.rhythmMode
+      previousMode = state.settings.rhythmMode
       return { ...state, settings: { ...state.settings, rhythmMode: mode } }
     },
     undo: (state) => {
-      if (previous === undefined) return state
-      return { ...state, settings: { ...state.settings, rhythmMode: previous } }
+      if (previousMode === null) return state
+      return { ...state, settings: { ...state.settings, rhythmMode: previousMode } }
     },
   }
 }
@@ -102,18 +104,18 @@ export function createSetRhythmModeCommand(
 export function createSetSnapDivisorCommand(
   divisor: 1 | 2 | 4 | 8 | 16,
 ): Command<ProjectDocument> {
-  let previous: 1 | 2 | 4 | 8 | 16 | undefined
+  let previousDivisor: 1 | 2 | 4 | 8 | 16 | null = null
   return {
     label: 'settings.setSnapDivisor',
     do: (state) => {
-      previous = state.settings.snapDivisor
+      previousDivisor = state.settings.snapDivisor
       return { ...state, settings: { ...state.settings, snapDivisor: divisor } }
     },
     undo: (state) => {
-      if (previous === undefined) return state
+      if (previousDivisor === null) return state
       return {
         ...state,
-        settings: { ...state.settings, snapDivisor: previous },
+        settings: { ...state.settings, snapDivisor: previousDivisor },
       }
     },
   }
@@ -124,7 +126,7 @@ export function createSetAudioVolumeCommand(
   value: number,
 ): Command<ProjectDocument> {
   const key = kind === 'music' ? 'musicVolume' : 'sfxVolume'
-  let previousValue: number | undefined
+  let previousValue: number | null = null
   return {
     label: `audio.set${kind === 'music' ? 'Music' : 'Sfx'}Volume`,
     do: (state) => {
@@ -135,7 +137,7 @@ export function createSetAudioVolumeCommand(
       }
     },
     undo: (state) => {
-      if (previousValue === undefined) return state
+      if (previousValue === null) return state
       return {
         ...state,
         audio: { ...state.audio, [key]: previousValue },

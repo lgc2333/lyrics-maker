@@ -436,6 +436,33 @@ describe('getPreviousBarTime', () => {
     const prev = getPreviousBarTime(points, 2.4)
     expect(prev).toBeCloseTo(2, 5)
   })
+
+  it('crosses segment boundary backward to previous timing point', () => {
+    // p1: 120bpm, barDur=2.0s → bars at 0, 2, 4, 6
+    // p2: 240bpm, barDur=1.0s → bars at 8, 9, 10, 11, ...
+    const twoPoints = [
+      tp({
+        id: 'p1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+      tp({
+        id: 'p2',
+        time: 8,
+        bpm: 240,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+    ]
+    // At time=8 (exactly on the segment boundary), active point is p2.
+    // getBeatInfoAtTime gives beatIdx=0, isBarStart=true.
+    // prevBarStartBeat = -4, prevBarTime = 8 + (-4)*0.25 = 7.0 (WRONG).
+    // The correct previous bar is from p1: beat 12 at time 6.0.
+    const prev = getPreviousBarTime(twoPoints, 8)
+    expect(prev).toBeCloseTo(6, 5)
+  })
 })
 
 // ============================================================

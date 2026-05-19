@@ -32,6 +32,9 @@ function createFakeAudioContext() {
     currentTime: 10,
     destination: {} as AudioDestinationNode,
 
+    close: vi.fn(() => Promise.resolve()),
+    resume: vi.fn(() => Promise.resolve()),
+
     createOscillator() {
       const osc = {
         type: 'sine' as OscillatorType,

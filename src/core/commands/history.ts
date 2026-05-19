@@ -15,13 +15,8 @@ function createSnapshot<T>(value: T): T {
     return value
   }
 
-  // For objects, create a shallow copy (protects against direct mutations)
-  if (Array.isArray(value)) {
-    return [...value] as T
-  }
-
-  // For plain objects, create a shallow copy
-  return { ...value } as T
+  // Deep clone to protect against mutations of nested objects/arrays
+  return structuredClone(value) as T
 }
 
 export function createCommandHistory<TState>(

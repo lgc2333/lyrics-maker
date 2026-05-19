@@ -38,10 +38,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
   <header
     class="grid h-8 grid-cols-[1fr_auto_1fr] items-center border-b border-base-300 px-2 text-xs"
   >
-    <nav data-testid="menu-left" class="flex items-center gap-1">
+    <nav data-testid="menu-left" role="menubar" class="flex items-center gap-1">
       <div class="relative">
         <button
           data-testid="menu-trigger-file"
+          aria-haspopup="true"
+          :aria-expanded="openMenu === 'file'"
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('file')"
         >
@@ -50,31 +52,44 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'file'"
           data-testid="menu-popup-file"
+          role="menu"
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.newProject') }}
-          </div>
+          </button>
           <button
             data-testid="menu-open-audio"
+            role="menuitem"
             class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
             @click="emit('openAudioFile')"
           >
             {{ t('shell.menu.openFile') }}
           </button>
           <div class="my-0.5 border-t border-base-300" />
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.save') }}
-          </div>
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          </button>
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.saveAs') }}
-          </div>
+          </button>
         </div>
       </div>
 
       <div class="relative">
         <button
           data-testid="menu-trigger-edit"
+          aria-haspopup="true"
+          :aria-expanded="openMenu === 'edit'"
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('edit')"
         >
@@ -83,20 +98,29 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'edit'"
           data-testid="menu-popup-edit"
+          role="menu"
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.undo') }}
-          </div>
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          </button>
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.redo') }}
-          </div>
+          </button>
         </div>
       </div>
 
       <div class="relative">
         <button
           data-testid="menu-trigger-view"
+          aria-haspopup="true"
+          :aria-expanded="openMenu === 'view'"
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('view')"
         >
@@ -105,20 +129,29 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'view'"
           data-testid="menu-popup-view"
+          role="menu"
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.zoomFit') }}
-          </div>
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          </button>
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.zoomSelection') }}
-          </div>
+          </button>
         </div>
       </div>
 
       <div class="relative">
         <button
           data-testid="menu-trigger-help"
+          aria-haspopup="true"
+          :aria-expanded="openMenu === 'help'"
           class="rounded px-1.5 py-0.5 hover:bg-base-300"
           @click="toggleMenu('help')"
         >
@@ -127,14 +160,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         <div
           v-if="openMenu === 'help'"
           data-testid="menu-popup-help"
+          role="menu"
           class="absolute left-0 top-full z-50 mt-0.5 min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
         >
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.shortcuts') }}
-          </div>
-          <div class="cursor-pointer px-2 py-1 text-[11px] hover:bg-base-200">
+          </button>
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          >
             {{ t('shell.menu.about') }}
-          </div>
+          </button>
         </div>
       </div>
     </nav>

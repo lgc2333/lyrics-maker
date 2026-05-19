@@ -58,6 +58,9 @@ function onWheel(e: WheelEvent): void {
     <div
       v-if="timeline?.isLoading.value"
       data-testid="waveform-loading"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading waveform"
       class="absolute inset-0 z-10 flex items-center justify-center bg-base-200/50"
     >
       <span class="loading loading-spinner loading-md text-primary" />

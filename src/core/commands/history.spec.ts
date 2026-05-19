@@ -142,6 +142,26 @@ describe('createCommandHistory', () => {
     expect(history.state).toEqual({ count: 0, name: 'test' })
   })
 
+  it('protects deeply nested objects from external mutation', () => {
+    const nested = {
+      settings: { theme: 'dark', fontSize: 14 },
+      items: [{ id: 'a', tags: ['important', 'pinned'] }],
+    }
+    const history = createCommandHistory(nested)
+
+    const retrievedState = history.state as typeof nested
+    // Mutate nested property
+    retrievedState.settings.theme = 'light'
+    // Mutate nested array element's array
+    retrievedState.items[0].tags[0] = 'trashed'
+
+    // Internal state should remain unchanged
+    expect(history.state).toEqual({
+      settings: { theme: 'dark', fontSize: 14 },
+      items: [{ id: 'a', tags: ['important', 'pinned'] }],
+    })
+  })
+
   it('returns primitives safely without creating copies', () => {
     const history = createCommandHistory(42)
 

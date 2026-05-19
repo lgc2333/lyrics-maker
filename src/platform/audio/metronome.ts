@@ -92,6 +92,9 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
     ) {
       if (destroyed || !nextBeat) return
 
+      // Ensure AudioContext is running (browsers may suspend it)
+      audioContext.resume()
+
       // Reset tracking on large backward jumps (seek)
       if (nextBeat.at < lastScheduledBeatTime - 1) {
         lastScheduledBeatTime = -1
@@ -134,6 +137,7 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
     destroy(): void {
       destroyed = true
       masterGain.disconnect()
+      audioContext.close()
     },
   }
 }
