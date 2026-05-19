@@ -509,8 +509,8 @@ describe('getNextBarBoundaryTime', () => {
 describe('getBeatGridLines', () => {
   const BEAT_EPSILON = 1e-9
 
-  it('throws for empty timingPoints', () => {
-    expect(() => getBeatGridLines([], 4, false, 0, 10)).toThrow()
+  it('returns empty array for empty timingPoints', () => {
+    expect(getBeatGridLines([], 4, false, 0, 10)).toEqual([])
   })
 
   it('generates correct lines for 120bpm 4/4, divisor=1 (one per beat), 2 bars', () => {
