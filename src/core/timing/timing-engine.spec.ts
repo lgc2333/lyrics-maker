@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import zhCN from '../../platform/i18n/locales/zh-CN.json'
 import type { TimingPoint } from '../domain/project'
+import { TIMING_ERRORS } from './errors'
 import {
   getActiveTimingPoint,
   getBeatGridLines,
@@ -69,25 +69,35 @@ describe('validateTimingPoint', () => {
 
   it('returns error for bpm <= 0', () => {
     const point = tp({ id: 'tp-1', bpm: 0 })
-    expect(validateTimingPoint(point)).toContain(zhCN.errors.bpmMustBePositive)
+    expect(validateTimingPoint(point)).toContain(TIMING_ERRORS.invalidBpm)
   })
 
   it('returns error for negative bpm', () => {
     const point = tp({ id: 'tp-1', bpm: -10 })
-    expect(validateTimingPoint(point)).toContain(zhCN.errors.bpmMustBePositive)
+    expect(validateTimingPoint(point)).toContain(TIMING_ERRORS.invalidBpm)
+  })
+
+  it('returns error for NaN bpm', () => {
+    const point = tp({ id: 'tp-1', bpm: Number.NaN })
+    expect(validateTimingPoint(point)).toContain(TIMING_ERRORS.invalidBpm)
+  })
+
+  it('returns error for Infinity bpm', () => {
+    const point = tp({ id: 'tp-1', bpm: Infinity })
+    expect(validateTimingPoint(point)).toContain(TIMING_ERRORS.invalidBpm)
   })
 
   it('returns error for non-positive numerator', () => {
     const point = tp({ id: 'tp-1', timeSignatureNumerator: 0 })
     expect(validateTimingPoint(point)).toContain(
-      zhCN.errors.timeSignatureNumeratorMustBePositive,
+      TIMING_ERRORS.timeSignatureNumeratorMustBePositive,
     )
   })
 
   it('returns error for non-positive denominator', () => {
     const point = tp({ id: 'tp-1', timeSignatureDenominator: 0 })
     expect(validateTimingPoint(point)).toContain(
-      zhCN.errors.timeSignatureDenominatorMustBePositive,
+      TIMING_ERRORS.timeSignatureDenominatorMustBePositive,
     )
   })
 
@@ -100,6 +110,12 @@ describe('validateTimingPoint', () => {
     })
     const errors = validateTimingPoint(point)
     expect(errors).toHaveLength(3)
+  })
+
+  it('handles partial timing points (missing fields are not validated)', () => {
+    const errors = validateTimingPoint({ bpm: -1 })
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toBe(TIMING_ERRORS.invalidBpm)
   })
 })
 
@@ -501,6 +517,50 @@ describe('getNextBarBoundaryTime', () => {
     const next = getNextBarBoundaryTime(points, 1.4)
     expect(next).toBeCloseTo(2, 5)
   })
+
+  it('crosses segment boundary to next timing point', () => {
+    const twoPoints = [
+      tp({
+        id: 'p1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+      tp({
+        id: 'p2',
+        time: 3,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+    ]
+    // p1: bars at 0s, 2s, 4s, ...
+    // At time 2.5, next bar in p1 would be at 4.0 which is past p2's start at 3.0
+    // → should return p2's start at 3.0
+    expect(getNextBarBoundaryTime(twoPoints, 2.5)).toBeCloseTo(3.0, 5)
+  })
+
+  it('returns next bar within segment when boundary is before next point', () => {
+    const twoPoints = [
+      tp({
+        id: 'p1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+      tp({
+        id: 'p2',
+        time: 8,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+    ]
+    // At time 1.5, next bar = 2.0 which is well before p2 at 8.0
+    expect(getNextBarBoundaryTime(twoPoints, 1.5)).toBeCloseTo(2.0, 5)
+  })
 })
 
 // ============================================================
@@ -509,8 +569,8 @@ describe('getNextBarBoundaryTime', () => {
 describe('getBeatGridLines', () => {
   const BEAT_EPSILON = 1e-9
 
-  it('throws for empty timingPoints', () => {
-    expect(() => getBeatGridLines([], 4, false, 0, 10)).toThrow()
+  it('returns empty array for empty timingPoints', () => {
+    expect(getBeatGridLines([], 4, false, 0, 10)).toEqual([])
   })
 
   it('generates correct lines for 120bpm 4/4, divisor=1 (one per beat), 2 bars', () => {
@@ -677,5 +737,55 @@ describe('getPreviousSubdivisionTime', () => {
 
   it('throws for empty timingPoints', () => {
     expect(() => getPreviousSubdivisionTime([], 0, 4, false)).toThrow()
+  })
+
+  it('crosses segment boundary backward to previous timing point', () => {
+    const twoPoints = [
+      tp({
+        id: 'p1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+      tp({
+        id: 'p2',
+        time: 4,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+    ]
+    // p1: beatDur=0.5, divisor=2 → subDur=0.25
+    // p2 starts at 4.0. At time 4.0 (boundary), active point is p2.
+    // subIdx for p2: elapsed=0, subIdx=0, isExactlyOnSub: true
+    // result = 4.0 + (-1)*0.25 = 3.75
+    // 3.75 < 4.0 (point.time), cross-segment backward to p1:
+    // At boundary: boundaryElapsed=(4.0-0.0)/0.25=16, boundarySubIdx=16
+    // boundarySubStart=4.0, isBoundaryOnSub=true
+    // → 0 + (16-1)*0.25 = 3.75
+    expect(getPreviousSubdivisionTime(twoPoints, 4.0, 2, false)).toBeCloseTo(3.75, 5)
+  })
+
+  it('handles mid-segment lookup without cross-segment', () => {
+    const twoPoints = [
+      tp({
+        id: 'p1',
+        time: 5,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+      tp({
+        id: 'p2',
+        time: 10,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      }),
+    ]
+    // p1: divisor=2 → subDur=0.25
+    // At time 5.1: subIdx=0, result=5.0 (>= point.time 5.0, no cross-segment)
+    expect(getPreviousSubdivisionTime(twoPoints, 5.1, 2, false)).toBeCloseTo(5.0, 5)
   })
 })

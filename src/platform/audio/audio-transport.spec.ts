@@ -5,14 +5,17 @@ import { createAudioTransport } from './audio-transport'
 /**
  * Creates a fake HTMLAudioElement-like object for testing.
  * Simulates async media loading by emitting 'loadedmetadata' after microtask when src is set.
+ * Pass { deferLoad: true } to suppress automatic loadedmetadata — the caller must call
+ * el._completeLoad() manually to fire the event.
  */
-function createFakeMediaElement() {
+function createFakeMediaElement(opts?: { deferLoad?: boolean }) {
   const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
   let _src = ''
   let _volume = 1
   let _currentTime = 0
   let _duration = Number.NaN
   let _paused = true
+  let _pendingLoad: (() => void) | null = null
 
   const el = {
     get src() {
@@ -21,11 +24,22 @@ function createFakeMediaElement() {
     set src(value: string) {
       _src = value
       if (value) {
-        queueMicrotask(() => {
-          _duration = 120
-          listeners.loadedmetadata?.forEach((fn) => fn())
-        })
+        if (opts?.deferLoad) {
+          _pendingLoad = () => {
+            _duration = 120
+            listeners.loadedmetadata?.forEach((fn) => fn())
+          }
+        } else {
+          queueMicrotask(() => {
+            _duration = 120
+            listeners.loadedmetadata?.forEach((fn) => fn())
+          })
+        }
       }
+    },
+    _completeLoad() {
+      _pendingLoad?.()
+      _pendingLoad = null
     },
     get volume() {
       return _volume
@@ -199,6 +213,51 @@ describe('audio transport', () => {
       await transport.loadFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
       transport.destroy()
 
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake-song.mp3')
+    })
+
+    it('cleans up pending loadFile listeners when destroyed in-flight', async () => {
+      const el = createFakeMediaElement({ deferLoad: true })
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      // Start loading but do not await — destroy while Promise is pending
+      const loadPromise = transport.loadFile(
+        new File(['x'], 'song.mp3', { type: 'audio/mpeg' }),
+      )
+
+      // Destroy before loadedmetadata fires
+      transport.destroy()
+
+      // Now resolve the pending load — listeners should already be removed, so
+      // the loadPromise should never settle (reject). We race against a short
+      // timeout to confirm it does not resolve.
+      el._completeLoad()
+
+      let settled = false
+      void loadPromise.then(
+        () => {
+          settled = true
+        },
+        () => {
+          settled = true
+        },
+      )
+      // Let pending microtasks drain
+      await new Promise<void>((r) => setTimeout(r, 0))
+      expect(settled).toBe(false)
+    })
+
+    it('revokes object URL from audioElement.src in destroy', async () => {
+      const el = createFakeMediaElement()
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      await transport.loadFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+      // Verify src is the blob URL
+      expect(el.src).toBe('blob:fake-song.mp3')
+
+      transport.destroy()
+
+      // The destroy method now revokes from audioElement.src directly as a safety net
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake-song.mp3')
     })
   })

@@ -1,4 +1,4 @@
-import zhCN from '../i18n/locales/zh-CN.json'
+import zhCN from '../../i18n/locales/zh-CN.json'
 
 export interface AudioTransport {
   loadFile: (file: File) => Promise<void>
@@ -44,7 +44,6 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
         URL.revokeObjectURL(objectUrl)
       }
       objectUrl = URL.createObjectURL(file)
-      audioElement.src = objectUrl
 
       return new Promise<void>((resolve, reject) => {
         const removeListeners = () => {
@@ -63,6 +62,7 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
         _pendingCleanup = removeListeners
         audioElement.addEventListener('loadedmetadata', handleLoaded)
         audioElement.addEventListener('error', handleError)
+        audioElement.src = objectUrl
       })
     },
 
@@ -99,9 +99,13 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
     },
 
     destroy(): void {
+      _pendingCleanup?.()
       audioElement.removeEventListener('play', onPlay)
       audioElement.removeEventListener('pause', onPause)
       audioElement.removeEventListener('ended', onEnded)
+      if (audioElement.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audioElement.src)
+      }
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl)
         objectUrl = null

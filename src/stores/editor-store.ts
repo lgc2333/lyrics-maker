@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, triggerRef } from 'vue'
+import { computed, shallowRef, triggerRef } from 'vue'
 
 import { createCommandHistory } from '../core/commands/history'
 import {
@@ -86,12 +86,12 @@ export const useEditorStore = defineStore('editor', () => {
   const _tapEstimator = createTapBpmEstimator()
 
   const _audioFile = shallowRef<File | null>(null)
-  const _currentTime = ref(0)
-  const _isPlaying = ref(false)
-  const _metronomeState = ref<'off' | 'on' | 'latch_pending'>('off')
-  const _tapCount = ref(0) // incremented on every tap call, reset after idle timeout
-  const _tapSampleCount = ref(0)
-  const _tapEstimatedBpm = ref<number | null>(null)
+  const _currentTime = shallowRef(0)
+  const _isPlaying = shallowRef(false)
+  const _metronomeState = shallowRef<'off' | 'on' | 'latch_pending'>('off')
+  const _tapCount = shallowRef(0) // incremented on every tap call, reset after idle timeout
+  const _tapSampleCount = shallowRef(0)
+  const _tapEstimatedBpm = shallowRef<number | null>(null)
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -193,16 +193,27 @@ export const useEditorStore = defineStore('editor', () => {
     execute(createAddLyricLineCommand({ id: makeId('line'), text }))
   }
 
+  function _syncAudioHardware() {
+    if (_audioTransport.value) {
+      _audioTransport.value.setVolume(project.value.audio.musicVolume)
+    }
+    if (_metronome.value) {
+      _metronome.value.setSfxVolume(project.value.audio.sfxVolume)
+    }
+  }
+
   function undo() {
     history.value.undo()
     dirty.value = true
     triggerRef(history)
+    _syncAudioHardware()
   }
 
   function redo() {
     history.value.redo()
     dirty.value = true
     triggerRef(history)
+    _syncAudioHardware()
   }
 
   function markClean() {

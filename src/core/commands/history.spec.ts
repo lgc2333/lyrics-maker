@@ -118,6 +118,23 @@ describe('createCommandHistory', () => {
     expect(history.canRedo).toBe(true)
   })
 
+  it('preserves state and stacks when do throws during execute', () => {
+    const initialState = { count: 0 }
+    const history = createCommandHistory(initialState)
+    const badCommand: Command<typeof initialState> = {
+      label: 'bad',
+      do: () => {
+        throw new Error('boom')
+      },
+      undo: () => initialState,
+    }
+
+    expect(() => history.execute(badCommand)).toThrow('boom')
+    expect(history.state).toEqual(initialState)
+    expect(history.canUndo).toBe(false)
+    expect(history.canRedo).toBe(false)
+  })
+
   it('protects array state from external mutation', () => {
     const initialArray = [1, 2, 3]
     const history = createCommandHistory(initialArray)

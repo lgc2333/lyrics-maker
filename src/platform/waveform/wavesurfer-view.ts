@@ -22,6 +22,7 @@ export interface WaveSurferView {
   scrollTo: (time: number) => void
   scrollByDelta: (delta: number) => void
   getScrollTime: () => number
+  getScrollContainer: () => HTMLElement | null
   on: (event: string, handler: (...args: unknown[]) => void) => () => void
   destroy: () => void
 }
@@ -76,6 +77,7 @@ export function createWaveSurferView(
       } catch (error) {
         throw new Error(
           `Failed to load audio: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          { cause: error },
         )
       }
     },
@@ -107,6 +109,10 @@ export function createWaveSurferView(
       if (duration <= 0) return 0
       const wrapper = ws.getWrapper()
       return (scrollEl.scrollLeft / wrapper.scrollWidth) * duration
+    },
+
+    getScrollContainer(): HTMLElement | null {
+      return _getScrollContainer()
     },
 
     on(event: string, handler: (...args: unknown[]) => void): () => void {

@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
+import VolumePopover from './VolumePopover.vue'
 
 const { t } = useI18n()
 
@@ -21,27 +22,11 @@ const SUBDIVISION_OPTIONS = [
   { value: 16 as const, label: '16x' },
 ]
 
-const musicPopoverOpen = ref(false)
-const sfxPopoverOpen = ref(false)
 const verticalZoomPopoverOpen = ref(false)
 
 function onSeek(event: Event): void {
   const input = event.target as HTMLInputElement
   store.seekPlayback(input.valueAsNumber)
-}
-
-function onMusicWheel(event: WheelEvent): void {
-  event.preventDefault()
-  const delta = event.deltaY < 0 ? 0.05 : -0.05
-  store.setMusicVolume(
-    Math.max(0, Math.min(1, store.project.audio.musicVolume + delta)),
-  )
-}
-
-function onSfxWheel(event: WheelEvent): void {
-  event.preventDefault()
-  const delta = event.deltaY < 0 ? 0.05 : -0.05
-  store.setSfxVolume(Math.max(0, Math.min(1, store.project.audio.sfxVolume + delta)))
 }
 
 function onVerticalZoomWheel(event: WheelEvent): void {
@@ -221,73 +206,20 @@ function onVerticalZoomWheel(event: WheelEvent): void {
       @input="onSeek"
     />
 
-    <div
+    <VolumePopover
       data-testid="music-volume"
-      class="relative"
-      @mouseenter="musicPopoverOpen = true"
-      @mouseleave="musicPopoverOpen = false"
-      @wheel="onMusicWheel"
-    >
-      <button
-        class="btn btn-ghost btn-sm btn-square"
-        :title="t('transport.musicVolume')"
-      >
-        <Icon icon="material-symbols:music-note-rounded" class="h-5 w-5" />
-      </button>
-      <div
-        v-show="musicPopoverOpen"
-        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
-      >
-        <div class="mb-1 text-center text-[10px] tabular-nums">
-          {{ Math.round(store.project.audio.musicVolume * 100) }}%
-        </div>
-        <div class="relative h-24 w-6">
-          <input
-            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            :value="store.project.audio.musicVolume"
-            @input="
-              store.setMusicVolume(($event.target as HTMLInputElement).valueAsNumber)
-            "
-          />
-        </div>
-      </div>
-    </div>
+      :volume="store.project.audio.musicVolume"
+      icon="material-symbols:music-note-rounded"
+      :label="t('transport.musicVolume')"
+      @update:volume="store.setMusicVolume"
+    />
 
-    <div
+    <VolumePopover
       data-testid="sfx-volume"
-      class="relative"
-      @mouseenter="sfxPopoverOpen = true"
-      @mouseleave="sfxPopoverOpen = false"
-      @wheel="onSfxWheel"
-    >
-      <button class="btn btn-ghost btn-sm btn-square" :title="t('transport.sfxVolume')">
-        <Icon icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
-      </button>
-      <div
-        v-show="sfxPopoverOpen"
-        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
-      >
-        <div class="mb-1 text-center text-[10px] tabular-nums">
-          {{ Math.round(store.project.audio.sfxVolume * 100) }}%
-        </div>
-        <div class="relative h-24 w-6">
-          <input
-            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            :value="store.project.audio.sfxVolume"
-            @input="
-              store.setSfxVolume(($event.target as HTMLInputElement).valueAsNumber)
-            "
-          />
-        </div>
-      </div>
-    </div>
+      :volume="store.project.audio.sfxVolume"
+      icon="material-symbols:graphic-eq-rounded"
+      :label="t('transport.sfxVolume')"
+      @update:volume="store.setSfxVolume"
+    />
   </section>
 </template>

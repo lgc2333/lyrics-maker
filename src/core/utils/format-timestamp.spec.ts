@@ -34,4 +34,17 @@ describe('formatTimestamp', () => {
   it('rounds milliseconds correctly', () => {
     expect(formatTimestamp(8.029999)).toBe('00:08.030')
   })
+
+  it('returns 00:00.000 for values above the practical cap', () => {
+    expect(formatTimestamp(359999.999 + 1)).toBe('00:00.000')
+  })
+
+  it('returns 00:00.000 for extreme value Number.MAX_VALUE', () => {
+    expect(formatTimestamp(Number.MAX_VALUE)).toBe('00:00.000')
+  })
+
+  it('returns valid format for value at the cap boundary', () => {
+    // 359999.999 seconds ≈ 5999 minutes 59 seconds 999 ms
+    expect(formatTimestamp(359999.999)).toBe('5999:59.999')
+  })
 })

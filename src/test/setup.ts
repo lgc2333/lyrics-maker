@@ -2,7 +2,7 @@ import { config } from '@vue/test-utils'
 import { afterEach, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 
-import { i18n } from '../platform/i18n'
+import { i18n } from '../i18n'
 
 vi.mock('@iconify/vue', () => ({
   Icon: defineComponent({

@@ -43,6 +43,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   let wavesurferView: WaveSurferView | null = null
   let gridPlugin: GridOverlayPlugin | null = null
   let lastUserScrollAt = 0
+  let _scrollContainerCleanup: (() => void) | null = null
   const USER_SCROLL_COOLDOWN_MS = 500
 
   function _buildOverlayParams() {
@@ -86,10 +87,27 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       })
     }
 
+    // Listen for scrollbar drags / touch-pan so auto-scroll cooldown is respected
+    _scrollContainerCleanup?.()
+    const scrollContainer = view.getScrollContainer()
+    if (scrollContainer) {
+      const onScroll = () => {
+        lastUserScrollAt = Date.now()
+      }
+      scrollContainer.addEventListener('scroll', onScroll, { passive: true })
+      _scrollContainerCleanup = () => {
+        scrollContainer.removeEventListener('scroll', onScroll)
+        _scrollContainerCleanup = null
+      }
+    }
+
     return view
   }
 
   // Initialize when container becomes available
+  // wavesurferView is a plain variable (not reactive).
+  // This watchEffect only re-runs when containerRef changes, preventing a double-init race
+  // when setViewMode() sets wavesurferView = null before re-initializing.
   watchEffect(() => {
     const container = containerRef.value
     if (container && !wavesurferView) {
@@ -164,6 +182,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   onUnmounted(() => {
     window.removeEventListener('keydown', _onKeydown)
     window.removeEventListener('keyup', _onKeyup)
+    _scrollContainerCleanup?.()
     wavesurferView?.destroy()
     wavesurferView = null
     gridPlugin = null

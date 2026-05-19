@@ -57,7 +57,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         >
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.newProject') }}
           </button>
@@ -72,13 +72,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <div class="my-0.5 border-t border-base-300" />
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.save') }}
           </button>
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.saveAs') }}
           </button>
@@ -103,13 +103,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         >
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.undo') }}
           </button>
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.redo') }}
           </button>
@@ -134,13 +134,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         >
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.zoomFit') }}
           </button>
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.zoomSelection') }}
           </button>
@@ -165,13 +165,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         >
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.shortcuts') }}
           </button>
           <button
             role="menuitem"
-            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.about') }}
           </button>

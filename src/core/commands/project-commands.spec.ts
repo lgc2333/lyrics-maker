@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createEmptyProject } from '../domain/project'
 import {
+  createAddLyricLineCommand,
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
   createSetAudioVolumeCommand,
@@ -9,6 +10,85 @@ import {
   createSetSnapDivisorCommand,
   createUpdateTimingPointCommand,
 } from './project-commands'
+
+describe('add lyric line command', () => {
+  it('adds a lyric line via do()', () => {
+    const payload = { id: 'line-1', text: 'hello world' }
+    const command = createAddLyricLineCommand(payload)
+    const afterDo = command.do(createEmptyProject())
+
+    expect(afterDo.lyrics).toHaveLength(1)
+    expect(afterDo.lyrics[0].id).toBe('line-1')
+    expect(afterDo.lyrics[0].text).toBe('hello world')
+    expect(afterDo.lyrics[0].words).toEqual([])
+  })
+
+  it('undo removes the added line', () => {
+    const payload = { id: 'line-1', text: 'hello world' }
+    const command = createAddLyricLineCommand(payload)
+    const afterDo = command.do(createEmptyProject())
+
+    const afterUndo = command.undo(afterDo)
+    expect(afterUndo.lyrics).toHaveLength(0)
+  })
+
+  it('do can be used as redo to re-add the line', () => {
+    const payload = { id: 'line-1', text: 'hello world' }
+    const command = createAddLyricLineCommand(payload)
+    const afterDo = command.do(createEmptyProject())
+
+    const afterUndo = command.undo(afterDo)
+    expect(afterUndo.lyrics).toHaveLength(0)
+
+    const afterRedo = command.do(afterUndo)
+    expect(afterRedo.lyrics).toHaveLength(1)
+    expect(afterRedo.lyrics[0].id).toBe('line-1')
+    expect(afterRedo.lyrics[0].text).toBe('hello world')
+  })
+
+  it('do returns a new object and does not mutate input', () => {
+    const payload = { id: 'line-1', text: 'hello world' }
+    const command = createAddLyricLineCommand(payload)
+    const project = createEmptyProject()
+
+    const afterDo = command.do(project)
+    expect(afterDo).not.toBe(project)
+    // Original project should remain unchanged
+    expect(project.lyrics).toHaveLength(0)
+    // The new state should have the added line
+    expect(afterDo.lyrics).toHaveLength(1)
+  })
+
+  it('undo returns a new object and does not mutate input', () => {
+    const payload = { id: 'line-1', text: 'hello world' }
+    const command = createAddLyricLineCommand(payload)
+    const afterDo = command.do(createEmptyProject())
+
+    const afterUndo = command.undo(afterDo)
+    expect(afterUndo).not.toBe(afterDo)
+    // afterDo should remain unchanged
+    expect(afterDo.lyrics).toHaveLength(1)
+    // afterUndo should have the line removed
+    expect(afterUndo.lyrics).toHaveLength(0)
+  })
+
+  it('removes only the matching line when multiple lines exist', () => {
+    const payload1 = { id: 'line-1', text: 'first' }
+    const payload2 = { id: 'line-2', text: 'second' }
+    const command1 = createAddLyricLineCommand(payload1)
+    const command2 = createAddLyricLineCommand(payload2)
+
+    const afterFirst = command1.do(createEmptyProject())
+    const afterSecond = command2.do(afterFirst)
+
+    expect(afterSecond.lyrics).toHaveLength(2)
+
+    // Undo the second line only
+    const afterUndo = command2.undo(afterSecond)
+    expect(afterUndo.lyrics).toHaveLength(1)
+    expect(afterUndo.lyrics[0].id).toBe('line-1')
+  })
+})
 
 describe('timing point commands', () => {
   it('adds and removes timing points via commands', () => {

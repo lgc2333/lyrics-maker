@@ -10,6 +10,7 @@ import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
+import { MAIN_VIEW_HEIGHT_KEY, TIMELINE_CONTAINER_REF_KEY } from './injection-keys'
 
 const store = useEditorStore()
 const persistence = useProjectPersistence()
@@ -24,7 +25,7 @@ const timelineContainerRef = shallowRef<HTMLElement | null>(null)
 const timeline = useTimelineView(timelineContainerRef)
 
 provide(TIMELINE_VIEW_KEY, timeline)
-provide('timelineContainerRef', timelineContainerRef)
+provide(TIMELINE_CONTAINER_REF_KEY, timelineContainerRef)
 
 // ---- MainView resize ----
 const mainViewHeight = ref(250)
@@ -56,7 +57,7 @@ function onResizePointerUp() {
   resizeDragging = false
 }
 
-provide('mainViewHeight', mainViewHeight)
+provide(MAIN_VIEW_HEIGHT_KEY, mainViewHeight)
 
 function detectSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

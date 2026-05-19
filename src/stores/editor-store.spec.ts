@@ -315,6 +315,35 @@ describe('editor store (phase 2 - volume)', () => {
     store.redo()
     expect(store.project.audio.musicVolume).toBe(0.3)
   })
+
+  it('undo/redo re-syncs volume to audio hardware', () => {
+    const mockAudio = createMockAudioTransport()
+    __overrideAudioTransportFactory(() => mockAudio.transport)
+    const mockMetronome = createMockMetronome()
+    __overrideMetronomeFactory(() => mockMetronome.scheduler)
+    setActivePinia(createPinia())
+
+    const store = useEditorStore()
+
+    // Import audio to create the transport (which initializes volume=1)
+    store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    // Toggle metronome to create the metronome instance
+    store.toggleMetronome()
+
+    // Change volumes
+    store.setMusicVolume(0.3)
+    store.setSfxVolume(0.5)
+
+    // Undo music volume — transport should be notified
+    store.undo()
+    expect(mockAudio.transport.setVolume).toHaveBeenCalledWith(1) // restored to default
+    // SFX volume should still be 0.5 (only music volume was undone)
+    expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.5)
+
+    // Undo sfx volume — metronome should be notified
+    store.undo()
+    expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.8) // restored to default
+  })
 })
 
 describe('editor store (phase 2 - audio transport)', () => {

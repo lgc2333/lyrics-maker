@@ -190,4 +190,28 @@ describe('timingPointsPanel', () => {
     const btn = wrapper.get('[data-testid="tap-bpm-button"]')
     expect((btn.element as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('clears selectedId when selected timing point is removed', async () => {
+    const store = useEditorStore()
+    addTwoPoints()
+    const wrapper = mount(TimingPointsPanel)
+
+    const pointId = store.project.timingPoints[0].id
+
+    // Select the first point
+    const rows = wrapper.findAll('[data-testid="timing-point-row"]')
+    await rows[0].trigger('click')
+
+    // Verify it is selected (bg-primary/10 appears on selected rows)
+    const updatedRows = wrapper.findAll('[data-testid="timing-point-row"]')
+    expect(updatedRows[0].classes()).toContain('bg-primary/10')
+
+    // Remove the selected point
+    store.removeTimingPoint(pointId)
+    await wrapper.vm.$nextTick()
+
+    // After removal, the row should no longer have the selected background
+    const afterRemovalRows = wrapper.findAll('[data-testid="timing-point-row"]')
+    expect(afterRemovalRows[0].classes()).not.toContain('bg-primary/10')
+  })
 })

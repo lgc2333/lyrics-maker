@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { getActiveTimingPoint } from '../../core/timing/timing-engine'
 import { useEditorStore } from '../../stores/editor-store'
@@ -20,6 +20,16 @@ const selectedPoint = computed(
 )
 
 const focusedPoint = computed(() => selectedPoint.value ?? activePoint.value)
+
+watch(
+  () => store.project.timingPoints,
+  (points) => {
+    if (selectedId.value && !points.some((p) => p.id === selectedId.value)) {
+      selectedId.value = null
+    }
+  },
+  { deep: true },
+)
 
 function adjustPointTime(deltaMs: number): void {
   if (!focusedPoint.value) return

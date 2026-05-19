@@ -1,11 +1,14 @@
-import zhCN from '../../platform/i18n/locales/zh-CN.json'
 import type { TimingPoint } from '../domain/project'
+import { TIMING_ERRORS } from './errors'
 import { sortTimingPoints } from './timing-point'
 
 // 1 nanosecond tolerance for floating-point comparisons in beat/bar arithmetic.
 // About 7 orders larger than Number.EPSILON to handle accumulated rounding errors.
 const BEAT_EPSILON = 1e-9
 const SUBDIV_EPSILON = 1e-9
+
+// Safety cap for iterative grid line generation
+const MAX_GRID_ITERATIONS = 10000
 
 export interface BeatInfo {
   pointId: string
@@ -16,20 +19,15 @@ export interface BeatInfo {
 }
 
 /**
- * Returns the active timing point for the given absolute time.
- *
- * - Points are sorted by time. point[i] governs interval [point[i].time, point[i+1].time).
- * - When t < first point's time, uses first point (backward projection).
- * - When t >= last point's time, uses last point.
+ * Internal helper: same as getActiveTimingPoint but expects pre-sorted points.
+ * Callers that already sort can use this to avoid redundant re-sorting.
  */
-export function getActiveTimingPoint(
-  points: readonly TimingPoint[],
+function getActiveTimingPointFromSorted(
+  sorted: readonly TimingPoint[],
   time: number,
 ): TimingPoint {
-  const sorted = sortTimingPoints(points)
-
   if (sorted.length === 0) {
-    throw new Error(zhCN.errors.noTimingPoints)
+    throw new Error(TIMING_ERRORS.noTimingPoints)
   }
 
   // Backward projection: time before first point
@@ -46,6 +44,21 @@ export function getActiveTimingPoint(
 
   // Fallback (shouldn't happen with above checks, but safe)
   return sorted[0]
+}
+
+/**
+ * Returns the active timing point for the given absolute time.
+ *
+ * - Points are sorted by time. point[i] governs interval [point[i].time, point[i+1].time).
+ * - When t < first point's time, uses first point (backward projection).
+ * - When t >= last point's time, uses last point.
+ */
+export function getActiveTimingPoint(
+  points: readonly TimingPoint[],
+  time: number,
+): TimingPoint {
+  const sorted = sortTimingPoints(points)
+  return getActiveTimingPointFromSorted(sorted, time)
 }
 
 /**
@@ -113,10 +126,10 @@ export function getNextBeatTime(points: readonly TimingPoint[], time: number): n
   const sorted = sortTimingPoints(points)
 
   if (sorted.length === 0) {
-    throw new Error(zhCN.errors.noTimingPoints)
+    throw new Error(TIMING_ERRORS.noTimingPoints)
   }
 
-  const point = getActiveTimingPoint(sorted, time)
+  const point = getActiveTimingPointFromSorted(sorted, time)
   const dur = beatDuration(point.bpm)
 
   const info = getBeatInfoAtTime(sorted, time)
@@ -142,7 +155,7 @@ export function getPreviousBarTime(
   time: number,
 ): number {
   const sorted = sortTimingPoints(points)
-  const point = getActiveTimingPoint(sorted, time)
+  const point = getActiveTimingPointFromSorted(sorted, time)
   const dur = beatDuration(point.bpm)
   const bpBar = beatsPerBar(
     point.timeSignatureNumerator,
@@ -190,12 +203,16 @@ export function getPreviousBarTime(
 
 /**
  * Returns the time of the next bar boundary strictly after the given time.
+ *
+ * When the computed next bar falls at or past a segment boundary (next timing point's start),
+ * it returns the next timing point's start time instead.
  */
 export function getNextBarBoundaryTime(
   points: readonly TimingPoint[],
   time: number,
 ): number {
-  const point = getActiveTimingPoint(points, time)
+  const sorted = sortTimingPoints(points)
+  const point = getActiveTimingPointFromSorted(sorted, time)
   const dur = beatDuration(point.bpm)
   const bpBar = beatsPerBar(
     point.timeSignatureNumerator,
@@ -207,7 +224,18 @@ export function getNextBarBoundaryTime(
   const currentBarStartBeat = Math.floor(beatIdx / bpBar) * bpBar
   const nextBarStartBeat = currentBarStartBeat + bpBar
 
-  return point.time + nextBarStartBeat * dur
+  const nextBarTime = point.time + nextBarStartBeat * dur
+
+  // Check if the next bar falls past the current segment boundary
+  const pointIndex = sorted.findIndex((p) => p.id === point.id)
+  if (pointIndex < sorted.length - 1) {
+    const nextPoint = sorted[pointIndex + 1]
+    if (nextBarTime >= nextPoint.time) {
+      return nextPoint.time
+    }
+  }
+
+  return nextBarTime
 }
 
 export interface GridLine {
@@ -219,7 +247,7 @@ export interface GridLine {
  * Returns beat-grid lines within [startSec, endSec].
  * divisor: subdivisions per beat (1, 2, 4, 8, 16).
  * triplets: if true and divisor >= 2, actualDivisor = round(divisor * 3 / 2).
- * Returns [] when timingPoints is empty (never throws).
+ * Returns an empty array when timingPoints is empty.
  */
 export function getBeatGridLines(
   timingPoints: readonly TimingPoint[],
@@ -229,7 +257,7 @@ export function getBeatGridLines(
   endSec: number,
 ): GridLine[] {
   if (timingPoints.length === 0) {
-    throw new Error(zhCN.errors.noTimingPoints)
+    return []
   }
 
   const sorted = sortTimingPoints(timingPoints)
@@ -249,14 +277,22 @@ export function getBeatGridLines(
       triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
     const subDur = beatDur / actualDivisor
 
+    // Safety: guard against zero or negative sub-division duration
+    if (subDur <= 0) break
+
     const windowStart = Math.max(segStart, startSec)
     const windowEnd = Math.min(segEnd === Infinity ? endSec : segEnd, endSec)
 
     // First sub index at or after windowStart (relative to segStart)
     const rawStart = (windowStart - segStart) / subDur
     let subIdx = Math.max(0, Math.ceil(rawStart - SUBDIV_EPSILON))
+    let iterations = 0
 
     while (true) {
+      if (++iterations > MAX_GRID_ITERATIONS) {
+        throw new Error(TIMING_ERRORS.maxIterationsExceeded)
+      }
+
       const t = segStart + subIdx * subDur
       if (t >= windowEnd - SUBDIV_EPSILON) break
 
@@ -291,9 +327,9 @@ export function getNextSubdivisionTime(
   triplets: boolean,
 ): number {
   const sorted = sortTimingPoints(points)
-  if (sorted.length === 0) throw new Error(zhCN.errors.noTimingPoints)
+  if (sorted.length === 0) throw new Error(TIMING_ERRORS.noTimingPoints)
 
-  const point = getActiveTimingPoint(sorted, time)
+  const point = getActiveTimingPointFromSorted(sorted, time)
   const beatDur = 60 / point.bpm
   const actualDivisor =
     triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
@@ -318,6 +354,7 @@ export function getNextSubdivisionTime(
 /**
  * Returns the start time of the subdivision containing `time`,
  * or the previous subdivision if `time` is exactly on a boundary.
+ * Handles backward cross-segment boundaries.
  * Throws if timingPoints is empty.
  */
 export function getPreviousSubdivisionTime(
@@ -327,9 +364,9 @@ export function getPreviousSubdivisionTime(
   triplets: boolean,
 ): number {
   const sorted = sortTimingPoints(points)
-  if (sorted.length === 0) throw new Error(zhCN.errors.noTimingPoints)
+  if (sorted.length === 0) throw new Error(TIMING_ERRORS.noTimingPoints)
 
-  const point = getActiveTimingPoint(sorted, time)
+  const point = getActiveTimingPointFromSorted(sorted, time)
   const beatDur = 60 / point.bpm
   const actualDivisor =
     triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
@@ -340,5 +377,28 @@ export function getPreviousSubdivisionTime(
   const currentSubStart = point.time + subIdx * subDur
   const isExactlyOnSub = Math.abs(time - currentSubStart) < BEAT_EPSILON
 
-  return isExactlyOnSub ? point.time + (subIdx - 1) * subDur : currentSubStart
+  const result = isExactlyOnSub ? point.time + (subIdx - 1) * subDur : currentSubStart
+
+  // If the computed subdivision time falls before the current segment,
+  // re-compute using the previous timing point's properties at the boundary.
+  if (result < point.time) {
+    const pointIndex = sorted.findIndex((p) => p.id === point.id)
+    if (pointIndex > 0) {
+      const prevPoint = sorted[pointIndex - 1]
+      const prevBeatDur = 60 / prevPoint.bpm
+      const prevActualDivisor =
+        triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
+      const prevSubDur = prevBeatDur / prevActualDivisor
+      const boundaryElapsed = (point.time - prevPoint.time) / prevSubDur
+      const boundarySubIdx = Math.floor(boundaryElapsed + BEAT_EPSILON)
+      const boundarySubStart = prevPoint.time + boundarySubIdx * prevSubDur
+      const isBoundaryOnSub = Math.abs(point.time - boundarySubStart) < BEAT_EPSILON
+
+      return isBoundaryOnSub
+        ? prevPoint.time + (boundarySubIdx - 1) * prevSubDur
+        : prevPoint.time + boundarySubIdx * prevSubDur
+    }
+  }
+
+  return result
 }

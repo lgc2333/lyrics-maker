@@ -1,4 +1,5 @@
 import type { ProjectDocument, TimingPoint } from '../domain/project'
+import { validateTimingPoint } from '../timing/timing-point'
 import type { Command } from './command'
 
 export function createAddLyricLineCommand(payload: {
@@ -21,6 +22,10 @@ export function createAddLyricLineCommand(payload: {
 export function createAddTimingPointCommand(
   payload: TimingPoint,
 ): Command<ProjectDocument> {
+  const errors = validateTimingPoint(payload)
+  if (errors.length > 0) {
+    throw new Error(errors.join('; '))
+  }
   return {
     label: 'timing.addPoint',
     do: (state) => ({
@@ -38,6 +43,10 @@ export function createUpdateTimingPointCommand(
   id: string,
   patch: Partial<TimingPoint>,
 ): Command<ProjectDocument> {
+  const errors = validateTimingPoint(patch)
+  if (errors.length > 0) {
+    throw new Error(errors.join('; '))
+  }
   let originalPoint: TimingPoint | null = null
   return {
     label: 'timing.updatePoint',

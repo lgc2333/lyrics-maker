@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { Ref, ShallowRef } from 'vue'
 
 import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
+import { MAIN_VIEW_HEIGHT_KEY, TIMELINE_CONTAINER_REF_KEY } from './injection-keys'
 
 // Injected from AppShell
 const timeline = inject(TIMELINE_VIEW_KEY)
-const timelineContainerRef =
-  inject<ShallowRef<HTMLElement | null>>('timelineContainerRef')
-const mainViewHeight = inject<Ref<number>>('mainViewHeight')
+const timelineContainerRef = inject(TIMELINE_CONTAINER_REF_KEY)
+const mainViewHeight = inject(MAIN_VIEW_HEIGHT_KEY)
 
 // ---- WaveSurfer container ref ----
 const waveformEl = ref<HTMLElement | null>(null)

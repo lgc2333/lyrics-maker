@@ -202,6 +202,7 @@ describe('transportBar', () => {
 
     // Start from a non-max value
     store.setMusicVolume(0.5)
+    await wrapper.vm.$nextTick()
     const initial = store.project.audio.musicVolume
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
@@ -216,6 +217,7 @@ describe('transportBar', () => {
 
     // Set volume to 0.5 first
     store.setMusicVolume(0.5)
+    await wrapper.vm.$nextTick()
     expect(store.project.audio.musicVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
@@ -229,6 +231,7 @@ describe('transportBar', () => {
     const store = useEditorStore()
 
     store.setSfxVolume(0.5)
+    await wrapper.vm.$nextTick()
     expect(store.project.audio.sfxVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
@@ -242,6 +245,7 @@ describe('transportBar', () => {
     const store = useEditorStore()
 
     store.setSfxVolume(0.5)
+    await wrapper.vm.$nextTick()
     expect(store.project.audio.sfxVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
@@ -255,6 +259,7 @@ describe('transportBar', () => {
     const store = useEditorStore()
 
     store.setMusicVolume(0.01)
+    await wrapper.vm.$nextTick()
     expect(store.project.audio.musicVolume).toBe(0.01)
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
@@ -268,6 +273,7 @@ describe('transportBar', () => {
     const store = useEditorStore()
 
     store.setSfxVolume(0.99)
+    await wrapper.vm.$nextTick()
     expect(store.project.audio.sfxVolume).toBe(0.99)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
