@@ -362,8 +362,9 @@ export const useEditorStore = defineStore('editor', () => {
         m.setEnabled(false)
         _metronomeState.value = 'latch_pending'
       } else {
-        // Not playing → skip latch, go directly to off
-        m.setEnabled(false)
+        // Not playing → fire latch immediately, then stop
+        m.setEnabled(false) // sets latchPending = true inside metronome
+        m.fireLatchNow() // plays it at audioContext.currentTime + 0.05s
         _metronomeState.value = 'off'
       }
     } else {

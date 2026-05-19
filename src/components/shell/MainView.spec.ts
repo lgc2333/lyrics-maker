@@ -63,4 +63,9 @@ describe('mainView', () => {
     const wrapper = mount(MainView)
     expect(wrapper.find('[data-testid="vertical-zoom-slider"]').exists()).toBe(false)
   })
+
+  it('waveform-loading overlay is not rendered without a timeline injection', () => {
+    const wrapper = mount(MainView)
+    expect(wrapper.find('[data-testid="waveform-loading"]').exists()).toBe(false)
+  })
 })

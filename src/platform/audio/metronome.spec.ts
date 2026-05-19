@@ -389,4 +389,49 @@ describe('metronome', () => {
     expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-tick-downbeat-osu.wav')
     expect(fetchMock).toHaveBeenCalledWith('/assets/metronome-latch-osu.wav')
   })
+
+  describe('fireLatchNow', () => {
+    it('schedules the latch buffer immediately when called', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setEnabled(false) // sets latchPending = true
+      expect(m.hasPendingLatch()).toBe(true)
+
+      m.fireLatchNow()
+      // Should have scheduled a source
+      expect(fakeCtx._sources.length).toBe(1)
+      expect(fakeCtx._sources[0].start).toHaveBeenCalled()
+    })
+
+    it('clears latchPending after firing', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setEnabled(false)
+
+      m.fireLatchNow()
+      expect(m.hasPendingLatch()).toBe(false)
+    })
+
+    it('is a no-op when no latch is pending', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      // No setEnabled(false) → no latch pending
+
+      m.fireLatchNow()
+      expect(fakeCtx._sources.length).toBe(0)
+    })
+
+    it('does not throw after destroy', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setEnabled(false)
+      m.destroy()
+
+      expect(() => m.fireLatchNow()).not.toThrow()
+    })
+  })
 })

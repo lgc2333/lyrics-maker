@@ -180,7 +180,7 @@ const tapBpmClass = computed(() => {
         <span>{{ t('timing.controls.timeSignature') }}</span>
         <div class="flex items-center gap-2">
           <input
-            class="input input-xs w-12 text-center"
+            class="input input-xs w-14 text-center"
             type="number"
             min="1"
             :value="focusedPoint?.timeSignatureNumerator ?? 4"
@@ -193,7 +193,7 @@ const tapBpmClass = computed(() => {
           />
           <span>/</span>
           <select
-            class="select select-xs w-12"
+            class="select select-xs w-14"
             :value="String(focusedPoint?.timeSignatureDenominator ?? 4)"
             @change="
               emit(

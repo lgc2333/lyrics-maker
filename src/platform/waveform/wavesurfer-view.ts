@@ -1,9 +1,12 @@
 import WaveSurfer from 'wavesurfer.js'
 import type { GenericPlugin } from 'wavesurfer.js/dist/base-plugin.js'
+import WindowedSpectrogramPlugin from 'wavesurfer.js/dist/plugins/spectrogram-windowed.esm.js'
 
 export interface WaveSurferViewOptions {
   mode: 'waveform' | 'spectrogram'
   minPxPerSec: number
+  /** Height in pixels for the spectrogram canvas (defaults to container height or 256). */
+  spectrogramHeight?: number
 }
 
 export interface WaveSurferView {
@@ -11,6 +14,7 @@ export interface WaveSurferView {
   loadBlob: (blob: Blob) => Promise<void>
   zoom: (pxPerSec: number) => void
   scrollTo: (time: number) => void
+  scrollByDelta: (delta: number) => void
   getScrollTime: () => number
   on: (event: string, handler: (...args: unknown[]) => void) => () => void
   destroy: () => void
@@ -26,28 +30,20 @@ export function createWaveSurferView(
     progressColor: '#383351',
     height: 'auto',
     minPxPerSec: options.minPxPerSec,
-    interact: false,
+    interact: true,
     hideScrollbar: false,
   })
 
   if (options.mode === 'spectrogram') {
-    void _initSpectrogram(ws)
-  }
-
-  async function _initSpectrogram(instance: WaveSurfer): Promise<void> {
-    try {
-      const { default: SpectrogramPlugin } = await import(
-        /* @vite-ignore */ 'wavesurfer.js/dist/plugins/spectrogram.esm.js'
-      )
-      instance.registerPlugin(
-        SpectrogramPlugin.create({
-          fftSamples: 1024,
-          labels: true,
-        }),
-      )
-    } catch {
-      // Spectrogram plugin unavailable; gracefully degrade to waveform only
-    }
+    const height = options.spectrogramHeight ?? (container.clientHeight || 256)
+    ws.registerPlugin(
+      WindowedSpectrogramPlugin.create({
+        fftSamples: 1024,
+        labels: true,
+        useWebWorker: true,
+        height,
+      }),
+    )
   }
 
   function _getScrollContainer(): HTMLElement | null {
@@ -76,6 +72,11 @@ export function createWaveSurferView(
       const pxPerSec = wrapper.scrollWidth / duration
       const center = scrollEl.clientWidth / 2
       scrollEl.scrollLeft = Math.max(0, time * pxPerSec - center)
+    },
+
+    scrollByDelta(delta: number): void {
+      const scrollEl = _getScrollContainer()
+      if (scrollEl) scrollEl.scrollLeft += delta
     },
 
     getScrollTime(): number {

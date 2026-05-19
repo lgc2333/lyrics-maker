@@ -1,7 +1,10 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent, h, provide, ref } from 'vue'
 
+import type { TimelineViewContext } from '../../composables/useTimelineView'
+import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
 import type { AudioTransport } from '../../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../../platform/audio/metronome'
 import {
@@ -37,6 +40,7 @@ function createMockMetronome(): MetronomeScheduler {
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => false),
+    fireLatchNow: vi.fn(),
     getLoadError: vi.fn(() => null),
     destroy: vi.fn(),
   }
@@ -324,5 +328,88 @@ describe('transportBar', () => {
 
     // Verify play was called on the transport
     expect(mockTransport.play).toHaveBeenCalled()
+  })
+})
+
+// ---- Timeline context tests ----
+
+function makeTimeline(
+  overrides: Partial<TimelineViewContext> = {},
+): TimelineViewContext {
+  return {
+    viewMode: ref('waveform') as TimelineViewContext['viewMode'],
+    pxPerSec: ref(100),
+    verticalZoom: ref(1),
+    divisor: ref(4) as TimelineViewContext['divisor'],
+    rhythmMode: ref('common') as TimelineViewContext['rhythmMode'],
+    effectiveTriplets: ref(false),
+    altTripletActive: ref(false),
+    isLoading: ref(false),
+    setViewMode: vi.fn(),
+    setVerticalZoom: vi.fn(),
+    onWheel: vi.fn(),
+    ...overrides,
+  }
+}
+
+function mountWithTimeline(timeline: TimelineViewContext): ReturnType<typeof mount> {
+  return mount(
+    defineComponent({
+      setup() {
+        provide(TIMELINE_VIEW_KEY, timeline)
+        return () => h(TransportBar)
+      },
+    }),
+  )
+}
+
+describe('transportBar rhythm mode select', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('renders rhythm-mode-select when timeline is provided', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+    expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(true)
+  })
+
+  it('shows "common" when effectiveTriplets is false', () => {
+    const timeline = makeTimeline({ effectiveTriplets: ref(false) })
+    const wrapper = mountWithTimeline(timeline)
+    const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
+    expect(select.element.value).toBe('common')
+  })
+
+  it('shows "triplets" when effectiveTriplets is true', () => {
+    const timeline = makeTimeline({ effectiveTriplets: ref(true) })
+    const wrapper = mountWithTimeline(timeline)
+    const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
+    expect(select.element.value).toBe('triplets')
+  })
+})
+
+describe('transportBar vertical zoom popover', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('vertical-zoom-popover is not rendered in waveform mode', () => {
+    const timeline = makeTimeline({
+      viewMode: ref('waveform') as TimelineViewContext['viewMode'],
+    })
+    const wrapper = mountWithTimeline(timeline)
+    expect(wrapper.find('[data-testid="vertical-zoom-popover"]').exists()).toBe(false)
+  })
+
+  it('vertical-zoom-popover is rendered in spectrogram mode', () => {
+    const timeline = makeTimeline({
+      viewMode: ref('spectrogram') as TimelineViewContext['viewMode'],
+    })
+    const wrapper = mountWithTimeline(timeline)
+    expect(wrapper.find('[data-testid="vertical-zoom-popover"]').exists()).toBe(true)
   })
 })

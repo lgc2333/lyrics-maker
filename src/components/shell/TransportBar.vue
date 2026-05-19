@@ -23,6 +23,7 @@ const SUBDIVISION_OPTIONS = [
 
 const musicPopoverOpen = ref(false)
 const sfxPopoverOpen = ref(false)
+const verticalZoomPopoverOpen = ref(false)
 
 function onSeek(event: Event): void {
   const input = event.target as HTMLInputElement
@@ -42,6 +43,13 @@ function onSfxWheel(event: WheelEvent): void {
   const delta = event.deltaY < 0 ? 0.05 : -0.05
   store.setSfxVolume(Math.max(0, Math.min(1, store.project.audio.sfxVolume + delta)))
 }
+
+function onVerticalZoomWheel(event: WheelEvent): void {
+  event.preventDefault()
+  const delta = event.deltaY < 0 ? 0.1 : -0.1
+  const next = (timeline?.verticalZoom.value ?? 1) + delta
+  timeline?.setVerticalZoom(next)
+}
 </script>
 
 <template>
@@ -60,10 +68,10 @@ function onSfxWheel(event: WheelEvent): void {
     >
       <Icon
         v-if="timeline.viewMode.value === 'waveform'"
-        icon="material-symbols:waveform"
+        icon="material-symbols:graphic-eq-rounded"
         class="h-5 w-5"
       />
-      <Icon v-else icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
+      <Icon v-else icon="mynaui:chart-area-solid" class="h-5 w-5" />
     </button>
 
     <button
@@ -89,7 +97,7 @@ function onSfxWheel(event: WheelEvent): void {
     <select
       v-if="timeline"
       data-testid="subdivision-select"
-      class="select select-xs w-20"
+      class="select select-xs w-16"
       :title="t('transport.subdivisionDivisor')"
       :value="timeline.divisor.value"
       @change="
@@ -110,9 +118,9 @@ function onSfxWheel(event: WheelEvent): void {
     <select
       v-if="timeline"
       data-testid="rhythm-mode-select"
-      class="select select-xs w-24"
+      class="select select-xs w-26"
       :title="t('transport.rhythmMode')"
-      :value="timeline.rhythmMode.value"
+      :value="timeline.effectiveTriplets.value ? 'triplets' : 'common'"
       @change="
         timeline.rhythmMode.value = ($event.target as HTMLSelectElement).value as
           | 'common'
@@ -242,6 +250,47 @@ function onSfxWheel(event: WheelEvent): void {
             :value="store.project.audio.sfxVolume"
             @input="
               store.setSfxVolume(($event.target as HTMLInputElement).valueAsNumber)
+            "
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical zoom — spectrogram mode only, hover popover like volume controls -->
+    <div
+      v-if="timeline?.viewMode.value === 'spectrogram'"
+      data-testid="vertical-zoom-popover"
+      class="relative"
+      @mouseenter="verticalZoomPopoverOpen = true"
+      @mouseleave="verticalZoomPopoverOpen = false"
+      @wheel.prevent="onVerticalZoomWheel"
+    >
+      <button
+        class="btn btn-ghost btn-sm btn-square"
+        :title="t('transport.verticalZoom')"
+      >
+        <Icon icon="material-symbols:unfold-more-rounded" class="h-5 w-5" />
+      </button>
+      <div
+        v-show="verticalZoomPopoverOpen"
+        data-testid="vertical-zoom-slider"
+        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
+      >
+        <div class="mb-1 text-center text-[10px] tabular-nums">
+          {{ Math.round((timeline?.verticalZoom.value ?? 1) * 100) }}%
+        </div>
+        <div class="relative h-24 w-6">
+          <input
+            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
+            type="range"
+            min="0.5"
+            max="10"
+            step="0.1"
+            :value="timeline?.verticalZoom.value ?? 1"
+            @input="
+              timeline?.setVerticalZoom(
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
             "
           />
         </div>

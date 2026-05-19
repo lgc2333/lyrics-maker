@@ -20,6 +20,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   const pxPerSec = ref(DEFAULT_PX_PER_SEC)
   const verticalZoom = ref(1)
   const altTripletActive = ref(false)
+  const isLoading = ref(false)
 
   // ---- Project-persisted state (via store/commands) ----
   const divisor = computed({
@@ -53,11 +54,25 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     const view = createWaveSurferView(container, {
       mode: viewMode.value,
       minPxPerSec: pxPerSec.value,
+      spectrogramHeight: container.clientHeight || 256,
     })
     wavesurferView = view
-    gridPlugin = view.registerPlugin(GridOverlayPlugin.create())
+    gridPlugin = view.registerPlugin(
+      GridOverlayPlugin.create({ outerContainer: container }),
+    )
+
+    // Click-to-seek: WaveSurfer fires 'interaction' with newTime when interact: true
+    view.on('interaction', (time: unknown) => {
+      store.seekPlayback(time as number)
+    })
+
+    // Loading state: set false when audio is ready
+    view.on('ready', () => {
+      isLoading.value = false
+    })
 
     if (store.audioFile) {
+      isLoading.value = true
       void view.loadBlob(store.audioFile)
     }
 
@@ -77,6 +92,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     () => store.audioFile,
     (file) => {
       if (file && wavesurferView) {
+        isLoading.value = true
         void wavesurferView.loadBlob(file)
       }
     },
@@ -102,6 +118,13 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     { deep: true },
   )
 
+  // Reinitialize spectrogram when verticalZoom changes (updates frequencyMax)
+  watch(verticalZoom, () => {
+    if (viewMode.value === 'spectrogram') {
+      setViewMode('spectrogram')
+    }
+  })
+
   // ---- Alt key tracking ----
   function _onKeydown(e: KeyboardEvent): void {
     if (e.key === 'Alt') altTripletActive.value = true
@@ -126,7 +149,6 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   // ---- Public API ----
 
   function setViewMode(mode: 'waveform' | 'spectrogram'): void {
-    if (mode === viewMode.value) return
     const container = containerRef.value
     const scrollTime = wavesurferView?.getScrollTime() ?? 0
 
@@ -140,7 +162,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       const view = _initWaveSurfer(container)
       // Restore scroll position after audio reloads
       if (store.audioFile) {
-        view.loadBlob(store.audioFile).then(() => view.scrollTo(scrollTime))
+        void view.loadBlob(store.audioFile).then(() => view.scrollTo(scrollTime))
       }
     }
   }
@@ -151,7 +173,8 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
 
   /**
    * Wheel event handler for the waveform container.
-   * Ctrl+wheel → horizontal zoom; Shift+wheel → subdivision divisor change.
+   * Ctrl+wheel → horizontal zoom; Shift+wheel → subdivision divisor change;
+   * plain wheel → horizontal scroll relay to WaveSurfer scroll container.
    */
   function onWheel(e: WheelEvent): void {
     if (e.ctrlKey) {
@@ -167,6 +190,9 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       } else if (e.deltaY > 0 && idx > 0) {
         store.setSnapDivisor(options[idx - 1])
       }
+    } else {
+      // Plain scroll: relay vertical deltaY as horizontal scroll
+      wavesurferView?.scrollByDelta(e.deltaY)
     }
   }
 
@@ -178,6 +204,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     rhythmMode,
     effectiveTriplets,
     altTripletActive,
+    isLoading,
     setViewMode,
     setVerticalZoom,
     onWheel,

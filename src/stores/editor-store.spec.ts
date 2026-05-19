@@ -74,6 +74,9 @@ function createMockMetronome(): {
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
+    fireLatchNow: vi.fn(() => {
+      _latchPending = false
+    }),
     getLoadError: vi.fn(() => null),
     destroy: vi.fn(),
   }
@@ -641,6 +644,19 @@ describe('editor store (phase 2 - metronome)', () => {
     store.setMusicVolume(0.3)
     expect(store.project.audio.musicVolume).toBe(0.3)
     expect(store.project.audio.sfxVolume).toBe(0.8) // unchanged default
+  })
+
+  it('fireLatchNow is called when turning metronome off while not playing', () => {
+    const store = useEditorStore()
+
+    // off → on
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('on')
+
+    // on → off (not playing): should call fireLatchNow instead of waiting for latch
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('off')
+    expect(mockMetronome.fireLatchNow).toHaveBeenCalledOnce()
   })
 })
 

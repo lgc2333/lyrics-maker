@@ -5,6 +5,11 @@ export interface MetronomeScheduler {
     currentTime: number,
     nextBeat: { at: number; isBarStart: boolean } | null,
   ) => void
+  /**
+   * Immediately schedules one latch click at audioContext.currentTime + 0.05s.
+   *  No-op if latch is not pending or metronome is destroyed.
+   */
+  fireLatchNow: () => void
   hasPendingLatch: () => boolean
   getLoadError: () => Error | null
   destroy: () => void
@@ -110,6 +115,12 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
         latchPending = false
       }
       // else: not enabled and no latch pending → do nothing
+    },
+
+    fireLatchNow(): void {
+      if (destroyed || !latchBuffer || !latchPending) return
+      playBufferAt(audioContext.currentTime + 0.05, latchBuffer)
+      latchPending = false
     },
 
     hasPendingLatch(): boolean {

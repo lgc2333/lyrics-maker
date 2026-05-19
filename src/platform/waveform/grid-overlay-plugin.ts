@@ -4,6 +4,14 @@ import type { BasePluginEvents } from 'wavesurfer.js/dist/base-plugin.js'
 import type { TimingPoint } from '../../core/domain/project'
 import { getBeatGridLines } from '../../core/timing/timing-engine'
 
+export interface GridOverlayOptions {
+  /**
+   * The shadow host element (same as WaveSurfer's container option).
+   *  The canvas is placed here so it doesn't scroll with WaveSurfer's internal #scroll.
+   */
+  outerContainer?: HTMLElement
+}
+
 export interface GridOverlayParams {
   timingPoints: TimingPoint[]
   currentTime: number
@@ -11,7 +19,10 @@ export interface GridOverlayParams {
   triplets: boolean
 }
 
-export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
+export class GridOverlayPlugin extends BasePlugin<
+  BasePluginEvents,
+  GridOverlayOptions
+> {
   private canvas: HTMLCanvasElement | null = null
   private params: GridOverlayParams = {
     timingPoints: [],
@@ -23,16 +34,26 @@ export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
   private visibleStart = 0
   private visibleEnd = 0
 
-  static create(): GridOverlayPlugin {
-    return new GridOverlayPlugin({})
+  static create(options?: GridOverlayOptions): GridOverlayPlugin {
+    return new GridOverlayPlugin(options ?? {})
   }
 
   protected onInit(): void {
     const ws = this.wavesurfer!
     const wrapper = ws.getWrapper()
+    // #scroll is the viewport container inside WaveSurfer's shadow DOM
     const scrollContainer = wrapper.parentElement
 
-    if (!scrollContainer) return
+    // Use the provided outerContainer (shadow host in the light DOM).
+    // Fall back to shadow-root introspection for environments where outerContainer is omitted.
+    const containerEl: HTMLElement =
+      this.options.outerContainer ??
+      (() => {
+        const root = wrapper.getRootNode()
+        // In real WaveSurfer, getRootNode() returns the ShadowRoot; .host is the container.
+        const host = (root as ShadowRoot).host
+        return (host as HTMLElement | undefined) ?? wrapper
+      })()
 
     this.canvas = document.createElement('canvas')
     Object.assign(this.canvas.style, {
@@ -44,8 +65,9 @@ export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
       pointerEvents: 'none',
       zIndex: '2',
     })
-    scrollContainer.style.position = 'relative'
-    scrollContainer.appendChild(this.canvas)
+    // Make the container a positioning context for the absolutely-placed canvas
+    containerEl.style.position = 'relative'
+    containerEl.appendChild(this.canvas)
 
     this.subscriptions.push(
       ws.on('scroll', (start: number, end: number) => {
@@ -55,7 +77,19 @@ export class GridOverlayPlugin extends BasePlugin<BasePluginEvents, object> {
       }),
       ws.on('redraw', () => this._draw()),
       ws.on('zoom', () => this._draw()),
-      ws.on('ready', () => this._draw()),
+      ws.on('ready', () => {
+        // Initialize visible range from the scroll container's current state
+        if (scrollContainer) {
+          const duration = ws.getDuration()
+          if (wrapper.scrollWidth > 0 && duration > 0) {
+            const pxPerSec = wrapper.scrollWidth / duration
+            this.visibleStart = scrollContainer.scrollLeft / pxPerSec
+            this.visibleEnd =
+              (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
+          }
+        }
+        this._draw()
+      }),
     )
   }
 

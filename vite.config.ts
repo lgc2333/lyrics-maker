@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -16,4 +18,13 @@ export default defineConfig({
     }),
     Components({ dts: 'src/components.d.ts' }),
   ],
+  resolve: {
+    alias: {
+      // Stub Node.js worker_threads so WaveSurfer's spectrogram plugin doesn't
+      // trigger Vite's externalization warning in the browser build.
+      worker_threads: fileURLToPath(
+        new URL('./src/platform/waveform/worker-threads-shim.ts', import.meta.url),
+      ),
+    },
+  },
 })

@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ShallowRef } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
-
-const { t } = useI18n()
 
 // Injected from AppShell
 const timeline = inject(TIMELINE_VIEW_KEY)
@@ -67,21 +64,9 @@ onBeforeUnmount(() => {
 })
 
 function onWheel(e: WheelEvent): void {
-  if (e.ctrlKey || e.shiftKey) {
-    e.preventDefault()
-    e.stopPropagation()
-    timeline?.onWheel(e)
-  }
-  // Plain scroll: let WaveSurfer handle natively (no stopPropagation)
-}
-
-// ---- Vertical zoom slider (spectrogram mode) ----
-function onVerticalZoomWheel(e: WheelEvent): void {
   e.preventDefault()
   e.stopPropagation()
-  const delta = e.deltaY < 0 ? 0.1 : -0.1
-  const next = (timeline?.verticalZoom.value ?? 1) + delta
-  timeline?.setVerticalZoom(next)
+  timeline?.onWheel(e)
 }
 </script>
 
@@ -91,36 +76,20 @@ function onVerticalZoomWheel(e: WheelEvent): void {
     :style="{ height: `${height}px` }"
     class="relative border-b border-base-300 bg-base-200/30"
   >
-    <!-- WaveSurfer mount point -->
+    <!-- WaveSurfer mount point — position:relative needed for absolute canvas overlay -->
     <div
       ref="waveformEl"
       data-testid="waveform-container"
-      class="h-full w-full overflow-hidden"
+      class="relative h-full w-full"
     />
 
-    <!-- Vertical zoom slider — only in spectrogram mode -->
+    <!-- Loading spinner — shown while WaveSurfer is decoding audio or computing spectrogram -->
     <div
-      v-if="timeline?.viewMode.value === 'spectrogram'"
-      data-testid="vertical-zoom-slider"
-      class="absolute right-0 top-0 flex h-full w-6 flex-col items-center justify-center bg-base-100/60"
-      @wheel.prevent="onVerticalZoomWheel"
+      v-if="timeline?.isLoading.value"
+      data-testid="waveform-loading"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-base-200/50"
     >
-      <span class="mb-1 origin-center -rotate-90 text-[9px] text-base-content/60">
-        {{ t('transport.verticalZoom') }}
-      </span>
-      <div class="relative h-24 w-6">
-        <input
-          class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-          type="range"
-          min="0.5"
-          max="10"
-          step="0.1"
-          :value="timeline?.verticalZoom.value ?? 1"
-          @input="
-            timeline?.setVerticalZoom(Number(($event.target as HTMLInputElement).value))
-          "
-        />
-      </div>
+      <span class="loading loading-spinner loading-md text-primary" />
     </div>
 
     <!-- Phase 4 placeholder: WordTimelineBar will be mounted here -->

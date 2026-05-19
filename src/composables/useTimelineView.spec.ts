@@ -38,7 +38,7 @@ vi.mock('wavesurfer.js', () => {
 })
 
 // Mock the spectrogram submodule to prevent Vite import-analysis errors
-vi.mock('wavesurfer.js/dist/plugins/spectrogram.esm.js', () => ({
+vi.mock('wavesurfer.js/dist/plugins/spectrogram-windowed.esm.js', () => ({
   default: {
     create: vi.fn(() => ({})),
   },
@@ -74,6 +74,7 @@ describe('useTimelineView', () => {
       setSfxVolume: vi.fn(),
       syncToTimeline: vi.fn(),
       hasPendingLatch: vi.fn(() => false),
+      fireLatchNow: vi.fn(),
       getLoadError: vi.fn(() => null),
       destroy: vi.fn(),
     }))
@@ -110,6 +111,50 @@ describe('useTimelineView', () => {
     expect(timeline!.viewMode.value).toBe('waveform')
     timeline!.setViewMode('spectrogram')
     expect(timeline!.viewMode.value).toBe('spectrogram')
+
+    wrapper.unmount()
+  })
+
+  it('setViewMode does not early-return when called with the same mode', () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+
+    // Calling twice with same mode should not throw
+    timeline!.setViewMode('spectrogram')
+    expect(() => timeline!.setViewMode('spectrogram')).not.toThrow()
+    expect(timeline!.viewMode.value).toBe('spectrogram')
+
+    wrapper.unmount()
+  })
+
+  it('isLoading is exposed in return value', () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+
+    expect(timeline!.isLoading).toBeDefined()
+    expect(timeline!.isLoading.value).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('plain wheel (no modifier) does not update pxPerSec', () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+
+    const initialPps = timeline!.pxPerSec.value
+    const event = new WheelEvent('wheel', { deltaY: 100 })
+    timeline!.onWheel(event)
+    // pxPerSec should be unchanged — plain scroll just relays to WaveSurfer
+    expect(timeline!.pxPerSec.value).toBe(initialPps)
 
     wrapper.unmount()
   })
