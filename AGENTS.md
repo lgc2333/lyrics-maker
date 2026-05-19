@@ -69,9 +69,8 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base) and Phase 2 (audio + timing core) are complete. Pre-phase-3 scaffold (lyrics/timing panels, resizable layout) is in progress. Remaining:
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), and Phase 3 (waveform/spectrogram timeline view) are complete. Remaining:
 
-- Phase 3: Waveform/spectrogram views + grid system
 - Phase 4: Lyrics timing (word-level editing, WordTimelineBar)
 - Phase 5: Import/export plugins + shortcut rebinding UI
 
@@ -103,6 +102,12 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **Use `Math.round`, not `Math.floor`, for seconds↔milliseconds conversion.** `Math.floor(sec * 1000)` turns `8.030` (IEEE 754 actually `8.02999...`) into `8.029`, inconsistent with `.toFixed(3)` rounding. Always use `Math.round`.
 - **CSS `rotate` does not change the layout box.** For vertical sliders with `-rotate-90`, pair with `absolute` positioning and set `w-{N}` equal to the container's `h-{N}` to prevent flex/grid from collapsing the element to its content width.
 - **Tailwind mutually-exclusive utilities must use conditional binding, not `class` + `:class` together.** When `border-l-transparent` and `border-l-success` both appear on an element, the generated CSS order determines precedence — HTML class order is irrelevant. Use `:class="{ 'border-l-success': active, 'border-l-transparent': !active }"` to keep them mutually exclusive. Apply a shared `border-l-[3px]` for consistent alignment across all rows.
+- **`@vueuse/core` is available as a dependency.** Use `watchDebounced`, `useDebounceFn`, `useEventListener`, etc. from `@vueuse/core` instead of rolling manual debounce/throttle helpers.
+- **Conditional hover popovers:** gate `@mouseenter` with a mode check (e.g. `verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'`) instead of using `v-if` on the whole wrapper — keeps the button always present but only opens the popover in the relevant mode.
+- **WaveSurfer `ready` event must trigger grid update.** `GridOverlayPlugin._draw()` exits early when `duration <= 0`. After a view-mode switch the `scroll` event hasn't fired, so call `gridPlugin.update(params)` inside the `ready` handler to show lines immediately.
+- **WaveSurfer spectrogram vertical zoom via `frequencyMax`.** Set `frequencyMax = Math.round(22050 / zoom)` in `WindowedSpectrogramPlugin.create()` — not a post-init method. Requires recreating the WaveSurfer instance to take effect.
+- **WaveSurfer waveform hidden in spectrogram mode:** set both `height: 0` and `waveColor: 'transparent'`. `height: 0` collapses the canvas; `waveColor: 'transparent'` prevents pixel bleed if height rounds up.
+- **WaveSurfer `progressColor: 'transparent'` + `hideScrollbar: true`** when drawing a custom playhead overlay and managing scrolling manually.
 
 ## Tooling
 
