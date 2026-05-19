@@ -6,9 +6,20 @@ import type { WaveSurferViewOptions } from './wavesurfer-view'
 // ---------------------------------------------------------------------------
 // Mock wavesurfer.js — capture mock instances for test inspection
 // ---------------------------------------------------------------------------
-const mockWsInstances: ReturnType<typeof createMockWs>[] = []
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockWsInstances: any[] = []
 
-function createMockWs() {
+function createMockWs(): Record<string, unknown> & {
+  getWrapper: ReturnType<typeof vi.fn>
+  getDuration: ReturnType<typeof vi.fn>
+  loadBlob: ReturnType<typeof vi.fn>
+  zoom: ReturnType<typeof vi.fn>
+  setOptions: ReturnType<typeof vi.fn>
+  getDecodedData: ReturnType<typeof vi.fn>
+  destroy: ReturnType<typeof vi.fn>
+  registerPlugin: ReturnType<typeof vi.fn>
+  on: ReturnType<typeof vi.fn>
+} {
   const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
   const wrapper = document.createElement('div')
   wrapper.style.width = '1600px'

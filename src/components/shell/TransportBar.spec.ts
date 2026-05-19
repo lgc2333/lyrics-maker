@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, provide, ref } from 'vue'
+import { computed, defineComponent, h, provide, ref } from 'vue'
 
 import type { TimelineViewContext } from '../../composables/useTimelineView'
 import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
@@ -348,9 +348,12 @@ function makeTimeline(
     verticalZoom: ref(1),
     divisor: ref(4) as TimelineViewContext['divisor'],
     rhythmMode: ref('common') as TimelineViewContext['rhythmMode'],
-    effectiveTriplets: ref(false),
-    altTripletActive: ref(false),
+    effectiveTriplets: computed(
+      () => false,
+    ) as TimelineViewContext['effectiveTriplets'],
+    altTripletActive: ref(false) as TimelineViewContext['altTripletActive'],
     isLoading: ref(false),
+    loadError: ref(null),
     setViewMode: vi.fn(),
     setVerticalZoom: vi.fn(),
     onWheel: vi.fn(),
@@ -382,14 +385,22 @@ describe('transportBar rhythm mode select', () => {
   })
 
   it('shows "common" when effectiveTriplets is false', () => {
-    const timeline = makeTimeline({ effectiveTriplets: ref(false) })
+    const timeline = makeTimeline({
+      effectiveTriplets: computed(
+        () => false,
+      ) as TimelineViewContext['effectiveTriplets'],
+    })
     const wrapper = mountWithTimeline(timeline)
     const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
     expect(select.element.value).toBe('common')
   })
 
   it('shows "triplets" when effectiveTriplets is true', () => {
-    const timeline = makeTimeline({ effectiveTriplets: ref(true) })
+    const timeline = makeTimeline({
+      effectiveTriplets: computed(
+        () => true,
+      ) as TimelineViewContext['effectiveTriplets'],
+    })
     const wrapper = mountWithTimeline(timeline)
     const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
     expect(select.element.value).toBe('triplets')

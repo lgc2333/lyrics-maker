@@ -145,7 +145,6 @@ describe('audio transport', () => {
       // always hit the PAUSE branch.
       let _paused = false
       const el = {
-        paused: _paused,
         play() {
           _paused = false
           return Promise.resolve()

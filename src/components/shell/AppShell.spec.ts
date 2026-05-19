@@ -31,6 +31,7 @@ function createMockMetronome(): {
     }),
     setSfxVolume: vi.fn(),
     syncToTimeline: vi.fn(),
+    fireLatchNow: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
     getLoadError: vi.fn(() => null),
     destroy: vi.fn(),

@@ -47,7 +47,7 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
         _pendingCleanup = removeListeners
         audioElement.addEventListener('loadedmetadata', handleLoaded)
         audioElement.addEventListener('error', handleError)
-        audioElement.src = objectUrl
+        audioElement.src = objectUrl!
       })
     },
 
