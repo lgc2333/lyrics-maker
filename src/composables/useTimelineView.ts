@@ -40,6 +40,8 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   // ---- WaveSurfer state ----
   let wavesurferView: WaveSurferView | null = null
   let gridPlugin: GridOverlayPlugin | null = null
+  let lastUserScrollAt = 0
+  const USER_SCROLL_COOLDOWN_MS = 500
 
   function _buildOverlayParams() {
     return {
@@ -103,7 +105,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     () => store.currentTime,
     (t) => {
       gridPlugin?.update(_buildOverlayParams())
-      if (store.isPlaying) {
+      if (store.isPlaying && Date.now() - lastUserScrollAt > USER_SCROLL_COOLDOWN_MS) {
         wavesurferView?.scrollTo(t)
       }
     },
@@ -192,6 +194,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       }
     } else {
       // Plain scroll: relay vertical deltaY as horizontal scroll
+      lastUserScrollAt = Date.now()
       wavesurferView?.scrollByDelta(e.deltaY)
     }
   }
