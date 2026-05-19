@@ -368,6 +368,32 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.isPlaying).toBe(false)
   })
 
+  it('can toggle playback after replacing audio during playback', async () => {
+    // Bug: When replacing audio while playing, Chrome may cancel the queued
+    // 'pause' event task when audioElement.src changes inside loadFile().
+    // If getIsPlaying() relied on event-set flags, it would stay true forever
+    // and togglePlayback would always hit the PAUSE branch.
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    // Start playback
+    await store.togglePlayback()
+    expect(store.isPlaying).toBe(true)
+
+    // Replace audio while still "playing"
+    await store.importAudioFile(
+      new File(['y'], 'song2.mp3', { type: 'audio/mpeg' }),
+    )
+
+    // After import, playback state must be clean
+    expect(store.isPlaying).toBe(false)
+    expect(store.currentTime).toBe(0)
+
+    // Toggling should start playback (not hit the PAUSE branch)
+    await store.togglePlayback()
+    expect(store.isPlaying).toBe(true)
+  })
+
   it('togglePlayback toggles isPlaying', async () => {
     const store = useEditorStore()
     // Need to initialize transport first

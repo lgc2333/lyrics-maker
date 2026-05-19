@@ -15,22 +15,7 @@ export interface AudioTransport {
 
 export function createAudioTransport(audioElement: HTMLAudioElement): AudioTransport {
   let objectUrl: string | null = null
-  let playing = false
   let _pendingCleanup: (() => void) | null = null
-
-  const onPlay = () => {
-    playing = true
-  }
-  const onPause = () => {
-    playing = false
-  }
-  const onEnded = () => {
-    playing = false
-  }
-
-  audioElement.addEventListener('play', onPlay)
-  audioElement.addEventListener('pause', onPause)
-  audioElement.addEventListener('ended', onEnded)
 
   return {
     async loadFile(file: File): Promise<void> {
@@ -95,14 +80,15 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
     },
 
     getIsPlaying(): boolean {
-      return playing
+      // Use the DOM element's paused property directly.
+      // The 'pause' event can be queued as a task and cancelled when
+      // src is immediately changed (e.g. replacing audio during playback),
+      // so the event-based `playing` flag can become permanently stale.
+      return !audioElement.paused
     },
 
     destroy(): void {
       _pendingCleanup?.()
-      audioElement.removeEventListener('play', onPlay)
-      audioElement.removeEventListener('pause', onPause)
-      audioElement.removeEventListener('ended', onEnded)
       if (audioElement.src.startsWith('blob:')) {
         URL.revokeObjectURL(audioElement.src)
       }

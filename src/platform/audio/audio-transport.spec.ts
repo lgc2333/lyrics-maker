@@ -138,6 +138,55 @@ describe('audio transport', () => {
       expect(transport.getIsPlaying()).toBe(false)
     })
 
+    it('getIsPlaying reads paused from the DOM element, not from events', async () => {
+      // Simulates the Chrome bug where pause() followed immediately by a src
+      // change can cancel the queued 'pause' event task. An event-based
+      // `playing` flag would remain true forever, causing togglePlayback to
+      // always hit the PAUSE branch.
+      let _paused = false
+      const el = {
+        paused: _paused,
+        play() {
+          _paused = false
+          return Promise.resolve()
+        },
+        pause() {
+          _paused = true
+          // Deliberately do NOT fire any event — this is the Chrome bug
+        },
+        get paused() {
+          return _paused
+        },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        get currentTime() {
+          return 0
+        },
+        set currentTime(_v: number) {},
+        get duration() {
+          return 120
+        },
+        get volume() {
+          return 1
+        },
+        set volume(_v: number) {},
+        get src() {
+          return 'blob:test'
+        },
+      }
+
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      // After play, getIsPlaying should be true
+      await transport.play()
+      expect(transport.getIsPlaying()).toBe(true)
+
+      // After pause, getIsPlaying should be false — even though no 'pause'
+      // event was ever fired (event listeners were never called)
+      transport.pause()
+      expect(transport.getIsPlaying()).toBe(false)
+    })
+
     it('seek sets currentTime clamped to >= 0', () => {
       const el = createFakeMediaElement()
       const transport = createAudioTransport(el as unknown as HTMLAudioElement)

@@ -249,6 +249,19 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 2: Audio ----
 
   async function importAudioFile(file: File): Promise<void> {
+    // Explicitly stop playback before loading new audio.
+    // Setting audioElement.src does NOT reliably fire 'pause' in Chrome,
+    // so transport.getIsPlaying() can remain true, causing togglePlayback
+    // to hit the PAUSE branch forever instead of starting playback.
+    //
+    // Also reset _isPlaying / _currentTime / _rafId synchronously so the
+    // UI reflects the stopped state immediately, not on the next RAF tick.
+    _stopPlaybackLoop()
+    _audioTransport.value?.pause()
+    _isPlaying.value = false
+    _currentTime.value = 0
+    if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
+
     _audioFile.value = file
     const transport = _ensureAudioTransport()
     await transport.loadFile(file)

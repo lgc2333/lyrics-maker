@@ -56,9 +56,10 @@ export function createWaveSurferView(
     const nyquist = 22050
     const frequencyMax = Math.round(nyquist / (options.verticalZoom ?? 1))
     spectrogramPlugin = WindowedSpectrogramPlugin.create({
-      fftSamples: 1024,
+      fftSamples: 512,
       labels: true,
       useWebWorker: true,
+      progressiveLoading: true,
       height,
       frequencyMax,
     })
