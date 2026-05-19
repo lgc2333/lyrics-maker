@@ -3,9 +3,23 @@
     "context7": {
       "type": "stdio",
       // "command": "pnpm",
-      // "args": ["exec", "@upstash/context7-mcp"]
+      // "args": ["exec", "context7-mcp"]
       "command": "fnm",
       "args": ["exec", "--using", "default", "pnpm.cmd", "exec", "context7-mcp"]
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      // "command": "pnpm",
+      // "args": ["exec", "chrome-devtools-mcp@latest"]
+      "command": "fnm",
+      "args": [
+        "exec",
+        "--using",
+        "default",
+        "pnpm.cmd",
+        "exec",
+        "chrome-devtools-mcp@latest"
+      ]
     }
   }
 }
