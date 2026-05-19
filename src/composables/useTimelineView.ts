@@ -136,7 +136,12 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
 
   // ---- Alt key tracking ----
   function _onKeydown(e: KeyboardEvent): void {
-    if (e.key === 'Alt') altTripletActive.value = true
+    if (e.key === 'Alt') {
+      // Prevent browser from intercepting Alt (e.g. Windows menu bar focus),
+      // which would steal focus and block subsequent Alt keydown events.
+      e.preventDefault()
+      altTripletActive.value = true
+    }
   }
   function _onKeyup(e: KeyboardEvent): void {
     if (e.key === 'Alt') altTripletActive.value = false
