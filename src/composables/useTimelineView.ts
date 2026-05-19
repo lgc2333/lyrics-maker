@@ -1,4 +1,4 @@
-import { watchDebounced } from '@vueuse/core'
+import { useDebounceFn, watchDebounced } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import type { InjectionKey, ShallowRef } from 'vue'
 
@@ -43,6 +43,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   let wavesurferView: WaveSurferView | null = null
   let gridPlugin: GridOverlayPlugin | null = null
   let lastUserScrollAt = 0
+  let resizeObserver: ResizeObserver | null = null
   const USER_SCROLL_COOLDOWN_MS = 500
 
   function _buildOverlayParams() {
@@ -76,6 +77,25 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       isLoading.value = false
       gridPlugin?.update(_buildOverlayParams())
     })
+
+    // Observe container height changes so spectrogram/waveform canvases
+    // resize with the drag handle.
+    resizeObserver?.disconnect()
+    const debouncedSync = useDebounceFn((h: number) => {
+      wavesurferView?.syncContainerHeight(h).catch((err) => {
+        console.error('Failed to sync spectrogram height:', err)
+      })
+    }, 300)
+    resizeObserver = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentBoxSize[0]?.blockSize
+      if (h && h > 0) {
+        // CSS stretch immediately for smooth visual feedback during drag
+        wavesurferView?.setContainerHeight(h)
+        // Pixel-accurate resize + spectrogram re-render debounced to 300ms
+        debouncedSync(h)
+      }
+    })
+    resizeObserver.observe(container)
 
     if (store.audioFile) {
       isLoading.value = true
@@ -167,6 +187,8 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   onUnmounted(() => {
     window.removeEventListener('keydown', _onKeydown)
     window.removeEventListener('keyup', _onKeyup)
+    resizeObserver?.disconnect()
+    resizeObserver = null
     wavesurferView?.destroy()
     wavesurferView = null
     gridPlugin = null
@@ -178,6 +200,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     const container = containerRef.value
     const scrollTime = wavesurferView?.getScrollTime() ?? 0
 
+    resizeObserver?.disconnect()
     wavesurferView?.destroy()
     wavesurferView = null
     gridPlugin = null

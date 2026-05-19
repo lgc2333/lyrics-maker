@@ -22,6 +22,10 @@ export interface WaveSurferView {
   scrollTo: (time: number) => void
   scrollByDelta: (delta: number) => void
   getScrollTime: () => number
+  /** CSS-only resize for smooth visual updates during drag. */
+  setContainerHeight: (height: number) => void
+  /** Pixel-accurate resize + spectrogram re-render. Debounce to ~300ms. */
+  syncContainerHeight: (height: number) => Promise<void>
   on: (event: string, handler: (...args: unknown[]) => void) => () => void
   destroy: () => void
 }
@@ -45,20 +49,20 @@ export function createWaveSurferView(
     hideScrollbar: true,
   })
 
+  let spectrogramPlugin: WindowedSpectrogramPlugin | null = null
+
   if (options.mode === 'spectrogram') {
     const height = options.spectrogramHeight ?? (container.clientHeight || 256)
-    // Vertical zoom: zoom=1 → full Nyquist range; zoom>1 → narrower (lower) frequency range
     const nyquist = 22050
     const frequencyMax = Math.round(nyquist / (options.verticalZoom ?? 1))
-    ws.registerPlugin(
-      WindowedSpectrogramPlugin.create({
-        fftSamples: 1024,
-        labels: true,
-        useWebWorker: true,
-        height,
-        frequencyMax,
-      }),
-    )
+    spectrogramPlugin = WindowedSpectrogramPlugin.create({
+      fftSamples: 1024,
+      labels: true,
+      useWebWorker: true,
+      height,
+      frequencyMax,
+    })
+    ws.registerPlugin(spectrogramPlugin)
   }
 
   function _getScrollContainer(): HTMLElement | null {
@@ -112,6 +116,44 @@ export function createWaveSurferView(
 
     on(event: string, handler: (...args: unknown[]) => void): () => void {
       return ws.on(event as Parameters<typeof ws.on>[0], handler as never)
+    },
+
+    setContainerHeight(height: number): void {
+      if (options.mode === 'waveform') {
+        ws.setOptions({ height })
+      } else if (spectrogramPlugin) {
+        // CSS-only stretch for smooth visual feedback during drag
+        const plugin = spectrogramPlugin as unknown as {
+          wrapper: HTMLElement
+          canvasContainer: HTMLElement
+        }
+        plugin.wrapper.style.height = `${height}px`
+        const canvas = plugin.canvasContainer.querySelector('canvas')
+        if (canvas) canvas.style.height = `${height}px`
+      }
+    },
+
+    async syncContainerHeight(height: number): Promise<void> {
+      if (options.mode !== 'spectrogram' || !spectrogramPlugin) return
+
+      const plugin = spectrogramPlugin as unknown as {
+        height: number
+        wrapper: HTMLElement
+        canvasContainer: HTMLElement
+      }
+      plugin.height = height
+      plugin.wrapper.style.height = `${height}px`
+
+      const canvas = plugin.canvasContainer.querySelector('canvas')
+      if (canvas) {
+        canvas.height = height
+        canvas.style.height = `${height}px`
+      }
+
+      const audio = ws.getDecodedData()
+      if (audio) {
+        await spectrogramPlugin.render(audio)
+      }
     },
 
     destroy(): void {
