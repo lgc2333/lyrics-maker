@@ -156,7 +156,7 @@ useEditorShortcuts({
     <!-- Resize handle: dragging adjusts MainView height -->
     <div
       data-testid="main-view-resize-handle"
-      class="h-1.5 cursor-row-resize bg-base-300/60 hover:bg-primary/40 active:bg-primary/60 transition-colors"
+      class="h-0.5 cursor-row-resize bg-base-300 hover:bg-primary/60 active:bg-primary transition-colors"
       @pointerdown="onResizePointerDown"
       @pointermove="onResizePointerMove"
       @pointerup="onResizePointerUp"
