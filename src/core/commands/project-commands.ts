@@ -130,10 +130,11 @@ export function createSetAudioVolumeCommand(
   return {
     label: `audio.set${kind === 'music' ? 'Music' : 'Sfx'}Volume`,
     do: (state) => {
+      const clampedVolume = Math.max(0, Math.min(1, value))
       previousValue = state.audio[key]
       return {
         ...state,
-        audio: { ...state.audio, [key]: value },
+        audio: { ...state.audio, [key]: clampedVolume },
       }
     },
     undo: (state) => {

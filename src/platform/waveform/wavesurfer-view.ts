@@ -71,7 +71,13 @@ export function createWaveSurferView(
     },
 
     async loadBlob(blob: Blob): Promise<void> {
-      await ws.loadBlob(blob)
+      try {
+        await ws.loadBlob(blob)
+      } catch (error) {
+        throw new Error(
+          `Failed to load audio: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+      }
     },
 
     zoom(pxPerSec: number): void {

@@ -22,6 +22,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   const verticalZoom = ref(1)
   const altTripletActive = ref(false)
   const isLoading = ref(false)
+  const loadError = ref<string | null>(null)
 
   // ---- Project-persisted state (via store/commands) ----
   const divisor = computed({
@@ -78,7 +79,11 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
 
     if (store.audioFile) {
       isLoading.value = true
-      void view.loadBlob(store.audioFile)
+      void view.loadBlob(store.audioFile).catch((err) => {
+        console.error('Failed to load audio in initWaveSurfer:', err)
+        loadError.value = err instanceof Error ? err.message : 'Unknown error'
+        isLoading.value = false
+      })
     }
 
     return view
@@ -98,7 +103,11 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     (file) => {
       if (file && wavesurferView) {
         isLoading.value = true
-        void wavesurferView.loadBlob(file)
+        void wavesurferView.loadBlob(file).catch((err) => {
+          console.error('Failed to load audio on file change:', err)
+          loadError.value = err instanceof Error ? err.message : 'Unknown error'
+          isLoading.value = false
+        })
       }
     },
   )
@@ -176,7 +185,14 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       const view = _initWaveSurfer(container)
       // Restore scroll position after audio reloads
       if (store.audioFile) {
-        void view.loadBlob(store.audioFile).then(() => view.scrollTo(scrollTime))
+        void view
+          .loadBlob(store.audioFile)
+          .then(() => view.scrollTo(scrollTime))
+          .catch((err) => {
+            console.error('Failed to load audio in setViewMode:', err)
+            loadError.value = err instanceof Error ? err.message : 'Unknown error'
+            isLoading.value = false
+          })
       }
     }
   }
@@ -220,6 +236,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     effectiveTriplets,
     altTripletActive,
     isLoading,
+    loadError,
     setViewMode,
     setVerticalZoom,
     onWheel,

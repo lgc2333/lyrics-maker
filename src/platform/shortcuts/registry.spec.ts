@@ -25,6 +25,20 @@ describe('shortcut registry', () => {
     expect(onAction).toHaveBeenCalledWith('history.redo')
   })
 
+  it('unregister removes an existing binding', () => {
+    const onAction = vi.fn()
+    const registry = createShortcutRegistry()
+
+    registry.register('Ctrl+Y', 'history.redo')
+    registry.dispatch('Ctrl+Y', onAction)
+    expect(onAction).toHaveBeenCalledWith('history.redo')
+
+    onAction.mockClear()
+    registry.unregister('Ctrl+Y')
+    registry.dispatch('Ctrl+Y', onAction)
+    expect(onAction).not.toHaveBeenCalled()
+  })
+
   it('does not dispatch when keystroke is null (IME composing)', () => {
     const onAction = vi.fn()
     const registry = createShortcutRegistry()

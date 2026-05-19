@@ -19,11 +19,15 @@ export function createShortcutRegistry() {
     return { ok: true as const }
   }
 
+  function unregister(keystroke: string): void {
+    bindings.delete(keystroke)
+  }
+
   function dispatch(keys: string, handler: (action: ShortcutAction) => void) {
     if (!keys) return
     const action = bindings.get(keys)
     if (action) handler(action)
   }
 
-  return { register, dispatch }
+  return { register, unregister, dispatch }
 }

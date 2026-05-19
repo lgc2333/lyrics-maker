@@ -44,7 +44,7 @@
   },
   "timing": {
     "pointList": {
-      "title": "Timing Points",
+      "title": "时间点",
       "cloneSelected": "克隆选中时轴到此处",
       "addAtCurrentTime": "在此处添加时轴",
       "delete": "删除"

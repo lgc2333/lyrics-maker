@@ -97,6 +97,18 @@ describe('audio volume commands', () => {
     expect(result.audio.musicVolume).toBe(1) // unchanged
   })
 
+  it('clamps volume > 1 to 1', () => {
+    const command = createSetAudioVolumeCommand('music', 1.5)
+    const afterSet = command.do(createEmptyProject())
+    expect(afterSet.audio.musicVolume).toBe(1)
+  })
+
+  it('clamps volume < 0 to 0', () => {
+    const command = createSetAudioVolumeCommand('music', -0.3)
+    const afterSet = command.do(createEmptyProject())
+    expect(afterSet.audio.musicVolume).toBe(0)
+  })
+
   it('audio volume command can be reused — undo restores original value', () => {
     const project = createEmptyProject()
     const command = createSetAudioVolumeCommand('sfx', 0.3)

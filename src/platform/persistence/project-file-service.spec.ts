@@ -60,11 +60,11 @@ describe('project file service', () => {
     expect(write).toHaveBeenLastCalledWith('content v2')
   })
 
-  it('save returns unsupported when no cached handle exists', async () => {
+  it('save returns no_cached_handle when no cached handle exists', async () => {
     const service = createProjectFileService({})
     const result = await service.save('content')
     expect(result.ok).toBe(false)
-    expect(result.reason).toBe('unsupported')
+    expect(result.reason).toBe('no_cached_handle')
   })
 
   it('returns cancelled when user aborts save dialog', async () => {

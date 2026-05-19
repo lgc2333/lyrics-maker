@@ -1,3 +1,6 @@
+const GAP_RESET_THRESHOLD_SEC = 1.0 // Reset tap buffer if gap between taps exceeds 1 second
+const NEGATIVE_TOLERANCE_SEC = 0.1 // Ignore small backward time jumps (noise tolerance)
+
 export interface TapEstimate {
   bpm: number
   sampleCount: number
@@ -10,10 +13,10 @@ export function createTapBpmEstimator(maxSamples = 128): {
   let buffer: number[] = []
 
   function push(timestampSeconds: number): TapEstimate | null {
-    // If gap > 1 second since last tap, or timestamp goes backwards > 0.1s, reset buffer
+    // If gap > GAP_RESET_THRESHOLD_SEC since last tap, or timestamp goes backwards > NEGATIVE_TOLERANCE_SEC, reset buffer
     if (buffer.length > 0) {
       const gap = timestampSeconds - buffer[buffer.length - 1]
-      if (gap > 1.0 || gap < -0.1) {
+      if (gap > GAP_RESET_THRESHOLD_SEC || gap < -NEGATIVE_TOLERANCE_SEC) {
         buffer = []
       }
     }

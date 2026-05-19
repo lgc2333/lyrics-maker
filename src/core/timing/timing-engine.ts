@@ -2,6 +2,8 @@ import zhCN from '../../platform/i18n/locales/zh-CN.json'
 import type { TimingPoint } from '../domain/project'
 import { sortTimingPoints } from './timing-point'
 
+// 1 nanosecond tolerance for floating-point comparisons in beat/bar arithmetic.
+// About 7 orders larger than Number.EPSILON to handle accumulated rounding errors.
 const BEAT_EPSILON = 1e-9
 const SUBDIV_EPSILON = 1e-9
 
@@ -220,13 +222,15 @@ export interface GridLine {
  * Returns [] when timingPoints is empty (never throws).
  */
 export function getBeatGridLines(
-  timingPoints: TimingPoint[],
+  timingPoints: readonly TimingPoint[],
   divisor: number,
   triplets: boolean,
   startSec: number,
   endSec: number,
 ): GridLine[] {
-  if (timingPoints.length === 0) return []
+  if (timingPoints.length === 0) {
+    throw new Error(zhCN.errors.noTimingPoints)
+  }
 
   const sorted = sortTimingPoints(timingPoints)
   const result: GridLine[] = []

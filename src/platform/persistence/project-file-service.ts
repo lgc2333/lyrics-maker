@@ -4,7 +4,7 @@ import { hasSaveFilePicker } from './file-system-access'
 
 export interface SaveResult {
   ok: boolean
-  reason?: 'unsupported' | 'failed' | 'cancelled'
+  reason?: 'unsupported' | 'failed' | 'cancelled' | 'no_cached_handle'
   errorMessage?: string
 }
 
@@ -57,12 +57,15 @@ export function createProjectFileService(api: SaveFilePickerApi) {
       }
     }
 
-    cachedHandle = handle
-    return writeToHandle(handle, content)
+    const writeResult = await writeToHandle(handle, content)
+    if (writeResult.ok) {
+      cachedHandle = handle
+    }
+    return writeResult
   }
 
   async function save(content: string): Promise<SaveResult> {
-    if (!cachedHandle) return { ok: false, reason: 'unsupported' }
+    if (!cachedHandle) return { ok: false, reason: 'no_cached_handle' }
     return writeToHandle(cachedHandle, content)
   }
 
