@@ -31,6 +31,7 @@ function createFakeAudioContext() {
   const ctx = {
     currentTime: 10,
     destination: {} as AudioDestinationNode,
+    state: 'running' as AudioContextState,
 
     close: vi.fn(() => Promise.resolve()),
     resume: vi.fn(() => Promise.resolve()),

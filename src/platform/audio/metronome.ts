@@ -92,8 +92,12 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
     ) {
       if (destroyed || !nextBeat) return
 
-      // Ensure AudioContext is running (browsers may suspend it)
-      audioContext.resume()
+      // Resume suspended AudioContext (browsers may suspend it on tab switch).
+      // Only call resume() when actually suspended — state read is cheap,
+      // avoiding the Promise allocation of resume() on every frame at 60fps.
+      if (audioContext.state === 'suspended') {
+        audioContext.resume()
+      }
 
       // Reset tracking on large backward jumps (seek)
       if (nextBeat.at < lastScheduledBeatTime - 1) {

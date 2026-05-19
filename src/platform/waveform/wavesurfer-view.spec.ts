@@ -87,7 +87,6 @@ describe('waveSurferView', () => {
       expect(typeof view.loadBlob).toBe('function')
       expect(typeof view.zoom).toBe('function')
       expect(typeof view.destroy).toBe('function')
-      expect(typeof view.getScrollContainer).toBe('function')
     })
 
     it('creates an instance in spectrogram mode', () => {
@@ -142,16 +141,6 @@ describe('waveSurferView', () => {
 
       view.destroy()
       expect(latestWs().destroy).toHaveBeenCalled()
-    })
-  })
-
-  describe('getScrollContainer', () => {
-    it('returns the scroll container (parent of wrapper)', () => {
-      const container = createContainer()
-      const view = createWaveSurferView(container, defaultOptions)
-
-      const scrollEl = view.getScrollContainer()
-      expect(scrollEl).toBeInstanceOf(HTMLElement)
     })
   })
 

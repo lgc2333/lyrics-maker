@@ -42,8 +42,8 @@ src/
 │       ├── command.ts     # Command<TState> interface {label, do, undo}
 │       ├── history.ts     # createCommandHistory<T>() — undo/redo stack
 │       └── project-commands.ts  # Command factories (e.g. createAddLyricLineCommand)
-├── platform/              # Platform adapters (no Vue dependency)
-│   ├── i18n/              # vue-i18n instance + zh-CN locale messages
+├── i18n/                  # vue-i18n instance + zh-CN locale messages (standalone Vue-dependent module)
+├── platform/              # Platform adapters (strictly Vue-free)
 │   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
 │   ├── persistence/       # File System Access API adapter + save service
 │   ├── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
@@ -71,7 +71,7 @@ src/
 
 - **UI never mutates data directly.** All state changes go through `Command` objects dispatched via `useEditorStore.execute()`. This guarantees undo/redo coverage for every editable action.
 - **Time is always seconds (float).** Snap-to-grid is a UI-layer concern only.
-- **`core/` and `platform/` are Vue-free.** They import zero Vue APIs. Only `stores/` and `composables/` use Vue reactivity (`shallowRef`, `computed`, `triggerRef`).
+- **`core/` and `platform/` are Vue-free.** `src/i18n/` is the standalone exception (requires `vue-i18n`). Only `stores/`, `composables/`, and `i18n/` import Vue APIs.
 - **Persistence is decoupled from business logic.** The save pipeline (`project-file-service.ts` → `editor-store.saveProject` → `useProjectPersistence`) exchanges JSON strings. Replace the backend without touching `core/`.
 - **After async mutations on `shallowRef` objects, call `triggerRef`.** Platform objects (AudioTransport, MetronomeScheduler) are held in `shallowRef`. Async operations that change internal state (loadFile, play, etc.) must be followed by `triggerRef(ref)` to wake computed properties that depend on those objects.
 - **Metronome seek safety:** In `syncToTimeline`, always run backward-seek reset before duplicate-beat guard (`reset lastScheduledBeatTime` first, then `nextBeat.at <= lastScheduledBeatTime` check), and keep regression test `reschedules immediately after a backward timeline jump` green.
@@ -144,3 +144,11 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide('mainViewHeight', ref(250))` in the parent and `inject<Ref<number>>('mainViewHeight')` in the child. Tests pass it via `mount(C, { global: { provide: { mainViewHeight: ref(N) } } })`. **Do NOT use `.value` on injected refs inside templates** — top-level injected refs auto-unwrap in `<script setup>` templates; calling `.value` bypasses the reactive dependency and updates are not tracked.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` — routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.
 - **WaveSurfer container needs `bg-black` in spectrogram mode only.** The spectrogram canvas renders on a transparent background; without `bg-black` the silence pixels look mismatched. Do not apply to waveform mode.
+- **Undo/redo must re-sync hardware state.** Reverting project data via `history.undo()` does not automatically update the audio transport volume or metronome gain. After undo/redo, re-apply `musicVolume`/`sfxVolume` to the respective hardware.
+- **`audioContext.resume()` only when suspended.** Check `audioContext.state === 'suspended'` before calling `resume()` in hot paths like `syncToTimeline` (fired every RAF frame). Calling `resume()` unconditionally allocates a Promise per frame at 60fps.
+- **Error re-throw must preserve the cause.** Use `throw new Error(msg, { cause: error })` instead of `throw new Error(\`msg: ${error.message}\`)`. The `cause` option preserves the original stack trace for debugging.
+- **Timing engine segment boundary handling must be consistent.** When adding a time-computation function, check whether sibling functions (`getNextBeatTime`, `getPreviousBarTime`, `getNextSubdivisionTime`) guard against crossing into the next/previous timing point's segment. Missing checks produce wrong results at BPM boundaries.
+- **Core timing error messages are English constants in `core/timing/errors.ts`.** Never import locale JSON from `platform/` or `i18n/` into `core/`. Add new error strings to `TIMING_ERRORS`.
+- **`validateTimingPoint` must be called in commands.** The validator checks for NaN/Infinity BPM and negative values. Call it in `createAddTimingPointCommand` and `createUpdateTimingPointCommand` before returning the command object.
+- **Use `Symbol`-based `InjectionKey<T>` for provide/inject.** Bare string keys lack type safety and are prone to typos. Define keys in `src/components/shell/injection-keys.ts` and import them in both provider and consumer components.
+- **`destroy()` must clean up pending async operations.** When a platform object manages async loads (e.g. `loadFile`), `destroy()` must call the pending cleanup function and revoke any blob URLs. Otherwise listeners dangle after the object is destroyed.
