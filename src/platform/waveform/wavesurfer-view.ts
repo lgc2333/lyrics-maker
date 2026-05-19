@@ -26,7 +26,8 @@ export function createWaveSurferView(
 ): WaveSurferView {
   const ws = WaveSurfer.create({
     container,
-    waveColor: '#4F4A85',
+    // In spectrogram mode, collapse and hide the waveform canvas entirely
+    waveColor: options.mode === 'spectrogram' ? 'transparent' : '#4F4A85',
     // Transparent progress overlay — we draw our own playhead via GridOverlayPlugin
     progressColor: 'transparent',
     // In spectrogram mode, suppress the waveform canvas (height 0 = invisible)
