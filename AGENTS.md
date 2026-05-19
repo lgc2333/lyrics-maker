@@ -23,6 +23,10 @@ If `pnpm` is not on PATH, fall back to: `fnm exec --using default pnpm.cmd`
 
 CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Edit tool refuses to write through symlinks.
 
+## Tooling
+
+**IMPORTANT**: Use **Context7** (`mcp__plugin_context7_context7__resolve-library-id` / `query-docs`) for up-to-date documentation of Vue, Pinia, Vite, Tailwind CSS, DaisyUI, and other dependencies. Use **WebSearch** for current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
+
 ## Architecture: Three-Layer Design
 
 ```txt
@@ -71,6 +75,10 @@ src/
 - **Persistence is decoupled from business logic.** The save pipeline (`project-file-service.ts` → `editor-store.saveProject` → `useProjectPersistence`) exchanges JSON strings. Replace the backend without touching `core/`.
 - **After async mutations on `shallowRef` objects, call `triggerRef`.** Platform objects (AudioTransport, MetronomeScheduler) are held in `shallowRef`. Async operations that change internal state (loadFile, play, etc.) must be followed by `triggerRef(ref)` to wake computed properties that depend on those objects.
 - **Metronome seek safety:** In `syncToTimeline`, always run backward-seek reset before duplicate-beat guard (`reset lastScheduledBeatTime` first, then `nextBeat.at <= lastScheduledBeatTime` check), and keep regression test `reschedules immediately after a backward timeline jump` green.
+- **State snapshots must use deep copy.** `{ ...obj }` is insufficient for nested state like `ProjectDocument`. Use `structuredClone(value)` for history/snapshot patterns that must protect against external mutation.
+- **Command undo data belongs in `do()`, not factory scope.** Mutable closure variables in factory scope make commands non-reusable (second `do()` overwrites first undo data) and break when `undo()` is called before `do()`. Capture undo state inside `do()` and guard with `=== null` checks.
+- **Platform objects that own resources must expose a `destroy()` that fully cleans up.** Never rely on GC alone for Web Audio API resources (AudioContext, AudioBufferSourceNode), object URLs, or event listeners.
+- **Public API array parameters should use `readonly` when not mutated.** Inconsistent signatures (e.g. mutable `TimingPoint[]` where peers use `readonly`) are a type-safety regression.
 
 ## Current Phase
 
@@ -93,6 +101,23 @@ setActivePinia(createPinia())
 
 Avoid `vi.spyOn(store, 'actionName')` — Pinia wraps actions, making spies unreliable. Test state changes directly instead.
 
+## Composable Testing
+
+Composables that need a Vue component context are tested via a harness component:
+
+```ts
+const wrapper = mount(
+  defineComponent({
+    setup() {
+      return useProjectPersistence({ onError })
+    },
+    template: '<div />',
+  }),
+)
+```
+
+Use `setActivePinia(createPinia())` before mount and override platform factories as needed. Assert by calling methods on the returned composable object or checking store state changes.
+
 ## Before Committing
 
 Before committing or claiming work is done, always run `pnpm lint` then `pnpm format` to catch lint errors and normalize formatting .
@@ -105,6 +130,8 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **`shallowRef` + `computed` does not track internal state changes.** `computed(() => shallowRef.value?.getIsPlaying())` will never re-evaluate. For booleans that need tracking, use a separate `ref<boolean>` and explicitly update it at every state transition.
 - **In `async` functions, place reactive updates before the first `await`.** If `ref.value++` comes after `await transport.play()`, tests calling `store.action()` without `await` won't see the update immediately. However, **imperative side effects that depend on the async result must stay after the `await`** — e.g. `_startPlaybackLoop()` must come after `await transport.play()`, because the first `requestAnimationFrame` tick checks `transport.getIsPlaying()` and will terminate the loop if play hasn't started yet.
 - **`getBeatGridLines` intentionally returns `[]` on empty timingPoints, unlike other timing functions which throw.** The grid overlay plugin initializes with empty params before the editor calls `update()`. Returning `[]` is the correct "no grid lines" result; throwing would break the plugin's `ready` event handler and cause grid/playhead rendering to fail on fresh page loads.
+- **`normalizeKeystroke` returns `string | null`.** Returns `null` when `event.isComposing` is true (IME input). Callers must guard against null before using the result.
+- **Use `loadError` ref pattern for async composable errors.** When a composable fires async operations (like `loadBlob`), expose a `ref<string | null>` that captures error messages. This lets UI bind to `loadError` reactively and prevents silent failures.
 - **Use `Math.round`, not `Math.floor`, for seconds↔milliseconds conversion.** `Math.floor(sec * 1000)` turns `8.030` (IEEE 754 actually `8.02999...`) into `8.029`, inconsistent with `.toFixed(3)` rounding. Always use `Math.round`.
 - **CSS `rotate` does not change the layout box.** For vertical sliders with `-rotate-90`, pair with `absolute` positioning and set `w-{N}` equal to the container's `h-{N}` to prevent flex/grid from collapsing the element to its content width.
 - **Tailwind mutually-exclusive utilities must use conditional binding, not `class` + `:class` together.** When `border-l-transparent` and `border-l-success` both appear on an element, the generated CSS order determines precedence — HTML class order is irrelevant. Use `:class="{ 'border-l-success': active, 'border-l-transparent': !active }"` to keep them mutually exclusive. Apply a shared `border-l-[3px]` for consistent alignment across all rows.
@@ -117,7 +144,3 @@ Before committing or claiming work is done, always run `pnpm lint` then `pnpm fo
 - **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide('mainViewHeight', ref(250))` in the parent and `inject<Ref<number>>('mainViewHeight')` in the child. Tests pass it via `mount(C, { global: { provide: { mainViewHeight: ref(N) } } })`. **Do NOT use `.value` on injected refs inside templates** — top-level injected refs auto-unwrap in `<script setup>` templates; calling `.value` bypasses the reactive dependency and updates are not tracked.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` — routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.
 - **WaveSurfer container needs `bg-black` in spectrogram mode only.** The spectrogram canvas renders on a transparent background; without `bg-black` the silence pixels look mismatched. Do not apply to waveform mode.
-
-## Tooling
-
-**IMPORTANT**: Use **Context7** (`mcp__plugin_context7_context7__resolve-library-id` / `query-docs`) for up-to-date documentation of Vue, Pinia, Vite, Tailwind CSS, DaisyUI, and other dependencies. Use **WebSearch** for current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
