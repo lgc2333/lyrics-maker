@@ -381,9 +381,7 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.isPlaying).toBe(true)
 
     // Replace audio while still "playing"
-    await store.importAudioFile(
-      new File(['y'], 'song2.mp3', { type: 'audio/mpeg' }),
-    )
+    await store.importAudioFile(new File(['y'], 'song2.mp3', { type: 'audio/mpeg' }))
 
     // After import, playback state must be clean
     expect(store.isPlaying).toBe(false)
