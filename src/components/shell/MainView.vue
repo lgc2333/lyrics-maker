@@ -50,7 +50,8 @@ function onWheel(e: WheelEvent): void {
     <div
       ref="waveformEl"
       data-testid="waveform-container"
-      class="relative h-full w-full bg-black"
+      :class="{ 'bg-black': timeline?.viewMode.value === 'spectrogram' }"
+      class="relative h-full w-full"
     />
 
     <!-- Loading spinner — shown while WaveSurfer is decoding audio or computing spectrogram -->
