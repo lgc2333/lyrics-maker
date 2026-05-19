@@ -1,3 +1,4 @@
+import { watchDebounced } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import type { InjectionKey, ShallowRef } from 'vue'
 
@@ -57,6 +58,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       mode: viewMode.value,
       minPxPerSec: pxPerSec.value,
       spectrogramHeight: container.clientHeight || 256,
+      verticalZoom: verticalZoom.value,
     })
     wavesurferView = view
     gridPlugin = view.registerPlugin(
@@ -68,9 +70,10 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       store.seekPlayback(time as number)
     })
 
-    // Loading state: set false when audio is ready
+    // When audio is ready: hide loading spinner and draw the initial grid
     view.on('ready', () => {
       isLoading.value = false
+      gridPlugin?.update(_buildOverlayParams())
     })
 
     if (store.audioFile) {
@@ -120,12 +123,16 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     { deep: true },
   )
 
-  // Reinitialize spectrogram when verticalZoom changes (updates frequencyMax)
-  watch(verticalZoom, () => {
-    if (viewMode.value === 'spectrogram') {
-      setViewMode('spectrogram')
-    }
-  })
+  // Reinitialize spectrogram when verticalZoom changes (debounced to avoid rapid rebuilds)
+  watchDebounced(
+    verticalZoom,
+    () => {
+      if (viewMode.value === 'spectrogram') {
+        setViewMode('spectrogram')
+      }
+    },
+    { debounce: 300 },
+  )
 
   // ---- Alt key tracking ----
   function _onKeydown(e: KeyboardEvent): void {

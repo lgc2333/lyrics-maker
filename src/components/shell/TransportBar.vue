@@ -45,34 +45,68 @@ function onSfxWheel(event: WheelEvent): void {
 }
 
 function onVerticalZoomWheel(event: WheelEvent): void {
+  if (!timeline || timeline.viewMode.value !== 'spectrogram') return
   event.preventDefault()
   const delta = event.deltaY < 0 ? 0.1 : -0.1
-  const next = (timeline?.verticalZoom.value ?? 1) + delta
-  timeline?.setVerticalZoom(next)
+  timeline.setVerticalZoom((timeline.verticalZoom.value ?? 1) + delta)
 }
 </script>
 
 <template>
   <section class="flex items-center gap-2 border-b border-base-300 px-2 py-1.5">
-    <!-- Waveform / Spectrogram toggle -->
-    <button
+    <!-- Waveform / Spectrogram toggle; hover shows vertical zoom popover in spectrogram mode -->
+    <div
       v-if="timeline"
-      data-testid="view-mode-toggle"
-      class="btn btn-ghost btn-sm btn-square"
-      :title="t('transport.toggleViewMode')"
-      @click="
-        timeline.setViewMode(
-          timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
-        )
-      "
+      class="relative"
+      @mouseenter="verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'"
+      @mouseleave="verticalZoomPopoverOpen = false"
+      @wheel="onVerticalZoomWheel"
     >
-      <Icon
-        v-if="timeline.viewMode.value === 'waveform'"
-        icon="material-symbols:graphic-eq-rounded"
-        class="h-5 w-5"
-      />
-      <Icon v-else icon="mynaui:chart-area-solid" class="h-5 w-5" />
-    </button>
+      <button
+        data-testid="view-mode-toggle"
+        class="btn btn-ghost btn-sm btn-square"
+        :title="t('transport.toggleViewMode')"
+        @click="
+          timeline.setViewMode(
+            timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
+          )
+        "
+      >
+        <Icon
+          v-if="timeline.viewMode.value === 'waveform'"
+          icon="material-symbols:graphic-eq-rounded"
+          class="h-5 w-5"
+        />
+        <Icon v-else icon="mynaui:chart-area-solid" class="h-5 w-5" />
+      </button>
+
+      <!-- Vertical zoom popover — spectrogram mode only, appears above the toggle button -->
+      <div
+        v-if="timeline.viewMode.value === 'spectrogram'"
+        v-show="verticalZoomPopoverOpen"
+        data-testid="vertical-zoom-slider"
+        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
+      >
+        <div class="mb-1 text-center text-[10px] tabular-nums">
+          {{ Math.round((timeline?.verticalZoom.value ?? 1) * 100) }}%
+        </div>
+        <div class="relative h-24 w-6">
+          <input
+            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
+            type="range"
+            min="0.5"
+            max="10"
+            step="0.1"
+            :value="timeline?.verticalZoom.value ?? 1"
+            @input="
+              timeline?.setVerticalZoom(
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
+          />
+        </div>
+      </div>
+    </div>
 
     <button
       data-testid="metronome-toggle"
@@ -250,47 +284,6 @@ function onVerticalZoomWheel(event: WheelEvent): void {
             :value="store.project.audio.sfxVolume"
             @input="
               store.setSfxVolume(($event.target as HTMLInputElement).valueAsNumber)
-            "
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Vertical zoom — spectrogram mode only, hover popover like volume controls -->
-    <div
-      v-if="timeline?.viewMode.value === 'spectrogram'"
-      data-testid="vertical-zoom-popover"
-      class="relative"
-      @mouseenter="verticalZoomPopoverOpen = true"
-      @mouseleave="verticalZoomPopoverOpen = false"
-      @wheel.prevent="onVerticalZoomWheel"
-    >
-      <button
-        class="btn btn-ghost btn-sm btn-square"
-        :title="t('transport.verticalZoom')"
-      >
-        <Icon icon="material-symbols:unfold-more-rounded" class="h-5 w-5" />
-      </button>
-      <div
-        v-show="verticalZoomPopoverOpen"
-        data-testid="vertical-zoom-slider"
-        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
-      >
-        <div class="mb-1 text-center text-[10px] tabular-nums">
-          {{ Math.round((timeline?.verticalZoom.value ?? 1) * 100) }}%
-        </div>
-        <div class="relative h-24 w-6">
-          <input
-            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-            type="range"
-            min="0.5"
-            max="10"
-            step="0.1"
-            :value="timeline?.verticalZoom.value ?? 1"
-            @input="
-              timeline?.setVerticalZoom(
-                ($event.target as HTMLInputElement).valueAsNumber,
-              )
             "
           />
         </div>

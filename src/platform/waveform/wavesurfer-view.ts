@@ -7,6 +7,12 @@ export interface WaveSurferViewOptions {
   minPxPerSec: number
   /** Height in pixels for the spectrogram canvas (defaults to container height or 256). */
   spectrogramHeight?: number
+  /**
+   * Vertical zoom multiplier for the spectrogram.
+   * Divides the Nyquist frequency to narrow the displayed frequency range.
+   * 1 = full range (~22 kHz); 2 = lower half (~11 kHz), etc.
+   */
+  verticalZoom?: number
 }
 
 export interface WaveSurferView {
@@ -40,12 +46,16 @@ export function createWaveSurferView(
 
   if (options.mode === 'spectrogram') {
     const height = options.spectrogramHeight ?? (container.clientHeight || 256)
+    // Vertical zoom: zoom=1 → full Nyquist range; zoom>1 → narrower (lower) frequency range
+    const nyquist = 22050
+    const frequencyMax = Math.round(nyquist / (options.verticalZoom ?? 1))
     ws.registerPlugin(
       WindowedSpectrogramPlugin.create({
         fftSamples: 1024,
         labels: true,
         useWebWorker: true,
         height,
+        frequencyMax,
       }),
     )
   }

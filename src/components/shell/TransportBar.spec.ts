@@ -390,26 +390,26 @@ describe('transportBar rhythm mode select', () => {
   })
 })
 
-describe('transportBar vertical zoom popover', () => {
+describe('transportBar vertical zoom slider', () => {
   beforeEach(() => {
     __overrideAudioTransportFactory(() => createMockTransport())
     __overrideMetronomeFactory(() => createMockMetronome())
     setActivePinia(createPinia())
   })
 
-  it('vertical-zoom-popover is not rendered in waveform mode', () => {
+  it('vertical-zoom-slider is not rendered in waveform mode', () => {
     const timeline = makeTimeline({
       viewMode: ref('waveform') as TimelineViewContext['viewMode'],
     })
     const wrapper = mountWithTimeline(timeline)
-    expect(wrapper.find('[data-testid="vertical-zoom-popover"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="vertical-zoom-slider"]').exists()).toBe(false)
   })
 
-  it('vertical-zoom-popover is rendered in spectrogram mode', () => {
+  it('vertical-zoom-slider is rendered in spectrogram mode', () => {
     const timeline = makeTimeline({
       viewMode: ref('spectrogram') as TimelineViewContext['viewMode'],
     })
     const wrapper = mountWithTimeline(timeline)
-    expect(wrapper.find('[data-testid="vertical-zoom-popover"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="vertical-zoom-slider"]').exists()).toBe(true)
   })
 })
