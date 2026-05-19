@@ -228,7 +228,9 @@ export function getBeatGridLines(
   startSec: number,
   endSec: number,
 ): GridLine[] {
-  if (timingPoints.length === 0) return []
+  if (timingPoints.length === 0) {
+    throw new Error(zhCN.errors.noTimingPoints)
+  }
 
   const sorted = sortTimingPoints(timingPoints)
   const result: GridLine[] = []

@@ -256,8 +256,8 @@ export const useEditorStore = defineStore('editor', () => {
       if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
     } else {
       _isPlaying.value = true
-      await transport.play()
       _startPlaybackLoop()
+      await transport.play()
     }
   }
 
@@ -323,8 +323,8 @@ export const useEditorStore = defineStore('editor', () => {
       )
       transport.seek(activePoint.time)
       _isPlaying.value = true
-      await transport.play()
       _startPlaybackLoop()
+      await transport.play()
     }
 
     // Feed timestamp to estimator
