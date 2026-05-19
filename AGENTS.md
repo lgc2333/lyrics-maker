@@ -33,6 +33,7 @@ src/
 │   │   ├── timing-engine.ts    # Beat/bar computation from timing points
 │   │   ├── timing-point.ts     # Sort + validate timing points
 │   │   └── tap-bpm.ts          # Tap-based BPM estimator
+│   ├── utils/              # format-timestamp.ts
 │   └── commands/          # Command pattern for undo/redo
 │       ├── command.ts     # Command<TState> interface {label, do, undo}
 │       ├── history.ts     # createCommandHistory<T>() — undo/redo stack
@@ -41,16 +42,20 @@ src/
 │   ├── i18n/              # vue-i18n instance + zh-CN locale messages
 │   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
 │   ├── persistence/       # File System Access API adapter + save service
-│   └── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
+│   ├── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
+│   └── waveform/          # WaveSurfer.js lifecycle, grid overlay plugin, worker shim
 ├── stores/                # Pinia stores — UI state orchestration
 │   └── editor-store.ts    # Central editor session: project, undo/redo, save
 ├── composables/           # Vue composables
 │   ├── useEditorShortcuts.ts    # Keyboard → action dispatch (accepts {onAction})
-│   └── useProjectPersistence.ts # Ctrl+S save pipeline (wires store to file service)
+│   ├── useProjectPersistence.ts # Ctrl+S save pipeline (wires store to file service)
+│   └── useTimelineView.ts       # WaveSurfer orchestration (view mode, zoom, scroll sync)
 ├── components/shell/      # Editor shell — layout, transport, mode controls
 │   ├── AppShell.vue       # Root layout, wires shortcuts + persistence to store
 │   ├── TransportBar.vue   # Playback controls + progress slider with seek
-│   ├── TimingPointsPanel.vue  # Timing point list (active/selected states, right-side controls)
+│   ├── TimingPointsPanel.vue  # Timing point panel (active/selected states, right-side controls)
+│   ├── TimingPointList.vue    # Renders the list of timing points
+│   ├── TimingPointControls.vue # Right-side controls for timing points
 │   ├── LyricsPanel.vue        # Lyrics workspace scaffold
 │   ├── MenuBar.vue        # Top menu bar
 │   └── MainView.vue       # Main content area
