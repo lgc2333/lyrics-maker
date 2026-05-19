@@ -26,6 +26,38 @@ const timeline = useTimelineView(timelineContainerRef)
 provide(TIMELINE_VIEW_KEY, timeline)
 provide('timelineContainerRef', timelineContainerRef)
 
+// ---- MainView resize ----
+const mainViewHeight = ref(250)
+const RESIZE_MIN = 180
+const RESIZE_MAX = 520
+
+let resizeDragging = false
+let resizeStartY = 0
+let resizeStartH = 0
+
+function onResizePointerDown(e: PointerEvent) {
+  resizeDragging = true
+  resizeStartY = e.clientY
+  resizeStartH = mainViewHeight.value
+  e.preventDefault()
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+
+function onResizePointerMove(e: PointerEvent) {
+  if (!resizeDragging) return
+  const delta = e.clientY - resizeStartY
+  mainViewHeight.value = Math.max(
+    RESIZE_MIN,
+    Math.min(RESIZE_MAX, resizeStartH + delta),
+  )
+}
+
+function onResizePointerUp() {
+  resizeDragging = false
+}
+
+provide('mainViewHeight', mainViewHeight)
+
 function detectSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
@@ -121,6 +153,14 @@ useEditorShortcuts({
     />
     <MainView data-testid="main-view" />
     <TransportBar data-testid="transport-bar" />
+    <!-- Resize handle: dragging adjusts MainView height -->
+    <div
+      data-testid="main-view-resize-handle"
+      class="h-1.5 cursor-row-resize bg-base-300/60 hover:bg-primary/40 active:bg-primary/60 transition-colors"
+      @pointerdown="onResizePointerDown"
+      @pointermove="onResizePointerMove"
+      @pointerup="onResizePointerUp"
+    />
     <TimingPointsPanel
       v-if="editorMode === 'timing'"
       data-testid="timing-points-panel"
