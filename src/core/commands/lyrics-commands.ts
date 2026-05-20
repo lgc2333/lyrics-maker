@@ -1,4 +1,4 @@
-import type { ProjectDocument } from '../domain/project'
+import type { LyricLine, ProjectDocument } from '../domain/project'
 import type { Command } from './command'
 
 export function createSplitWordCommand(
@@ -74,8 +74,10 @@ export function createMergeWordsCommand(
       }
       const front = line.words[wordIndex]
       const back = line.words[wordIndex + 1]
-      removedWord = { id: back.id, text: back.text, endTime: back.endTime }
-      originalFrontEndTime = front.endTime
+      if (removedWord === null) {
+        removedWord = { id: back.id, text: back.text, endTime: back.endTime }
+        originalFrontEndTime = front.endTime
+      }
       const merged = {
         id: front.id,
         text: front.text + back.text,
@@ -237,6 +239,57 @@ export function createClearWordEndTimeCommand(
               }
             : l,
         ),
+      }
+    },
+  }
+}
+
+export function createInsertLyricLinesCommand(
+  lines: readonly LyricLine[],
+): Command<ProjectDocument> {
+  for (const line of lines) {
+    if (line.words.length === 0) {
+      throw new Error('LyricLine words array must not be empty')
+    }
+  }
+  const lineIds = lines.map((l) => l.id)
+  return {
+    label: 'lyrics.insertLines',
+    do: (state) => ({
+      ...state,
+      lyrics: [...state.lyrics, ...lines],
+    }),
+    undo: (state) => ({
+      ...state,
+      lyrics: state.lyrics.filter((l) => !lineIds.includes(l.id)),
+    }),
+  }
+}
+
+export function createRemoveLyricLineCommand(lineId: string): Command<ProjectDocument> {
+  let removedLine: LyricLine | null = null
+  let removedIndex: number | null = null
+  return {
+    label: 'lyrics.removeLine',
+    do: (state) => {
+      const index = state.lyrics.findIndex((l) => l.id === lineId)
+      if (index === -1) return state
+      if (removedLine === null) {
+        removedLine = state.lyrics[index]
+        removedIndex = index
+      }
+      return {
+        ...state,
+        lyrics: state.lyrics.filter((l) => l.id !== lineId),
+      }
+    },
+    undo: (state) => {
+      if (removedLine === null || removedIndex === null) return state
+      const newLyrics = [...state.lyrics]
+      newLyrics.splice(removedIndex, 0, removedLine)
+      return {
+        ...state,
+        lyrics: newLyrics,
       }
     },
   }

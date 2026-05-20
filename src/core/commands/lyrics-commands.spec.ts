@@ -4,7 +4,9 @@ import type { LyricLine, ProjectDocument } from '../domain/project'
 import { createEmptyProject } from '../domain/project'
 import {
   createClearWordEndTimeCommand,
+  createInsertLyricLinesCommand,
   createMergeWordsCommand,
+  createRemoveLyricLineCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
   createSplitWordCommand,
@@ -249,5 +251,85 @@ describe('createMergeWordsCommand', () => {
     const after = cmd.do(projectWithLine(multiLine))
     expect(after.lyrics[0].words.map((w) => w.id)).toEqual(['w-0', 'w-1', 'w-3'])
     expect(after.lyrics[0].words[1].text).toBe('hello')
+  })
+})
+
+describe('createInsertLyricLinesCommand', () => {
+  it('appends lines to the end of lyrics', () => {
+    const lines: LyricLine[] = [
+      { id: 'line-1', words: [{ id: 'w-1', text: 'hello' }] },
+      { id: 'line-2', words: [{ id: 'w-2', text: 'world' }] },
+    ]
+    const cmd = createInsertLyricLinesCommand(lines)
+    const after = cmd.do(createEmptyProject())
+    expect(after.lyrics).toHaveLength(2)
+    expect(after.lyrics[0].id).toBe('line-1')
+    expect(after.lyrics[1].id).toBe('line-2')
+  })
+
+  it('appends to existing lyrics', () => {
+    const existing: LyricLine = {
+      id: 'line-0',
+      words: [{ id: 'w-0', text: 'existing' }],
+    }
+    const state = { ...createEmptyProject(), lyrics: [existing] }
+    const newLines: LyricLine[] = [
+      { id: 'line-1', words: [{ id: 'w-1', text: 'new' }] },
+    ]
+    const cmd = createInsertLyricLinesCommand(newLines)
+    const after = cmd.do(state)
+    expect(after.lyrics).toHaveLength(2)
+    expect(after.lyrics[0].id).toBe('line-0')
+    expect(after.lyrics[1].id).toBe('line-1')
+  })
+
+  it('undo removes the appended lines', () => {
+    const lines: LyricLine[] = [{ id: 'line-1', words: [{ id: 'w-1', text: 'hello' }] }]
+    const cmd = createInsertLyricLinesCommand(lines)
+    const after = cmd.do(createEmptyProject())
+    const undone = cmd.undo(after)
+    expect(undone.lyrics).toHaveLength(0)
+  })
+
+  it('throws if any line has empty words array', () => {
+    const lines: LyricLine[] = [{ id: 'line-1', words: [] }]
+    expect(() => createInsertLyricLinesCommand(lines)).toThrow(
+      'LyricLine words array must not be empty',
+    )
+  })
+})
+
+describe('createRemoveLyricLineCommand', () => {
+  const line: LyricLine = {
+    id: 'line-1',
+    words: [{ id: 'w-1', text: 'hello', endTime: 1.0 }],
+    startTime: 0.5,
+  }
+
+  it('removes the target line', () => {
+    const cmd = createRemoveLyricLineCommand('line-1')
+    const after = cmd.do(projectWithLine(line))
+    expect(after.lyrics).toHaveLength(0)
+  })
+
+  it('undo re-inserts the removed line at the same position', () => {
+    const line2: LyricLine = { id: 'line-2', words: [{ id: 'w-2', text: 'world' }] }
+    const state = { ...createEmptyProject(), lyrics: [line, line2] }
+    const cmd = createRemoveLyricLineCommand('line-1')
+    const after = cmd.do(state)
+    expect(after.lyrics).toHaveLength(1)
+    expect(after.lyrics[0].id).toBe('line-2')
+    const undone = cmd.undo(after)
+    expect(undone.lyrics).toHaveLength(2)
+    expect(undone.lyrics[0].id).toBe('line-1')
+    expect(undone.lyrics[0].startTime).toBe(0.5)
+    expect(undone.lyrics[0].words[0].endTime).toBe(1.0)
+  })
+
+  it('returns state unchanged if lineId not found', () => {
+    const cmd = createRemoveLyricLineCommand('nonexistent')
+    const state = projectWithLine(line)
+    const after = cmd.do(state)
+    expect(after.lyrics).toHaveLength(1)
   })
 })
