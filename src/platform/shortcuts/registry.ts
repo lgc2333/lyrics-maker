@@ -9,6 +9,12 @@ export type ShortcutAction =
   | 'transport.nextBar'
   | 'timing.tapBpm'
   | 'metronome.toggle'
+  | 'lyrics.mark'
+  | 'lyrics.markNoAdvance'
+  | 'lyrics.nextLine'
+  | 'lyrics.playLineInterval'
+  | 'lyrics.playWordInterval'
+  | 'lyrics.deleteLine'
 
 export function createShortcutRegistry() {
   const bindings = new Map<string, ShortcutAction>()
