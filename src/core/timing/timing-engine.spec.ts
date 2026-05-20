@@ -11,6 +11,7 @@ import {
   getNextSubdivisionTime,
   getPreviousBarTime,
   getPreviousSubdivisionTime,
+  snapToNearestGridPoint,
 } from './timing-engine'
 import { sortTimingPoints, validateTimingPoint } from './timing-point'
 
@@ -787,5 +788,74 @@ describe('getPreviousSubdivisionTime', () => {
     // p1: divisor=2 → subDur=0.25
     // At time 5.1: subIdx=0, result=5.0 (>= point.time 5.0, no cross-segment)
     expect(getPreviousSubdivisionTime(twoPoints, 5.1, 2, false)).toBeCloseTo(5.0, 5)
+  })
+})
+
+// ============================================================
+// snapToNearestGridPoint
+// ============================================================
+describe('snapToNearestGridPoint', () => {
+  const points: TimingPoint[] = [
+    {
+      id: 'tp-1',
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    },
+  ]
+  // 120 BPM, divisor 4 → subdivision = 0.125s (60/120/4)
+  // Grid points: 0, 0.125, 0.25, 0.375, 0.5, ...
+
+  it('snaps to nearest grid point (forward)', () => {
+    const result = snapToNearestGridPoint(points, 0.06, 4, false)
+    expect(result).toBeCloseTo(0.0, 6)
+  })
+
+  it('snaps to nearest grid point (backward)', () => {
+    const result = snapToNearestGridPoint(points, 0.07, 4, false)
+    expect(result).toBeCloseTo(0.125, 6)
+  })
+
+  it('snaps exactly on a grid point', () => {
+    const result = snapToNearestGridPoint(points, 0.25, 4, false)
+    expect(result).toBeCloseTo(0.25, 6)
+  })
+
+  it('works with triplets', () => {
+    // divisor=4, triplets=true → actualDivisor = round(4*3/2) = 6
+    // subdivision = 60/120/6 = 0.0833...
+    const result = snapToNearestGridPoint(points, 0.04, 4, true)
+    expect(result).toBeCloseTo(0.0, 6)
+  })
+
+  it('handles time before first timing point', () => {
+    const result = snapToNearestGridPoint(points, -0.01, 4, false)
+    expect(result).toBeCloseTo(0.0, 6)
+  })
+
+  it('throws on empty timing points', () => {
+    expect(() => snapToNearestGridPoint([], 1.0, 4, false)).toThrow()
+  })
+
+  it('respects segment boundaries with multiple timing points', () => {
+    const multiPoints: TimingPoint[] = [
+      {
+        id: 'tp-1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      },
+      {
+        id: 'tp-2',
+        time: 1.0,
+        bpm: 60,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      },
+    ]
+    const result = snapToNearestGridPoint(multiPoints, 0.99, 4, false)
+    expect(result).toBeCloseTo(1.0, 6)
   })
 })

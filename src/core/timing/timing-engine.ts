@@ -402,3 +402,44 @@ export function getPreviousSubdivisionTime(
 
   return result
 }
+
+/**
+ * Snaps a time to the nearest grid subdivision point (forward or backward).
+ * Uses the same triplets formula as getBeatGridLines.
+ * Respects segment boundaries: if the next grid point crosses into the next
+ * timing point's segment, uses that timing point's start time instead.
+ * Throws if timingPoints is empty.
+ */
+export function snapToNearestGridPoint(
+  points: readonly TimingPoint[],
+  time: number,
+  divisor: number,
+  triplets: boolean,
+): number {
+  const sorted = sortTimingPoints(points)
+  if (sorted.length === 0) throw new Error(TIMING_ERRORS.noTimingPoints)
+
+  const point = getActiveTimingPointFromSorted(sorted, time)
+  const beatDur = 60 / point.bpm
+  const actualDivisor =
+    triplets && divisor >= 2 ? Math.round((divisor * 3) / 2) : divisor
+  const subDur = beatDur / actualDivisor
+
+  const elapsed = (time - point.time) / subDur
+  const subIdx = Math.floor(elapsed + BEAT_EPSILON)
+
+  const prev = point.time + subIdx * subDur
+  const next = point.time + (subIdx + 1) * subDur
+
+  // Clamp next to the segment boundary if it crosses into the next timing point
+  const pointIndex = sorted.findIndex((p) => p.id === point.id)
+  let effectiveNext = next
+  if (pointIndex < sorted.length - 1) {
+    const nextPoint = sorted[pointIndex + 1]
+    if (next >= nextPoint.time) {
+      effectiveNext = nextPoint.time
+    }
+  }
+
+  return Math.abs(time - prev) <= Math.abs(time - effectiveNext) ? prev : effectiveNext
+}
