@@ -103,7 +103,11 @@ export function createMergeWordsCommand(
         0,
         merged.text.length - removedWord.text.length,
       )
-      const frontWord = { id: wordId, text: frontText, endTime: originalFrontEndTime }
+      const frontWord = {
+        id: wordId,
+        text: frontText,
+        endTime: originalFrontEndTime ?? undefined,
+      }
       const backWord = {
         id: removedWord.id,
         text: removedWord.text,
