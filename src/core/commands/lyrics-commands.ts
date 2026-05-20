@@ -1,6 +1,124 @@
 import type { ProjectDocument } from '../domain/project'
 import type { Command } from './command'
 
+export function createSplitWordCommand(
+  lineId: string,
+  wordId: string,
+  charIndex: number,
+  newId: string,
+): Command<ProjectDocument> {
+  if (charIndex <= 0) {
+    throw new Error('charIndex must be > 0 (would produce empty front word)')
+  }
+  return {
+    label: 'lyrics.splitWord',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const wordIndex = line.words.findIndex((w) => w.id === wordId)
+      if (wordIndex === -1) return state
+      const word = line.words[wordIndex]
+      if (charIndex >= word.text.length) {
+        throw new Error(
+          'charIndex must be < text.length (would produce empty back word)',
+        )
+      }
+      const frontText = word.text.slice(0, charIndex)
+      const backText = word.text.slice(charIndex)
+      const frontWord = { id: word.id, text: frontText }
+      const backWord = { id: newId, text: backText, endTime: word.endTime }
+      const newWords = [...line.words]
+      newWords.splice(wordIndex, 1, frontWord, backWord)
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const frontIndex = line.words.findIndex((w) => w.id === wordId)
+      const backIndex = line.words.findIndex((w) => w.id === newId)
+      if (frontIndex === -1 || backIndex === -1) return state
+      const front = line.words[frontIndex]
+      const back = line.words[backIndex]
+      const merged = { id: wordId, text: front.text + back.text, endTime: back.endTime }
+      const newWords = [...line.words]
+      newWords.splice(Math.min(frontIndex, backIndex), 2, merged)
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+  }
+}
+
+export function createMergeWordsCommand(
+  lineId: string,
+  wordId: string,
+): Command<ProjectDocument> {
+  let removedWord: { id: string; text: string; endTime?: number } | null = null
+  let originalFrontEndTime: number | undefined | null = null
+  return {
+    label: 'lyrics.mergeWords',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const wordIndex = line.words.findIndex((w) => w.id === wordId)
+      if (wordIndex === -1 || wordIndex >= line.words.length - 1) {
+        throw new Error('Cannot merge: wordId is the last word or not found')
+      }
+      const front = line.words[wordIndex]
+      const back = line.words[wordIndex + 1]
+      removedWord = { id: back.id, text: back.text, endTime: back.endTime }
+      originalFrontEndTime = front.endTime
+      const merged = {
+        id: front.id,
+        text: front.text + back.text,
+        endTime: back.endTime,
+      }
+      const newWords = [...line.words]
+      newWords.splice(wordIndex, 2, merged)
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      if (!removedWord) return state
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const mergedIndex = line.words.findIndex((w) => w.id === wordId)
+      if (mergedIndex === -1) return state
+      const merged = line.words[mergedIndex]
+      const frontText = merged.text.slice(
+        0,
+        merged.text.length - removedWord.text.length,
+      )
+      const frontWord = { id: wordId, text: frontText, endTime: originalFrontEndTime }
+      const backWord = {
+        id: removedWord.id,
+        text: removedWord.text,
+        endTime: removedWord.endTime,
+      }
+      const newWords = [...line.words]
+      newWords.splice(mergedIndex, 1, frontWord, backWord)
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+  }
+}
+
 export function createSetLineStartTimeCommand(
   lineId: string,
   time: number,
