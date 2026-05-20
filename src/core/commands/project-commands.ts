@@ -1,16 +1,19 @@
-import type { ProjectDocument, TimingPoint } from '../domain/project'
+import type { LyricWord, ProjectDocument, TimingPoint } from '../domain/project'
 import { validateTimingPoint } from '../timing/timing-point'
 import type { Command } from './command'
 
 export function createAddLyricLineCommand(payload: {
   id: string
-  text: string
+  words: LyricWord[]
 }): Command<ProjectDocument> {
+  if (payload.words.length === 0) {
+    throw new Error('LyricLine words array must not be empty')
+  }
   return {
     label: 'lyrics.addLine',
     do: (state) => ({
       ...state,
-      lyrics: [...state.lyrics, { id: payload.id, text: payload.text, words: [] }],
+      lyrics: [...state.lyrics, { id: payload.id, words: payload.words }],
     }),
     undo: (state) => ({
       ...state,

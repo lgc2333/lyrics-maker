@@ -11,6 +11,7 @@ describe('createEmptyProject', () => {
         locale: 'zh-CN',
         snapDivisor: 4,
         rhythmMode: 'common',
+        snapEnabled: true,
       },
       lyrics: [],
       timingPoints: [

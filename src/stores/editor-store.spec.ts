@@ -105,7 +105,7 @@ describe('editor store (phase 1)', () => {
 
     store.addLyricLine('hello world')
     expect(store.project.lyrics).toHaveLength(1)
-    expect(store.project.lyrics[0].text).toBe('hello world')
+    expect(store.project.lyrics[0].words[0].text).toBe('hello world')
 
     store.undo()
     expect(store.project.lyrics).toHaveLength(0)
@@ -148,7 +148,7 @@ describe('editor store (phase 1)', () => {
     store.addLyricLine('line 2')
     expect(store.canRedo).toBe(false)
     expect(store.project.lyrics).toHaveLength(1)
-    expect(store.project.lyrics[0].text).toBe('line 2')
+    expect(store.project.lyrics[0].words[0].text).toBe('line 2')
   })
 
   it('adds multiple lines', () => {
@@ -159,9 +159,9 @@ describe('editor store (phase 1)', () => {
     store.addLyricLine('line 3')
 
     expect(store.project.lyrics).toHaveLength(3)
-    expect(store.project.lyrics[0].text).toBe('line 1')
-    expect(store.project.lyrics[1].text).toBe('line 2')
-    expect(store.project.lyrics[2].text).toBe('line 3')
+    expect(store.project.lyrics[0].words[0].text).toBe('line 1')
+    expect(store.project.lyrics[1].words[0].text).toBe('line 2')
+    expect(store.project.lyrics[2].words[0].text).toBe('line 3')
   })
 
   it('each line has a unique id', () => {
@@ -224,7 +224,7 @@ describe('editor store (phase 1)', () => {
     const parsed = JSON.parse(json)
     expect(parsed.version).toBe(1)
     expect(parsed.lyrics).toHaveLength(1)
-    expect(parsed.lyrics[0].text).toBe('hello world')
+    expect(parsed.lyrics[0].words[0].text).toBe('hello world')
     expect(store.dirty).toBe(false)
   })
 

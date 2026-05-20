@@ -4,19 +4,19 @@ export interface ProjectSettings {
   locale: LocaleCode
   snapDivisor: 1 | 2 | 4 | 8 | 16
   rhythmMode: 'common' | 'triplets'
+  snapEnabled: boolean
 }
 
 export interface LyricWord {
   id: string
   text: string
-  startTime: number
-  endTime: number
+  endTime?: number
 }
 
 export interface LyricLine {
   id: string
-  text: string
   words: LyricWord[]
+  startTime?: number
 }
 
 export interface TimingPoint {
@@ -44,6 +44,7 @@ export function createEmptyProject(): ProjectDocument {
       locale: 'zh-CN',
       snapDivisor: 4,
       rhythmMode: 'common',
+      snapEnabled: true,
     },
     lyrics: [],
     timingPoints: [

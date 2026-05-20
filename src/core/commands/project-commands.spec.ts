@@ -13,18 +13,23 @@ import {
 
 describe('add lyric line command', () => {
   it('adds a lyric line via do()', () => {
-    const payload = { id: 'line-1', text: 'hello world' }
+    const payload = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'hello world' }],
+    }
     const command = createAddLyricLineCommand(payload)
     const afterDo = command.do(createEmptyProject())
 
     expect(afterDo.lyrics).toHaveLength(1)
     expect(afterDo.lyrics[0].id).toBe('line-1')
-    expect(afterDo.lyrics[0].text).toBe('hello world')
-    expect(afterDo.lyrics[0].words).toEqual([])
+    expect(afterDo.lyrics[0].words).toEqual([{ id: 'w-1', text: 'hello world' }])
   })
 
   it('undo removes the added line', () => {
-    const payload = { id: 'line-1', text: 'hello world' }
+    const payload = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'hello world' }],
+    }
     const command = createAddLyricLineCommand(payload)
     const afterDo = command.do(createEmptyProject())
 
@@ -33,7 +38,10 @@ describe('add lyric line command', () => {
   })
 
   it('do can be used as redo to re-add the line', () => {
-    const payload = { id: 'line-1', text: 'hello world' }
+    const payload = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'hello world' }],
+    }
     const command = createAddLyricLineCommand(payload)
     const afterDo = command.do(createEmptyProject())
 
@@ -43,11 +51,14 @@ describe('add lyric line command', () => {
     const afterRedo = command.do(afterUndo)
     expect(afterRedo.lyrics).toHaveLength(1)
     expect(afterRedo.lyrics[0].id).toBe('line-1')
-    expect(afterRedo.lyrics[0].text).toBe('hello world')
+    expect(afterRedo.lyrics[0].words).toEqual([{ id: 'w-1', text: 'hello world' }])
   })
 
   it('do returns a new object and does not mutate input', () => {
-    const payload = { id: 'line-1', text: 'hello world' }
+    const payload = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'hello world' }],
+    }
     const command = createAddLyricLineCommand(payload)
     const project = createEmptyProject()
 
@@ -60,7 +71,10 @@ describe('add lyric line command', () => {
   })
 
   it('undo returns a new object and does not mutate input', () => {
-    const payload = { id: 'line-1', text: 'hello world' }
+    const payload = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'hello world' }],
+    }
     const command = createAddLyricLineCommand(payload)
     const afterDo = command.do(createEmptyProject())
 
@@ -73,8 +87,14 @@ describe('add lyric line command', () => {
   })
 
   it('removes only the matching line when multiple lines exist', () => {
-    const payload1 = { id: 'line-1', text: 'first' }
-    const payload2 = { id: 'line-2', text: 'second' }
+    const payload1 = {
+      id: 'line-1',
+      words: [{ id: 'w-1', text: 'first' }],
+    }
+    const payload2 = {
+      id: 'line-2',
+      words: [{ id: 'w-2', text: 'second' }],
+    }
     const command1 = createAddLyricLineCommand(payload1)
     const command2 = createAddLyricLineCommand(payload2)
 
@@ -87,6 +107,12 @@ describe('add lyric line command', () => {
     const afterUndo = command2.undo(afterSecond)
     expect(afterUndo.lyrics).toHaveLength(1)
     expect(afterUndo.lyrics[0].id).toBe('line-1')
+  })
+
+  it('throws when words array is empty', () => {
+    expect(() => createAddLyricLineCommand({ id: 'line-1', words: [] })).toThrow(
+      'LyricLine words array must not be empty',
+    )
   })
 })
 

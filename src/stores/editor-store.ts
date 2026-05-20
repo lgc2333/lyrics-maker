@@ -190,7 +190,12 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 1 actions ----
 
   function addLyricLine(text: string) {
-    execute(createAddLyricLineCommand({ id: makeId('line'), text }))
+    execute(
+      createAddLyricLineCommand({
+        id: makeId('line'),
+        words: [{ id: makeId('word'), text }],
+      }),
+    )
   }
 
   function _syncAudioHardware() {
