@@ -3,6 +3,15 @@ import { computed, shallowRef, triggerRef } from 'vue'
 
 import { createCommandHistory } from '../core/commands/history'
 import {
+  createClearWordEndTimeCommand,
+  createInsertLyricLinesCommand,
+  createMergeWordsCommand,
+  createRemoveLyricLineCommand,
+  createSetLineStartTimeCommand,
+  createSetWordEndTimeCommand,
+  createSplitWordCommand,
+} from '../core/commands/lyrics-commands'
+import {
   createAddLyricLineCommand,
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
@@ -12,7 +21,7 @@ import {
   createUpdateTimingPointCommand,
 } from '../core/commands/project-commands'
 import { createEmptyProject } from '../core/domain/project'
-import type { ProjectDocument, TimingPoint } from '../core/domain/project'
+import type { LyricLine, ProjectDocument, TimingPoint } from '../core/domain/project'
 import { createTapBpmEstimator } from '../core/timing/tap-bpm'
 import {
   getActiveTimingPoint,
@@ -481,6 +490,36 @@ export const useEditorStore = defineStore('editor', () => {
     seekPlayback(Math.max(0, t))
   }
 
+  // ---- Phase 4: Lyrics ----
+
+  function insertLyricLines(lines: LyricLine[]): void {
+    execute(createInsertLyricLinesCommand(lines))
+  }
+
+  function removeLyricLine(lineId: string): void {
+    execute(createRemoveLyricLineCommand(lineId))
+  }
+
+  function setLineStartTime(lineId: string, time: number): void {
+    execute(createSetLineStartTimeCommand(lineId, time))
+  }
+
+  function setWordEndTime(lineId: string, wordId: string, time: number): void {
+    execute(createSetWordEndTimeCommand(lineId, wordId, time))
+  }
+
+  function clearWordEndTime(lineId: string, wordId: string): void {
+    execute(createClearWordEndTimeCommand(lineId, wordId))
+  }
+
+  function splitWord(lineId: string, wordId: string, charIndex: number): void {
+    execute(createSplitWordCommand(lineId, wordId, charIndex, crypto.randomUUID()))
+  }
+
+  function mergeWords(lineId: string, wordId: string): void {
+    execute(createMergeWordsCommand(lineId, wordId))
+  }
+
   // ---- Return ----
 
   return {
@@ -543,5 +582,14 @@ export const useEditorStore = defineStore('editor', () => {
     // Phase 3: beat-level seek
     seekToNextBeat,
     seekToPrevBeat,
+
+    // Phase 4: lyrics
+    insertLyricLines,
+    removeLyricLine,
+    setLineStartTime,
+    setWordEndTime,
+    clearWordEndTime,
+    splitWord,
+    mergeWords,
   }
 })

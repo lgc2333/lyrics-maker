@@ -735,6 +735,95 @@ describe('editor store (phase 2 - reactive state)', () => {
   })
 })
 
+describe('lyrics actions', () => {
+  let store: ReturnType<typeof useEditorStore>
+
+  beforeEach(() => {
+    const { transport } = createMockAudioTransport()
+    const { scheduler } = createMockMetronome()
+    __overrideAudioTransportFactory(() => transport)
+    __overrideMetronomeFactory(() => scheduler)
+    setActivePinia(createPinia())
+    store = useEditorStore()
+  })
+
+  it('insertLyricLines appends lines and is undoable', () => {
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    expect(store.project.lyrics).toHaveLength(2)
+    expect(store.project.lyrics[0].id).toBe('l1')
+    store.undo()
+    expect(store.project.lyrics).toHaveLength(0)
+  })
+
+  it('removeLyricLine removes a line and is undoable', () => {
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
+    store.removeLyricLine('l1')
+    expect(store.project.lyrics).toHaveLength(0)
+    store.undo()
+    expect(store.project.lyrics).toHaveLength(1)
+  })
+
+  it('setLineStartTime sets startTime and is undoable', () => {
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
+    store.setLineStartTime('l1', 1.5)
+    expect(store.project.lyrics[0].startTime).toBe(1.5)
+    store.undo()
+    expect(store.project.lyrics[0].startTime).toBeUndefined()
+  })
+
+  it('setWordEndTime sets endTime and is undoable', () => {
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    store.setWordEndTime('l1', 'w1', 2.0)
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
+    store.undo()
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+  })
+
+  it('clearWordEndTime clears endTime and is undoable', () => {
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 2.0 }], startTime: 0 },
+    ])
+    store.clearWordEndTime('l1', 'w1')
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+    store.undo()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
+  })
+
+  it('splitWord splits a word and is undoable', () => {
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
+    store.splitWord('l1', 'w1', 2)
+    expect(store.project.lyrics[0].words).toHaveLength(2)
+    expect(store.project.lyrics[0].words[0].text).toBe('he')
+    expect(store.project.lyrics[0].words[1].text).toBe('llo')
+    store.undo()
+    expect(store.project.lyrics[0].words).toHaveLength(1)
+    expect(store.project.lyrics[0].words[0].text).toBe('hello')
+  })
+
+  it('mergeWords merges adjacent words and is undoable', () => {
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hel', endTime: 1.0 },
+          { id: 'w2', text: 'lo', endTime: 2.0 },
+        ],
+      },
+    ])
+    store.mergeWords('l1', 'w1')
+    expect(store.project.lyrics[0].words).toHaveLength(1)
+    expect(store.project.lyrics[0].words[0].text).toBe('hello')
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
+    store.undo()
+    expect(store.project.lyrics[0].words).toHaveLength(2)
+  })
+})
+
 describe('editor store (phase 2 - bar-step seek)', () => {
   let mockTransport: AudioTransport
 
