@@ -222,3 +222,111 @@ describe('handleMarkKey (D)', () => {
     expect(store.project.lyrics[0].words[2].endTime).toBeUndefined()
   })
 })
+
+describe('handleNextLineKey (Enter)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('does nothing when activeLineId is null', () => {
+    const { editor } = mountEditor()
+    editor.handleNextLineKey()
+    expect(editor.activeLineId.value).toBeNull()
+  })
+
+  it('does nothing on last line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleNextLineKey(2.0)
+    await nextTick()
+    expect(editor.activeLineId.value).toBe('l1')
+  })
+
+  it('skips to next line without modifying current line if startTime undefined', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleNextLineKey(2.0)
+    await nextTick()
+    expect(editor.activeLineId.value).toBe('l2')
+    expect(editor.activeWordIndex.value).toBe(0)
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+  })
+
+  it('sets last word endTime and advances to next line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleNextLineKey(2.0)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
+    expect(editor.activeLineId.value).toBe('l2')
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+})
+
+describe('handleMarkNoAdvanceKey (Shift+D)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('sets endTime but does NOT advance activeWordIndex', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkNoAdvanceKey(1.5)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(1.5)
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+
+  it('at index 0: sets startTime but does NOT advance', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleMarkNoAdvanceKey(1.0)
+    await nextTick()
+    expect(store.project.lyrics[0].startTime).toBe(1.0)
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
+  it('at index N: does nothing', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkNoAdvanceKey(2.0)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+  })
+})

@@ -42,10 +42,17 @@ export function useLyricsEditor() {
     }
   }
 
+  // Suppress watch sync for one tick (used by handleMarkNoAdvanceKey)
+  let _suppressWatchSync = false
+
   // Undo/Redo sync: re-derive activeWordIndex from data state
   watch(
     () => activeLine.value,
     (line) => {
+      if (_suppressWatchSync) {
+        _suppressWatchSync = false
+        return
+      }
       if (!line) return
       if (line.startTime === undefined) {
         activeWordIndex.value = 0
@@ -121,6 +128,67 @@ export function useLyricsEditor() {
     activeWordIndex.value += 1
   }
 
+  function handleNextLineKey(currentTime?: number): void {
+    if (!activeLineId.value) return
+    const lyrics = store.project.lyrics
+    const lineIndex = lyrics.findIndex((l) => l.id === activeLineId.value)
+    if (lineIndex === -1 || lineIndex >= lyrics.length - 1) return
+    const line = lyrics[lineIndex]
+    const nextLine = lyrics[lineIndex + 1]
+
+    if (line.startTime !== undefined) {
+      const rawTime = currentTime ?? store.currentTime
+      const time = _getSnappedTime(rawTime)
+      const lastWord = line.words[line.words.length - 1]
+      if (lastWord) {
+        const prevEnd = _getPrevEndTime(line.words.length - 1)
+        const clamped = clampWordTime(time, prevEnd, store.duration)
+        store.setWordEndTime(activeLineId.value, lastWord.id, clamped)
+      }
+    }
+
+    activeLineId.value = nextLine.id
+    activeWordIndex.value = 0
+  }
+
+  function handleMarkNoAdvanceKey(currentTime?: number): void {
+    if (!activeLineId.value) return
+    const line = activeLine.value
+    if (!line) return
+    const N = line.words.length
+
+    if (activeWordIndex.value >= N) return
+
+    _suppressWatchSync = true
+    const rawTime = currentTime ?? store.currentTime
+
+    if (activeWordIndex.value === 0) {
+      const time = _getSnappedTime(rawTime)
+      const clamped = clampWordTime(time, undefined, store.duration)
+      store.setLineStartTime(activeLineId.value, clamped)
+      return
+    }
+
+    const wordIndex = activeWordIndex.value - 1
+    const word = line.words[wordIndex]
+    if (!word) return
+
+    const time = _getSnappedTime(rawTime)
+    const prevEnd = _getPrevEndTime(wordIndex)
+    const clamped = clampWordTime(time, prevEnd, store.duration)
+
+    for (let k = wordIndex + 1; k < line.words.length; k++) {
+      const w = line.words[k]
+      if (w.endTime !== undefined && w.endTime <= clamped) {
+        store.clearWordEndTime(activeLineId.value, w.id)
+      } else {
+        break
+      }
+    }
+
+    store.setWordEndTime(activeLineId.value, word.id, clamped)
+  }
+
   return {
     activeLineId,
     activeWordIndex,
@@ -128,5 +196,7 @@ export function useLyricsEditor() {
     activeLine,
     activateLine,
     handleMarkKey,
+    handleNextLineKey,
+    handleMarkNoAdvanceKey,
   }
 }
