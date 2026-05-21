@@ -12,6 +12,10 @@
       "view": "查看",
       "zoomFit": "缩放至合适",
       "zoomSelection": "缩放至选区",
+      "lyrics": "歌词",
+      "pasteLyrics": "粘贴歌词...",
+      "importLyricsFile": "导入歌词文件...",
+      "addLyricLine": "添加空行",
       "help": "帮助",
       "shortcuts": "快捷键列表",
       "about": "关于"
@@ -61,9 +65,20 @@
   },
   "lyrics": {
     "title": "歌词编辑器",
-    "emptyHint": "导入歌词或逐句输入以开始打轴",
+    "emptyHint": "从上方「歌词」菜单导入或粘贴歌词以开始打轴",
     "timingControl": "打轴控制",
-    "shortcuts": "快捷键: D 打轴前进 | Shift+D 打轴 | Enter 下一行 | Ctrl+D 切词"
+    "lineList": {
+      "title": "歌词行",
+      "noStartTime": "--:--"
+    },
+    "wordSplitBar": {
+      "title": "词块",
+      "modeCut": "剪刀",
+      "modeSelect": "选中",
+      "startBlock": "起始",
+      "endTimeLabel": "结束时间",
+      "derivedStartLabel": "起始时间"
+    }
   },
   "project": {
     "defaultTitle": "Untitled Project",
