@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier -cw .",
-    "check": "vue-tsc --noEmit",
+    "check": "vue-tsc -b",
     "test": "vitest",
     "test:run": "vitest run"
   },
