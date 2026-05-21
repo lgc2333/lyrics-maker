@@ -12,15 +12,25 @@ const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
   toggleTheme: []
   openAudioFile: []
+  pasteLyrics: []
+  importLyricsFile: []
+  addLyricLine: []
 }>()
 
 const { t } = useI18n()
 
-type MenuName = 'file' | 'edit' | 'view' | 'help'
+type MenuName = 'file' | 'edit' | 'view' | 'help' | 'lyrics'
 const openMenu = ref<MenuName | null>(null)
 
 function toggleMenu(name: MenuName): void {
   openMenu.value = openMenu.value === name ? null : name
+}
+
+function emitAndClose(
+  event: 'pasteLyrics' | 'importLyricsFile' | 'addLyricLine',
+): void {
+  emit(event)
+  openMenu.value = null
 }
 
 function onDocumentClick(event: MouseEvent): void {
@@ -178,6 +188,49 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             class="block w-full px-2 py-1 text-left text-[11px] opacity-50 cursor-not-allowed"
           >
             {{ t('shell.menu.about') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="relative">
+        <button
+          data-testid="menu-trigger-lyrics"
+          aria-haspopup="true"
+          :aria-expanded="openMenu === 'lyrics'"
+          class="rounded px-1.5 py-0.5 hover:bg-base-300"
+          @click="toggleMenu('lyrics')"
+        >
+          {{ t('shell.menu.lyrics') }}
+        </button>
+        <div
+          v-if="openMenu === 'lyrics'"
+          data-testid="menu-popup-lyrics"
+          role="menu"
+          class="absolute left-0 top-full z-50 mt-0.5 min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
+        >
+          <button
+            data-testid="menu-paste-lyrics"
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="emitAndClose('pasteLyrics')"
+          >
+            {{ t('shell.menu.pasteLyrics') }}
+          </button>
+          <button
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="emitAndClose('importLyricsFile')"
+          >
+            {{ t('shell.menu.importLyricsFile') }}
+          </button>
+          <div class="my-0.5 border-t border-base-300" />
+          <button
+            data-testid="menu-add-lyric-line"
+            role="menuitem"
+            class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="emitAndClose('addLyricLine')"
+          >
+            {{ t('shell.menu.addLyricLine') }}
           </button>
         </div>
       </div>

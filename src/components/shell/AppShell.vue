@@ -5,8 +5,11 @@ import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
+import type { LyricLine, LyricWord } from '../../core/domain/project'
+import { autoSplitText } from '../../core/lyrics/auto-split'
 import { useEditorStore } from '../../stores/editor-store'
 import LyricsPanel from './LyricsPanel.vue'
+import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
@@ -26,6 +29,7 @@ provide(LYRICS_EDITOR_KEY, lyricsEditor)
 const theme = ref<'light' | 'dark'>('light')
 const followSystemTheme = ref(true)
 const audioInput = ref<HTMLInputElement | null>(null)
+const showPasteModal = ref(false)
 
 // ---- Timeline view ----
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
@@ -85,6 +89,26 @@ async function onAudioSelected(event: Event): Promise<void> {
   if (!file) return
   await store.importAudioFile(file)
   input.value = ''
+}
+
+function onPasteLyricsConfirm(text: string): void {
+  showPasteModal.value = false
+  const rawLines = text.split('\n').filter((l) => l.trim().length > 0)
+  const lines: LyricLine[] = rawLines.map((rawText) => {
+    const tokens = autoSplitText(rawText.trim())
+    const words: LyricWord[] = tokens.map((t) => ({
+      id: crypto.randomUUID(),
+      text: t,
+    }))
+    return { id: crypto.randomUUID(), words }
+  })
+  if (lines.length > 0) store.insertLyricLines(lines)
+}
+
+function onAddLyricLine(): void {
+  store.insertLyricLines([
+    { id: crypto.randomUUID(), words: [{ id: crypto.randomUUID(), text: '' }] },
+  ])
 }
 
 let mediaQuery: MediaQueryList | null = null
@@ -168,6 +192,14 @@ useEditorShortcuts({
       "
       @toggleTheme="toggleTheme"
       @openAudioFile="openAudioPicker"
+      @pasteLyrics="showPasteModal = true"
+      @importLyricsFile="() => {}"
+      @addLyricLine="onAddLyricLine"
+    />
+    <LyricsPasteModal
+      v-if="showPasteModal"
+      @confirm="onPasteLyricsConfirm"
+      @cancel="showPasteModal = false"
     />
     <input
       ref="audioInput"

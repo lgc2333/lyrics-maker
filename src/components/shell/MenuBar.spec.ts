@@ -97,4 +97,37 @@ describe('menuBar', () => {
     await wrapper.get('[data-testid="menu-open-audio"]').trigger('click')
     expect(wrapper.emitted('openAudioFile')).toHaveLength(1)
   })
+
+  it('lyrics menu trigger button exists', () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+    expect(wrapper.find('[data-testid="menu-trigger-lyrics"]').exists()).toBe(true)
+  })
+
+  it('clicking lyrics trigger opens the lyrics popup', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
+    expect(wrapper.find('[data-testid="menu-popup-lyrics"]').exists()).toBe(true)
+  })
+
+  it('paste lyrics button emits pasteLyrics', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="menu-paste-lyrics"]').trigger('click')
+    expect(wrapper.emitted('pasteLyrics')).toHaveLength(1)
+  })
+
+  it('add lyric line button emits addLyricLine', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="menu-add-lyric-line"]').trigger('click')
+    expect(wrapper.emitted('addLyricLine')).toHaveLength(1)
+  })
 })
