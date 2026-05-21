@@ -330,3 +330,81 @@ describe('handleMarkNoAdvanceKey (Shift+D)', () => {
     expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
   })
 })
+
+describe('undo/redo activeWordIndex sync', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('resets to 0 when line startTime is undone', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleMarkKey(1.0)
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(1)
+
+    store.undo()
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
+  it('derives index from first undefined endTime after undo', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'a' },
+          { id: 'w2', text: 'b' },
+          { id: 'w3', text: 'c' },
+        ],
+        startTime: 0,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handleMarkKey(1.0)
+    await nextTick()
+    editor.handleMarkKey(2.0)
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(3)
+
+    store.undo()
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(2)
+
+    store.undo()
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+
+  it('sets index to N when all words have endTime (redo)', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handleMarkKey(1.0)
+    await nextTick()
+    store.undo()
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(1)
+
+    store.redo()
+    await nextTick()
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+})
