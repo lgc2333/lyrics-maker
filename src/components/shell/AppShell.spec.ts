@@ -109,7 +109,7 @@ describe('appShell', () => {
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('导入歌词或逐句输入以开始打轴')
+    expect(wrapper.text()).toContain('从上方「歌词」菜单导入或粘贴歌词以开始打轴')
   })
 
   it('dispatches undo on Ctrl+Z', async () => {
