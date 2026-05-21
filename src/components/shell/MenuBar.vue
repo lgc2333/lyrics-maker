@@ -26,13 +26,6 @@ function toggleMenu(name: MenuName): void {
   openMenu.value = openMenu.value === name ? null : name
 }
 
-function emitAndClose(
-  event: 'pasteLyrics' | 'importLyricsFile' | 'addLyricLine',
-): void {
-  emit(event)
-  openMenu.value = null
-}
-
 function onDocumentClick(event: MouseEvent): void {
   const target = event.target as HTMLElement | null
   if (!target || typeof target.closest !== 'function') return
@@ -212,14 +205,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-paste-lyrics"
             role="menuitem"
             class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="emitAndClose('pasteLyrics')"
+            @click="(emit('pasteLyrics'), (openMenu = null))"
           >
             {{ t('shell.menu.pasteLyrics') }}
           </button>
           <button
             role="menuitem"
             class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="emitAndClose('importLyricsFile')"
+            @click="(emit('importLyricsFile'), (openMenu = null))"
           >
             {{ t('shell.menu.importLyricsFile') }}
           </button>
@@ -228,7 +221,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-add-lyric-line"
             role="menuitem"
             class="block w-full cursor-pointer px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="emitAndClose('addLyricLine')"
+            @click="(emit('addLyricLine'), (openMenu = null))"
           >
             {{ t('shell.menu.addLyricLine') }}
           </button>
