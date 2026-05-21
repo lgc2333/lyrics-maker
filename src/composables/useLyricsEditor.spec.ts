@@ -17,9 +17,15 @@ function createMockAudioTransport(): AudioTransport {
   let _currentTime = 0
   return {
     loadFile: vi.fn().mockResolvedValue(undefined),
-    play: vi.fn(async () => { _playing = true }),
-    pause: vi.fn(() => { _playing = false }),
-    seek: vi.fn((t: number) => { _currentTime = t }),
+    play: vi.fn(async () => {
+      _playing = true
+    }),
+    pause: vi.fn(() => {
+      _playing = false
+    }),
+    seek: vi.fn((t: number) => {
+      _currentTime = t
+    }),
     getCurrentTime: vi.fn(() => _currentTime),
     getDuration: vi.fn(() => 120),
     setVolume: vi.fn(),
@@ -116,9 +122,7 @@ describe('useLyricsEditor', () => {
 
   it('activateLine does not seek when no time info available', () => {
     const store = useEditorStore()
-    store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'a' }] },
-    ])
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'a' }] }])
     const { editor } = mountEditor()
     editor.activateLine('l1')
     expect(store.currentTime).toBe(0)
@@ -149,7 +153,13 @@ describe('handleMarkKey (D)', () => {
   it('at index 0: sets line startTime and advances to 1', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }] },
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
@@ -162,7 +172,14 @@ describe('handleMarkKey (D)', () => {
   it('at index 1: sets word[0].endTime and advances to 2', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }], startTime: 0 },
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+        startTime: 0,
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
@@ -189,7 +206,14 @@ describe('handleMarkKey (D)', () => {
   it('overwrites existing endTime (re-timing)', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 1.0 }, { id: 'w2', text: 'world' }], startTime: 0 },
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello', endTime: 1.0 },
+          { id: 'w2', text: 'world' },
+        ],
+        startTime: 0,
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
@@ -293,7 +317,14 @@ describe('handleMarkNoAdvanceKey (Shift+D)', () => {
   it('sets endTime but does NOT advance activeWordIndex', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }], startTime: 0 },
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+        startTime: 0,
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
@@ -306,9 +337,7 @@ describe('handleMarkNoAdvanceKey (Shift+D)', () => {
 
   it('at index 0: sets startTime but does NOT advance', async () => {
     const store = useEditorStore()
-    store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
-    ])
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
     const { editor } = mountEditor()
     editor.activateLine('l1')
     editor.handleMarkNoAdvanceKey(1.0)
@@ -370,9 +399,7 @@ describe('handleDeleteLine (Delete)', () => {
 
   it('sets activeLineId to null if list becomes empty', async () => {
     const store = useEditorStore()
-    store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
-    ])
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
     const { editor } = mountEditor()
     editor.activateLine('l1')
     editor.handleDeleteLine()
@@ -405,9 +432,7 @@ describe('handlePlayLineInterval (C)', () => {
 
   it('does nothing when line has no startTime', () => {
     const store = useEditorStore()
-    store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
-    ])
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
     const { editor } = mountEditor()
     editor.activateLine('l1')
     editor.handlePlayLineInterval()
@@ -482,7 +507,13 @@ describe('undo/redo activeWordIndex sync', () => {
   it('resets to 0 when line startTime is undone', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
-      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }] },
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')

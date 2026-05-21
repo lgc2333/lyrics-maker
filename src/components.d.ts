@@ -12,7 +12,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
+    LyricsLineList: typeof import('./components/shell/LyricsLineList.vue')['default']
     LyricsPanel: typeof import('./components/shell/LyricsPanel.vue')['default']
+    LyricsPasteModal: typeof import('./components/shell/LyricsPasteModal.vue')['default']
     MainView: typeof import('./components/shell/MainView.vue')['default']
     MenuBar: typeof import('./components/shell/MenuBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
@@ -22,5 +24,6 @@ declare module 'vue' {
     TimingPointsPanel: typeof import('./components/shell/TimingPointsPanel.vue')['default']
     TransportBar: typeof import('./components/shell/TransportBar.vue')['default']
     VolumePopover: typeof import('./components/shell/VolumePopover.vue')['default']
+    WordSplitBar: typeof import('./components/shell/WordSplitBar.vue')['default']
   }
 }

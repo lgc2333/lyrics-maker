@@ -14,7 +14,7 @@ export function useLyricsEditor() {
 
   const activeLine = computed(() =>
     activeLineId.value
-      ? store.project.lyrics.find((l) => l.id === activeLineId.value) ?? null
+      ? (store.project.lyrics.find((l) => l.id === activeLineId.value) ?? null)
       : null,
   )
 
@@ -59,8 +59,7 @@ export function useLyricsEditor() {
         return
       }
       const firstUndef = line.words.findIndex((w) => w.endTime === undefined)
-      activeWordIndex.value =
-        firstUndef === -1 ? line.words.length : firstUndef + 1
+      activeWordIndex.value = firstUndef === -1 ? line.words.length : firstUndef + 1
     },
   )
 
@@ -228,7 +227,8 @@ export function useLyricsEditor() {
     const wordIndex = activeWordIndex.value - 1
     const word = line.words[wordIndex]
     if (!word?.endTime) return
-    const wordStart = wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
+    const wordStart =
+      wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
     if (wordStart === undefined) return
     store.seekPlayback(wordStart)
     if (!store.isPlaying) store.togglePlayback()

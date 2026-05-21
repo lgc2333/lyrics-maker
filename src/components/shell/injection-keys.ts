@@ -6,6 +6,7 @@ export const TIMELINE_CONTAINER_REF_KEY: InjectionKey<ShallowRef<HTMLElement | n
   Symbol('timelineContainerRef')
 
 // Phase 4: lyrics editor composable context
-export type LyricsEditorContext = import('../../composables/useLyricsEditor').LyricsEditorContext
+export type LyricsEditorContext =
+  import('../../composables/useLyricsEditor').LyricsEditorContext
 export const LYRICS_EDITOR_KEY: InjectionKey<LyricsEditorContext> =
   Symbol('lyricsEditor')
