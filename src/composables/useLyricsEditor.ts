@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 
+import { clampWordTime, computeSnappedTime } from '../core/lyrics/snap-time'
 import { useEditorStore } from '../stores/editor-store'
 
 export type LyricsEditorContext = ReturnType<typeof useLyricsEditor>
@@ -56,11 +57,76 @@ export function useLyricsEditor() {
     },
   )
 
+  function _getSnappedTime(rawTime: number): number {
+    const line = activeLine.value
+    if (!line) return rawTime
+    const existingEndTimes = line.words
+      .map((w) => w.endTime)
+      .filter((t): t is number => t !== undefined)
+    return computeSnappedTime({
+      rawTime,
+      snapEnabled: store.project.settings.snapEnabled,
+      timingPoints: store.project.timingPoints,
+      divisor: store.project.settings.snapDivisor,
+      triplets: store.project.settings.rhythmMode === 'triplets',
+      existingEndTimes,
+    })
+  }
+
+  function _getPrevEndTime(wordIndex: number): number | undefined {
+    const line = activeLine.value
+    if (!line) return undefined
+    if (wordIndex === 0) return line.startTime
+    return line.words[wordIndex - 1]?.endTime
+  }
+
+  function handleMarkKey(currentTime?: number): void {
+    if (!activeLineId.value) return
+    const line = activeLine.value
+    if (!line) return
+    const N = line.words.length
+
+    if (activeWordIndex.value >= N) return
+
+    const rawTime = currentTime ?? store.currentTime
+
+    if (activeWordIndex.value === 0) {
+      const time = _getSnappedTime(rawTime)
+      const clamped = clampWordTime(time, undefined, store.duration)
+      store.setLineStartTime(activeLineId.value, clamped)
+      activeWordIndex.value = 1
+      if (!store.isPlaying) store.togglePlayback()
+      return
+    }
+
+    const wordIndex = activeWordIndex.value - 1
+    const word = line.words[wordIndex]
+    if (!word) return
+
+    const time = _getSnappedTime(rawTime)
+    const prevEnd = _getPrevEndTime(wordIndex)
+    const clamped = clampWordTime(time, prevEnd, store.duration)
+
+    // Overflow check: clear subsequent words whose endTime <= clamped
+    for (let k = wordIndex + 1; k < line.words.length; k++) {
+      const w = line.words[k]
+      if (w.endTime !== undefined && w.endTime <= clamped) {
+        store.clearWordEndTime(activeLineId.value, w.id)
+      } else {
+        break
+      }
+    }
+
+    store.setWordEndTime(activeLineId.value, word.id, clamped)
+    activeWordIndex.value += 1
+  }
+
   return {
     activeLineId,
     activeWordIndex,
     splitBarMode,
     activeLine,
     activateLine,
+    handleMarkKey,
   }
 }

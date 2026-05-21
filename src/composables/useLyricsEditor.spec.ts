@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 
 import type { AudioTransport } from '../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../platform/audio/metronome'
@@ -128,5 +128,97 @@ describe('useLyricsEditor', () => {
     const { editor } = mountEditor()
     editor.activateLine('nonexistent')
     expect(editor.activeLineId.value).toBeNull()
+  })
+})
+
+describe('handleMarkKey (D)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('does nothing when activeLineId is null', () => {
+    const { editor } = mountEditor()
+    editor.handleMarkKey()
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
+  it('at index 0: sets line startTime and advances to 1', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleMarkKey(1.0)
+    await nextTick()
+    expect(store.project.lyrics[0].startTime).toBe(1.0)
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+
+  it('at index 1: sets word[0].endTime and advances to 2', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }, { id: 'w2', text: 'world' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkKey(1.5)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(1.5)
+    expect(editor.activeWordIndex.value).toBe(2)
+  })
+
+  it('at index N (last word): does nothing', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkKey(2.0)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+  })
+
+  it('overwrites existing endTime (re-timing)', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 1.0 }, { id: 'w2', text: 'world' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkKey(2.0)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
+  })
+
+  it('clears endTime of subsequent words when time exceeds them', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'a' },
+          { id: 'w2', text: 'b', endTime: 1.5 },
+          { id: 'w3', text: 'c', endTime: 2.0 },
+        ],
+        startTime: 0,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+    editor.handleMarkKey(2.5)
+    await nextTick()
+    expect(store.project.lyrics[0].words[0].endTime).toBe(2.5)
+    expect(store.project.lyrics[0].words[1].endTime).toBeUndefined()
+    expect(store.project.lyrics[0].words[2].endTime).toBeUndefined()
   })
 })
