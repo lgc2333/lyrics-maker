@@ -21,6 +21,14 @@ export function useEditorShortcuts(options: {
   registry.register('Shift+ArrowLeft', 'transport.prevBar')
   registry.register('Shift+ArrowRight', 'transport.nextBar')
 
+  // Lyrics mode shortcuts
+  registry.register('D', 'lyrics.mark')
+  registry.register('Shift+D', 'lyrics.markNoAdvance')
+  registry.register('Enter', 'lyrics.nextLine')
+  registry.register('C', 'lyrics.playLineInterval')
+  registry.register('V', 'lyrics.playWordInterval')
+  registry.register('Delete', 'lyrics.deleteLine')
+
   function reportActionError(error: unknown, action: ShortcutAction): void {
     if (options.onError) {
       options.onError(error, action)

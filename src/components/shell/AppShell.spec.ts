@@ -2,9 +2,37 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { AudioTransport } from '../../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../../platform/audio/metronome'
-import { __overrideMetronomeFactory, useEditorStore } from '../../stores/editor-store'
+import {
+  __overrideAudioTransportFactory,
+  __overrideMetronomeFactory,
+  useEditorStore,
+} from '../../stores/editor-store'
 import AppShell from './AppShell.vue'
+
+function createMockAudioTransport(): AudioTransport {
+  let _playing = false
+  let _currentTime = 0
+  return {
+    loadFile: vi.fn().mockResolvedValue(undefined),
+    play: vi.fn(async () => {
+      _playing = true
+    }),
+    pause: vi.fn(() => {
+      _playing = false
+    }),
+    seek: vi.fn((t: number) => {
+      _currentTime = t
+    }),
+    getCurrentTime: vi.fn(() => _currentTime),
+    getDuration: vi.fn(() => 120),
+    setVolume: vi.fn(),
+    getVolume: vi.fn(() => 1),
+    getIsPlaying: vi.fn(() => _playing),
+    destroy: vi.fn(),
+  }
+}
 
 /**
  * Creates a mock MetronomeScheduler with controllable state for testing.
@@ -60,7 +88,11 @@ describe('appShell', () => {
   })
 
   it('renders timing panel by default and can switch to lyrics panel', async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
     const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+
     expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(false)
 
@@ -70,7 +102,11 @@ describe('appShell', () => {
   })
 
   it('lyrics panel scaffold contains placeholder text', async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
     const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('导入歌词或逐句输入以开始打轴')

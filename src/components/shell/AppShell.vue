@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
+import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import { useEditorStore } from '../../stores/editor-store'
@@ -10,12 +11,18 @@ import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
-import { MAIN_VIEW_HEIGHT_KEY, TIMELINE_CONTAINER_REF_KEY } from './injection-keys'
+import {
+  LYRICS_EDITOR_KEY,
+  MAIN_VIEW_HEIGHT_KEY,
+  TIMELINE_CONTAINER_REF_KEY,
+} from './injection-keys'
 
 const store = useEditorStore()
 const persistence = useProjectPersistence()
 
 const editorMode = ref<'timing' | 'lyrics'>('timing')
+const lyricsEditor = useLyricsEditor()
+provide(LYRICS_EDITOR_KEY, lyricsEditor)
 const theme = ref<'light' | 'dark'>('light')
 const followSystemTheme = ref(true)
 const audioInput = ref<HTMLInputElement | null>(null)
@@ -129,6 +136,18 @@ useEditorShortcuts({
       store.seekToPreviousBar()
     } else if (action === 'transport.nextBar') {
       store.seekToNextBar()
+    } else if (action === 'lyrics.mark') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handleMarkKey()
+    } else if (action === 'lyrics.markNoAdvance') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handleMarkNoAdvanceKey()
+    } else if (action === 'lyrics.nextLine') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handleNextLineKey()
+    } else if (action === 'lyrics.deleteLine') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handleDeleteLine()
+    } else if (action === 'lyrics.playLineInterval') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handlePlayLineInterval()
+    } else if (action === 'lyrics.playWordInterval') {
+      if (editorMode.value === 'lyrics') lyricsEditor.handlePlayWordInterval()
     }
   },
 })
@@ -140,7 +159,13 @@ useEditorShortcuts({
       data-testid="menu-bar"
       :mode="editorMode"
       :theme="theme"
-      @switchMode="editorMode = $event"
+      :audio-loaded="!!store.audioFile"
+      @switchMode="
+        (mode) => {
+          if (mode === 'lyrics' && !store.audioFile) return
+          editorMode = mode
+        }
+      "
       @toggleTheme="toggleTheme"
       @openAudioFile="openAudioPicker"
     />
