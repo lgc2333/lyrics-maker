@@ -1,38 +1,16 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+import LyricsLineList from './LyricsLineList.vue'
+import WordSplitBar from './WordSplitBar.vue'
 </script>
 
 <template>
-  <section data-testid="lyrics-panel" class="flex flex-1 border-t border-base-300">
-    <!-- Left: Lyrics editing area -->
-    <div class="flex-1 flex flex-col">
-      <div class="flex items-center gap-2 border-b border-base-300 px-3 py-1.5 text-xs">
-        <Icon icon="material-symbols:lyrics-rounded" class="text-sm" />
-        <span>{{ t('lyrics.title') }}</span>
-        <span class="opacity-50">（歌词模式 · Pre Phase 3 骨架）</span>
-      </div>
-      <div class="flex-1 flex items-center justify-center opacity-40 text-sm">
-        {{ t('lyrics.emptyHint') }}
-      </div>
+  <section
+    data-testid="lyrics-panel"
+    class="flex flex-1 flex-col border-t border-base-300"
+  >
+    <div class="min-h-0 flex-1 overflow-hidden">
+      <LyricsLineList />
     </div>
-
-    <!-- Right: Controls sidebar -->
-    <aside class="w-64 flex flex-col gap-3 border-l border-base-300 p-3 text-xs">
-      <div class="opacity-70 font-medium">{{ t('lyrics.timingControl') }}</div>
-      <div class="flex items-center gap-2">
-        <Icon icon="material-symbols:metronome" class="text-sm opacity-50" />
-        <span class="opacity-50">节拍器（占位）</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <Icon icon="material-symbols:magnet-rounded" class="text-sm opacity-50" />
-        <span class="opacity-50">吸附开关（占位）</span>
-      </div>
-      <div class="mt-2 p-2 rounded bg-base-200/50 text-[11px] opacity-60">
-        {{ t('lyrics.shortcuts') }}
-      </div>
-    </aside>
+    <WordSplitBar />
   </section>
 </template>
