@@ -189,6 +189,51 @@ export function useLyricsEditor() {
     store.setWordEndTime(activeLineId.value, word.id, clamped)
   }
 
+  function handleDeleteLine(): void {
+    if (!activeLineId.value) return
+    const lyrics = store.project.lyrics
+    const index = lyrics.findIndex((l) => l.id === activeLineId.value)
+    if (index === -1) return
+
+    store.removeLyricLine(activeLineId.value)
+
+    const remaining = store.project.lyrics
+    if (remaining.length === 0) {
+      activeLineId.value = null
+      activeWordIndex.value = 0
+    } else if (index < remaining.length) {
+      activeLineId.value = remaining[index].id
+      activeWordIndex.value = 0
+    } else {
+      activeLineId.value = remaining[remaining.length - 1].id
+      activeWordIndex.value = 0
+    }
+  }
+
+  function handlePlayLineInterval(): void {
+    if (!activeLineId.value) return
+    const line = activeLine.value
+    if (!line || line.startTime === undefined) return
+    const lastWord = line.words[line.words.length - 1]
+    if (lastWord?.endTime === undefined) return
+    store.seekPlayback(line.startTime)
+    if (!store.isPlaying) store.togglePlayback()
+  }
+
+  function handlePlayWordInterval(): void {
+    if (!activeLineId.value) return
+    const line = activeLine.value
+    if (!line) return
+    if (activeWordIndex.value === 0 || activeWordIndex.value > line.words.length) return
+    const wordIndex = activeWordIndex.value - 1
+    const word = line.words[wordIndex]
+    if (!word?.endTime) return
+    const wordStart = wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
+    if (wordStart === undefined) return
+    store.seekPlayback(wordStart)
+    if (!store.isPlaying) store.togglePlayback()
+  }
+
   return {
     activeLineId,
     activeWordIndex,
@@ -198,5 +243,8 @@ export function useLyricsEditor() {
     handleMarkKey,
     handleNextLineKey,
     handleMarkNoAdvanceKey,
+    handleDeleteLine,
+    handlePlayLineInterval,
+    handlePlayWordInterval,
   }
 }

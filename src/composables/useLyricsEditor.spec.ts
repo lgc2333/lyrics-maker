@@ -331,6 +331,145 @@ describe('handleMarkNoAdvanceKey (Shift+D)', () => {
   })
 })
 
+describe('handleDeleteLine (Delete)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('removes active line and activates next', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleDeleteLine()
+    await nextTick()
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(editor.activeLineId.value).toBe('l2')
+  })
+
+  it('activates previous line if deleting last', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l2')
+    editor.handleDeleteLine()
+    await nextTick()
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(editor.activeLineId.value).toBe('l1')
+  })
+
+  it('sets activeLineId to null if list becomes empty', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handleDeleteLine()
+    await nextTick()
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(editor.activeLineId.value).toBeNull()
+  })
+
+  it('does nothing when activeLineId is null', () => {
+    const { editor } = mountEditor()
+    editor.handleDeleteLine()
+    expect(editor.activeLineId.value).toBeNull()
+  })
+})
+
+describe('handlePlayLineInterval (C)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('does nothing when activeLineId is null', () => {
+    const { editor } = mountEditor()
+    editor.handlePlayLineInterval()
+    expect(editor.activeLineId.value).toBeNull()
+  })
+
+  it('does nothing when line has no startTime', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handlePlayLineInterval()
+  })
+
+  it('seeks to line startTime when line has time range', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 3.0 }], startTime: 1.0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handlePlayLineInterval()
+    expect(store.currentTime).toBe(1.0)
+  })
+})
+
+describe('handlePlayWordInterval (V)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('does nothing when activeLineId is null', () => {
+    const { editor } = mountEditor()
+    editor.handlePlayWordInterval()
+    expect(editor.activeLineId.value).toBeNull()
+  })
+
+  it('does nothing at index 0 (start block)', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 2.0 }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.handlePlayWordInterval()
+  })
+
+  it('seeks to word start when word has endTime', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'a', endTime: 1.0 },
+          { id: 'w2', text: 'b', endTime: 2.0 },
+        ],
+        startTime: 0,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 2
+    editor.handlePlayWordInterval()
+    expect(store.currentTime).toBe(1.0)
+  })
+})
+
 describe('undo/redo activeWordIndex sync', () => {
   beforeEach(async () => {
     __overrideAudioTransportFactory(() => createMockAudioTransport())
