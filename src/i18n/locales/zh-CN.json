@@ -77,7 +77,11 @@
       "modeSelect": "选中",
       "startBlock": "起始",
       "endTimeLabel": "结束时间",
-      "derivedStartLabel": "起始时间"
+      "derivedStartLabel": "起始时间",
+      "cutMode": "切词",
+      "timingMode": "打轴",
+      "editMode": "编辑",
+      "wholeLineEdit": "整行编辑"
     }
   },
   "project": {
