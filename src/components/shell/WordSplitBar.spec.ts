@@ -55,7 +55,7 @@ const i18n = createI18n({
 function createMockLyricsEditor(overrides = {}) {
   const activeLineId = ref(null as string | null)
   const activeWordIndex = ref(0)
-  const splitBarMode = ref('select' as 'cut' | 'select')
+  const splitBarMode = ref('timing' as 'cut' | 'timing' | 'edit')
 
   return {
     activeLineId,
@@ -112,25 +112,27 @@ describe('wordSplitBar', () => {
   })
 
   describe('mode toggle', () => {
-    it('starts in select mode by default', () => {
+    it('starts in timing mode by default', () => {
       const { lyricsEditor } = mountComponent()
-      expect(lyricsEditor.splitBarMode.value).toBe('select')
+      expect(lyricsEditor.splitBarMode.value).toBe('timing')
     })
 
-    it('switches from select to cut mode when toggle button is clicked', async () => {
+    it('switches to cut mode when cut button is clicked', async () => {
       const { wrapper, lyricsEditor } = mountComponent()
-      const toggleBtn = wrapper.find('[data-testid="split-bar-mode-toggle"]')
-      await toggleBtn.trigger('click')
+      const buttons = wrapper
+        .find('[data-testid="split-bar-mode-toggle"]')
+        .findAll('button')
+      await buttons[0].trigger('click')
       expect(lyricsEditor.splitBarMode.value).toBe('cut')
     })
 
-    it('switches from cut back to select mode on second click', async () => {
-      const lyricsEditor = createMockLyricsEditor()
-      lyricsEditor.splitBarMode.value = 'cut'
-      const { wrapper } = mountComponent(lyricsEditor)
-      const toggleBtn = wrapper.find('[data-testid="split-bar-mode-toggle"]')
-      await toggleBtn.trigger('click')
-      expect(lyricsEditor.splitBarMode.value).toBe('select')
+    it('switches to edit mode when edit button is clicked', async () => {
+      const { wrapper, lyricsEditor } = mountComponent()
+      const buttons = wrapper
+        .find('[data-testid="split-bar-mode-toggle"]')
+        .findAll('button')
+      await buttons[2].trigger('click')
+      expect(lyricsEditor.splitBarMode.value).toBe('edit')
     })
   })
 
@@ -364,7 +366,7 @@ describe('wordSplitBar', () => {
       const { wrapper } = mountComponent(lyricsEditor)
 
       // Switch to select mode before clicking
-      lyricsEditor.splitBarMode.value = 'select'
+      lyricsEditor.splitBarMode.value = 'timing'
       await wrapper.vm.$nextTick()
 
       // In select mode, no char-gaps are rendered, so nothing to click
@@ -413,7 +415,7 @@ describe('wordSplitBar', () => {
       const mergeSpy = vi.spyOn(store, 'mergeWords')
       const lyricsEditor = createMockLyricsEditor()
       lyricsEditor.activeLineId.value = 'line-1'
-      lyricsEditor.splitBarMode.value = 'select'
+      lyricsEditor.splitBarMode.value = 'timing'
       const { wrapper } = mountComponent(lyricsEditor)
 
       const splitLines = wrapper.findAll('[data-testid="split-line"]')

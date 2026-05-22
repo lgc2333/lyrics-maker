@@ -150,11 +150,13 @@ describe('lyricsLineList', () => {
       expect(rows[1].text()).toContain('--:--')
     })
 
-    it('joins all word texts for line text display', () => {
+    it('displays all words in line text area', () => {
       addTestLines()
       const wrapper = mountComponent()
       const rows = wrapper.findAll('[data-testid="lyrics-line-row"]')
-      expect(rows[0].text()).toContain('Hello world')
+      const text = rows[0].text()
+      expect(text).toContain('Hello')
+      expect(text).toContain('world')
     })
   })
 
