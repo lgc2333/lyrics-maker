@@ -347,9 +347,7 @@ export function createReplaceLineWordsCommand(
       return {
         ...state,
         lyrics: state.lyrics.map((l) =>
-          l.id === lineId
-            ? { ...l, words: [...newWords], startTime: undefined }
-            : l,
+          l.id === lineId ? { ...l, words: [...newWords], startTime: undefined } : l,
         ),
       }
     },
