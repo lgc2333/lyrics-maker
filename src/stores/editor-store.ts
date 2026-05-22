@@ -5,11 +5,14 @@ import { createCommandHistory } from '../core/commands/history'
 import {
   createClearWordEndTimeCommand,
   createInsertLyricLinesCommand,
+  createInsertWordCommand,
   createMergeWordsCommand,
   createRemoveLyricLineCommand,
+  createReplaceLineWordsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
   createSplitWordCommand,
+  createUpdateWordTextCommand,
 } from '../core/commands/lyrics-commands'
 import {
   createAddLyricLineCommand,
@@ -520,6 +523,25 @@ export const useEditorStore = defineStore('editor', () => {
     execute(createMergeWordsCommand(lineId, wordId))
   }
 
+  function updateWordText(lineId: string, wordId: string, newText: string): void {
+    execute(createUpdateWordTextCommand(lineId, wordId, newText))
+  }
+
+  function insertWord(
+    lineId: string,
+    insertIndex: number,
+    word: { id: string; text: string },
+  ): void {
+    execute(createInsertWordCommand(lineId, insertIndex, word))
+  }
+
+  function replaceLineWords(
+    lineId: string,
+    newWords: { id: string; text: string }[],
+  ): void {
+    execute(createReplaceLineWordsCommand(lineId, newWords))
+  }
+
   // ---- Return ----
 
   return {
@@ -591,5 +613,8 @@ export const useEditorStore = defineStore('editor', () => {
     clearWordEndTime,
     splitWord,
     mergeWords,
+    updateWordText,
+    insertWord,
+    replaceLineWords,
   }
 })

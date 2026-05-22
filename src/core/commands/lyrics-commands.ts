@@ -248,6 +248,129 @@ export function createClearWordEndTimeCommand(
   }
 }
 
+export function createUpdateWordTextCommand(
+  lineId: string,
+  wordId: string,
+  newText: string,
+): Command<ProjectDocument> {
+  let previousText: string | null = null
+  return {
+    label: 'lyrics.updateWordText',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const word = line.words.find((w) => w.id === wordId)
+      if (!word) return state
+      if (previousText === null) previousText = word.text
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId
+            ? {
+                ...l,
+                words: l.words.map((w) =>
+                  w.id === wordId ? { ...w, text: newText } : w,
+                ),
+              }
+            : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      if (previousText === null) return state
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId
+            ? {
+                ...l,
+                words: l.words.map((w) =>
+                  w.id === wordId ? { ...w, text: previousText! } : w,
+                ),
+              }
+            : l,
+        ),
+      }
+    },
+  }
+}
+
+export function createInsertWordCommand(
+  lineId: string,
+  insertIndex: number,
+  word: { id: string; text: string },
+): Command<ProjectDocument> {
+  return {
+    label: 'lyrics.insertWord',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const newWords = [...line.words]
+      newWords.splice(insertIndex, 0, { id: word.id, text: word.text })
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId
+            ? { ...l, words: l.words.filter((w) => w.id !== word.id) }
+            : l,
+        ),
+      }
+    },
+  }
+}
+
+export function createReplaceLineWordsCommand(
+  lineId: string,
+  newWords: readonly { id: string; text: string }[],
+): Command<ProjectDocument> {
+  let previousWords: LyricLine['words'] | null = null
+  let previousStartTime: number | undefined | null = null
+  return {
+    label: 'lyrics.replaceLineWords',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      if (previousWords === null) {
+        previousWords = line.words
+        previousStartTime = line.startTime
+      }
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId
+            ? { ...l, words: [...newWords], startTime: undefined }
+            : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      if (previousWords === null) return state
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId
+            ? {
+                ...l,
+                words: previousWords!,
+                startTime: previousStartTime ?? undefined,
+              }
+            : l,
+        ),
+      }
+    },
+  }
+}
+
 export function createInsertLyricLinesCommand(
   lines: readonly LyricLine[],
 ): Command<ProjectDocument> {

@@ -91,7 +91,7 @@ function onEndTimeInput(event: Event): void {
 <template>
   <div
     data-testid="word-split-bar"
-    class="flex flex-col border-t border-base-300 px-3 py-2"
+    class="flex flex-col border-b border-base-300 px-3 py-2"
   >
     <!-- Mode toggle + word blocks -->
     <div class="flex items-center gap-2">

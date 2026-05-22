@@ -6,11 +6,11 @@ import WordSplitBar from './WordSplitBar.vue'
 <template>
   <section
     data-testid="lyrics-panel"
-    class="flex flex-1 flex-col border-t border-base-300"
+    class="flex min-h-0 flex-1 flex-col border-t border-base-300"
   >
+    <WordSplitBar />
     <div class="min-h-0 flex-1 overflow-hidden">
       <LyricsLineList />
     </div>
-    <WordSplitBar />
   </section>
 </template>

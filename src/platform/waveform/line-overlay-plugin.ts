@@ -131,27 +131,88 @@ export class LineOverlayPlugin extends BasePlugin<
       const x2 = (lineEnd - this.visibleStart) * pxPerSec
       if (x2 < 0 || x1 > w) continue
 
-      // Sentence block
       const isActive = line.id === this.params.activeLineId
-      ctx.fillStyle = isActive
-        ? 'rgba(100, 180, 255, 0.15)'
-        : 'rgba(100, 180, 255, 0.07)'
-      ctx.fillRect(Math.max(0, x1), 0, Math.min(w, x2) - Math.max(0, x1), h)
+      const clampedX1 = Math.max(0, x1)
+      const clampedX2 = Math.min(w, x2)
 
-      // Word separator lines
-      for (const word of line.words) {
-        if (word.endTime === undefined) continue
-        const wx = Math.round((word.endTime - this.visibleStart) * pxPerSec) + 0.5
-        if (wx < 0 || wx > w) continue
-        ctx.strokeStyle = isActive
-          ? 'rgba(100, 180, 255, 0.6)'
-          : 'rgba(100, 180, 255, 0.3)'
-        ctx.lineWidth = 1
+      // Sentence background fill
+      ctx.fillStyle = isActive
+        ? 'rgba(100, 180, 255, 0.12)'
+        : 'rgba(100, 180, 255, 0.05)'
+      ctx.fillRect(clampedX1, 0, clampedX2 - clampedX1, h)
+
+      // Sentence start boundary — red solid line
+      if (x1 >= 0 && x1 <= w) {
+        ctx.strokeStyle = 'rgba(255, 80, 80, 0.8)'
+        ctx.lineWidth = 2
+        ctx.setLineDash([])
         ctx.beginPath()
-        ctx.moveTo(wx, 0)
-        ctx.lineTo(wx, h)
+        ctx.moveTo(Math.round(x1) + 0.5, 0)
+        ctx.lineTo(Math.round(x1) + 0.5, h)
         ctx.stroke()
       }
+
+      // Sentence end boundary — blue solid line
+      if (x2 >= 0 && x2 <= w) {
+        ctx.strokeStyle = 'rgba(100, 180, 255, 0.8)'
+        ctx.lineWidth = 2
+        ctx.setLineDash([])
+        ctx.beginPath()
+        ctx.moveTo(Math.round(x2) + 0.5, 0)
+        ctx.lineTo(Math.round(x2) + 0.5, h)
+        ctx.stroke()
+      }
+
+      // Word separator lines (dashed) and word text labels
+      ctx.save()
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)'
+      ctx.shadowBlur = 2
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+
+      let prevWordEnd = line.startTime
+      for (let i = 0; i < line.words.length; i++) {
+        const word = line.words[i]
+        const wordStart = prevWordEnd
+        const wordEnd = word.endTime
+
+        // Word separator dashed line (skip first word — that's the sentence start)
+        if (i > 0) {
+          const sx = Math.round((wordStart - this.visibleStart) * pxPerSec) + 0.5
+          if (sx >= 0 && sx <= w) {
+            ctx.strokeStyle = isActive
+              ? 'rgba(255, 255, 255, 0.5)'
+              : 'rgba(255, 255, 255, 0.25)'
+            ctx.lineWidth = 1
+            ctx.setLineDash([4, 3])
+            ctx.beginPath()
+            ctx.moveTo(sx, 0)
+            ctx.lineTo(sx, h)
+            ctx.stroke()
+          }
+        }
+
+        // Word text label
+        if (wordEnd !== undefined) {
+          const textX1 = (wordStart - this.visibleStart) * pxPerSec
+          const textX2 = (wordEnd - this.visibleStart) * pxPerSec
+          const textWidth = textX2 - textX1
+          const fontSize = Math.max(10, Math.min(14, textWidth * 0.6))
+          ctx.font = `${fontSize}px sans-serif`
+          ctx.fillStyle = isActive
+            ? 'rgba(255, 255, 255, 0.9)'
+            : 'rgba(255, 255, 255, 0.5)'
+          const centerX = (textX1 + textX2) / 2
+          const displayText = word.text.trimEnd()
+          if (textWidth > 8) {
+            ctx.fillText(displayText, centerX, h * 0.15, textWidth - 4)
+          }
+          prevWordEnd = wordEnd
+        } else {
+          break
+        }
+      }
+      ctx.restore()
     }
   }
 

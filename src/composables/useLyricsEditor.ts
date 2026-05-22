@@ -131,10 +131,10 @@ export function useLyricsEditor() {
     if (!activeLineId.value) return
     const lyrics = store.project.lyrics
     const lineIndex = lyrics.findIndex((l) => l.id === activeLineId.value)
-    if (lineIndex === -1 || lineIndex >= lyrics.length - 1) return
+    if (lineIndex === -1) return
     const line = lyrics[lineIndex]
-    const nextLine = lyrics[lineIndex + 1]
 
+    // Finalize current line's last word (runs for ALL lines including last)
     if (line.startTime !== undefined) {
       const rawTime = currentTime ?? store.currentTime
       const time = _getSnappedTime(rawTime)
@@ -146,6 +146,9 @@ export function useLyricsEditor() {
       }
     }
 
+    // Advance to next line (skip if last line)
+    if (lineIndex >= lyrics.length - 1) return
+    const nextLine = lyrics[lineIndex + 1]
     activeLineId.value = nextLine.id
     activeWordIndex.value = 0
   }

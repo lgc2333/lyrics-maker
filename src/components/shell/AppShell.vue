@@ -178,7 +178,7 @@ useEditorShortcuts({
 </script>
 
 <template>
-  <div class="flex h-screen flex-col">
+  <div class="flex h-screen flex-col overflow-hidden">
     <MenuBar
       data-testid="menu-bar"
       :mode="editorMode"

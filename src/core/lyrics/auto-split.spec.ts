@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { autoSplitText } from './auto-split'
 
 describe('autoSplitText', () => {
-  it('splits English text by spaces', () => {
-    expect(autoSplitText('hello world')).toEqual(['hello', 'world'])
+  it('splits English text by spaces, preserving trailing space', () => {
+    expect(autoSplitText('hello world')).toEqual(['hello ', 'world'])
   })
 
-  it('splits text with multiple spaces into tokens (no empty strings)', () => {
-    expect(autoSplitText('hello  world')).toEqual(['hello', 'world'])
+  it('preserves multiple trailing spaces between tokens', () => {
+    expect(autoSplitText('hello  world')).toEqual(['hello  ', 'world'])
   })
 
   it('does not split Chinese text (no spaces)', () => {
@@ -20,7 +20,7 @@ describe('autoSplitText', () => {
   })
 
   it('handles mixed CJK and space-separated words', () => {
-    expect(autoSplitText('hello 世界')).toEqual(['hello', '世界'])
+    expect(autoSplitText('hello 世界')).toEqual(['hello ', '世界'])
   })
 
   it('returns single-element array for empty string', () => {
@@ -31,7 +31,17 @@ describe('autoSplitText', () => {
     expect(autoSplitText('   ')).toEqual([''])
   })
 
-  it('preserves leading/trailing content when splitting', () => {
-    expect(autoSplitText(' hello world ')).toEqual(['hello', 'world'])
+  it('trims leading whitespace but preserves internal trailing spaces', () => {
+    expect(autoSplitText(' hello world ')).toEqual(['hello ', 'world'])
+  })
+
+  it('last token has no trailing space', () => {
+    const result = autoSplitText('a b c')
+    expect(result).toEqual(['a ', 'b ', 'c'])
+    expect(result[result.length - 1]).toBe('c')
+  })
+
+  it('handles tab and mixed whitespace', () => {
+    expect(autoSplitText('hello\tworld')).toEqual(['hello\t', 'world'])
   })
 })

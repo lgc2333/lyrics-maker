@@ -5,11 +5,14 @@ import { createEmptyProject } from '../domain/project'
 import {
   createClearWordEndTimeCommand,
   createInsertLyricLinesCommand,
+  createInsertWordCommand,
   createMergeWordsCommand,
   createRemoveLyricLineCommand,
+  createReplaceLineWordsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
   createSplitWordCommand,
+  createUpdateWordTextCommand,
 } from './lyrics-commands'
 
 function projectWithLine(line: LyricLine): ProjectDocument {
@@ -331,5 +334,147 @@ describe('createRemoveLyricLineCommand', () => {
     const state = projectWithLine(line)
     const after = cmd.do(state)
     expect(after.lyrics).toHaveLength(1)
+  })
+})
+
+describe('createUpdateWordTextCommand', () => {
+  const line: LyricLine = {
+    id: 'line-1',
+    words: [{ id: 'w1', text: 'hello' }],
+  }
+
+  it('updates word text', () => {
+    const state = projectWithLine(line)
+    const cmd = createUpdateWordTextCommand('line-1', 'w1', 'world')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0].text).toBe('world')
+  })
+
+  it('undoes word text update', () => {
+    const state = projectWithLine(line)
+    const cmd = createUpdateWordTextCommand('line-1', 'w1', 'world')
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words[0].text).toBe('hello')
+  })
+
+  it('returns state unchanged if lineId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createUpdateWordTextCommand('nonexistent', 'w1', 'world')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0].text).toBe('hello')
+  })
+
+  it('returns state unchanged if wordId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createUpdateWordTextCommand('line-1', 'nonexistent', 'world')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0].text).toBe('hello')
+  })
+
+  it('preserves other word properties (endTime)', () => {
+    const lineWithTime: LyricLine = {
+      id: 'line-1',
+      words: [{ id: 'w1', text: 'hello', endTime: 2.5 }],
+    }
+    const state = projectWithLine(lineWithTime)
+    const cmd = createUpdateWordTextCommand('line-1', 'w1', 'world')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0].endTime).toBe(2.5)
+  })
+})
+
+describe('createInsertWordCommand', () => {
+  const line: LyricLine = {
+    id: 'line-1',
+    words: [
+      { id: 'w1', text: 'hello' },
+      { id: 'w2', text: 'world' },
+    ],
+  }
+
+  it('inserts a word at the given index', () => {
+    const state = projectWithLine(line)
+    const cmd = createInsertWordCommand('line-1', 1, { id: 'w-new', text: 'big' })
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words.map((w) => w.text)).toEqual(['hello', 'big', 'world'])
+  })
+
+  it('undoes word insertion', () => {
+    const state = projectWithLine(line)
+    const cmd = createInsertWordCommand('line-1', 1, { id: 'w-new', text: 'big' })
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words.map((w) => w.text)).toEqual(['hello', 'world'])
+  })
+
+  it('inserts at index 0 (prepend)', () => {
+    const state = projectWithLine(line)
+    const cmd = createInsertWordCommand('line-1', 0, { id: 'w-new', text: 'hey' })
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words.map((w) => w.text)).toEqual(['hey', 'hello', 'world'])
+  })
+
+  it('inserts at end (append)', () => {
+    const state = projectWithLine(line)
+    const cmd = createInsertWordCommand('line-1', 2, { id: 'w-new', text: 'there' })
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words.map((w) => w.text)).toEqual([
+      'hello',
+      'world',
+      'there',
+    ])
+  })
+
+  it('returns state unchanged if lineId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createInsertWordCommand('nonexistent', 0, { id: 'w-new', text: 'x' })
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words).toHaveLength(2)
+  })
+})
+
+describe('createReplaceLineWordsCommand', () => {
+  const line: LyricLine = {
+    id: 'line-1',
+    words: [{ id: 'w1', text: 'old', endTime: 1.0 }],
+    startTime: 0,
+  }
+
+  it('replaces all words and clears timing', () => {
+    const state = projectWithLine(line)
+    const newWords = [
+      { id: 'n1', text: 'new ' },
+      { id: 'n2', text: 'text' },
+    ]
+    const cmd = createReplaceLineWordsCommand('line-1', newWords)
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words).toEqual(newWords)
+    expect(result.lyrics[0].startTime).toBeUndefined()
+  })
+
+  it('undoes word replacement restoring original words and timing', () => {
+    const state = projectWithLine(line)
+    const cmd = createReplaceLineWordsCommand('line-1', [{ id: 'n1', text: 'new' }])
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words[0].text).toBe('old')
+    expect(restored.lyrics[0].words[0].endTime).toBe(1.0)
+    expect(restored.lyrics[0].startTime).toBe(0)
+  })
+
+  it('returns state unchanged if lineId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createReplaceLineWordsCommand('nonexistent', [{ id: 'n1', text: 'x' }])
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0].text).toBe('old')
+  })
+
+  it('undo is a no-op if do was never called', () => {
+    const state = projectWithLine(line)
+    const cmd = createReplaceLineWordsCommand('line-1', [{ id: 'n1', text: 'new' }])
+    const result = cmd.undo(state)
+    // Should return state unchanged (previousWords still null)
+    expect(result.lyrics[0].words[0].text).toBe('old')
   })
 })

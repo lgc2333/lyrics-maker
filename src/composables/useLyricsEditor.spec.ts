@@ -262,7 +262,7 @@ describe('handleNextLineKey (Enter)', () => {
     expect(editor.activeLineId.value).toBeNull()
   })
 
-  it('does nothing on last line', async () => {
+  it('does not advance line when on last line', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
       { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
@@ -302,6 +302,59 @@ describe('handleNextLineKey (Enter)', () => {
     expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
     expect(editor.activeLineId.value).toBe('l2')
     expect(editor.activeWordIndex.value).toBe(0)
+  })
+})
+
+describe('handleNextLineKey on last line', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('sets last word endTime on the last line', async () => {
+    const store = useEditorStore()
+    const lines = [
+      {
+        id: 'line-1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+      },
+    ]
+    store.insertLyricLines(lines)
+    store.setLineStartTime('line-1', 0)
+    store.setWordEndTime('line-1', 'w1', 1.0)
+
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'line-1'
+    editor.activeWordIndex.value = 2
+
+    editor.handleNextLineKey(3.0)
+    await nextTick()
+
+    const line = store.project.lyrics[0]
+    expect(line.words[1].endTime).toBe(3.0)
+  })
+
+  it('does nothing if last line has no startTime', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        words: [{ id: 'w1', text: 'hello' }],
+      },
+    ])
+
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'line-1'
+    editor.handleNextLineKey(3.0)
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
   })
 })
 
