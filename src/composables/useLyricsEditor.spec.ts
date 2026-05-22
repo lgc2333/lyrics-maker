@@ -74,7 +74,7 @@ describe('useLyricsEditor', () => {
     const { editor } = mountEditor()
     expect(editor.activeLineId.value).toBeNull()
     expect(editor.activeWordIndex.value).toBe(0)
-    expect(editor.splitBarMode.value).toBe('select')
+    expect(editor.splitBarMode.value).toBe('timing')
   })
 
   it('activateLine sets activeLineId and resets activeWordIndex', () => {
@@ -545,6 +545,79 @@ describe('handlePlayWordInterval (V)', () => {
     editor.activeWordIndex.value = 2
     editor.handlePlayWordInterval()
     expect(store.currentTime).toBe(1.0)
+  })
+})
+
+describe('auto-switch to timing mode', () => {
+  let store: ReturnType<typeof useEditorStore>
+  let lyricsEditor: ReturnType<typeof useLyricsEditor>
+
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+    const { editor } = mountEditor()
+    lyricsEditor = editor
+  })
+
+  it('switches splitBarMode to timing when handleMarkKey is called', () => {
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+      },
+    ])
+    lyricsEditor.activeLineId.value = 'line-1'
+    lyricsEditor.activeWordIndex.value = 0
+    lyricsEditor.splitBarMode.value = 'cut'
+
+    lyricsEditor.handleMarkKey(1.0)
+
+    expect(lyricsEditor.splitBarMode.value).toBe('timing')
+  })
+
+  it('switches splitBarMode to timing when handleNextLineKey is called', () => {
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        words: [{ id: 'w1', text: 'hello' }],
+      },
+      {
+        id: 'line-2',
+        words: [{ id: 'w2', text: 'world' }],
+      },
+    ])
+    store.setLineStartTime('line-1', 0)
+    lyricsEditor.activeLineId.value = 'line-1'
+    lyricsEditor.splitBarMode.value = 'edit'
+
+    lyricsEditor.handleNextLineKey(2.0)
+
+    expect(lyricsEditor.splitBarMode.value).toBe('timing')
+  })
+
+  it('switches splitBarMode to timing when handleMarkNoAdvanceKey is called', () => {
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+      },
+    ])
+    lyricsEditor.activeLineId.value = 'line-1'
+    lyricsEditor.activeWordIndex.value = 0
+    lyricsEditor.splitBarMode.value = 'cut'
+
+    lyricsEditor.handleMarkNoAdvanceKey(1.0)
+
+    expect(lyricsEditor.splitBarMode.value).toBe('timing')
   })
 })
 

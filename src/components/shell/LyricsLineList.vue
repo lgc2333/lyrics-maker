@@ -2,6 +2,7 @@
 import { inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import type { LyricLine, LyricWord } from '../../core/domain/project'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
 import type { LyricsEditorContext } from './injection-keys'
@@ -24,8 +25,27 @@ function isActive(lineId: string): boolean {
   return false
 }
 
-function getLineText(line: { words: { text: string }[] }): string {
-  return line.words.map((w) => w.text).join('')
+function getWordDisplayText(word: LyricWord): string {
+  return word.text.trimEnd()
+}
+
+function hasTrailingSpace(word: LyricWord): boolean {
+  return /\s$/.test(word.text)
+}
+
+type WordTimingState = 'played' | 'playing' | 'unplayed'
+
+function getWordTimingState(line: LyricLine, wordIndex: number): WordTimingState {
+  if (line.startTime === undefined) return 'unplayed'
+  const currentTime = store.currentTime
+  const word = line.words[wordIndex]
+  const wordStart =
+    wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
+
+  if (wordStart === undefined) return 'unplayed'
+  if (word.endTime !== undefined && word.endTime <= currentTime) return 'played'
+  if (wordStart <= currentTime) return 'playing'
+  return 'unplayed'
 }
 
 function getWordStatus(line: {
@@ -78,7 +98,25 @@ function getWordStatus(line: {
               : t('lyrics.lineList.noStartTime')
           }}
         </span>
-        <span class="min-w-0 flex-1 truncate">{{ getLineText(line) }}</span>
+        <span class="flex min-w-0 flex-1 items-center truncate">
+          <template v-for="(word, wIdx) in line.words" :key="word.id">
+            <span
+              v-if="wIdx > 0"
+              class="mx-px text-base-content/20"
+              :class="
+                hasTrailingSpace(line.words[wIdx - 1]) ? 'text-[10px]' : 'text-[8px]'
+              "
+              >{{ hasTrailingSpace(line.words[wIdx - 1]) ? '␣' : '|' }}</span
+            >
+            <span
+              :class="{
+                'font-bold': getWordTimingState(line, wIdx) === 'playing',
+                'opacity-50': getWordTimingState(line, wIdx) === 'unplayed',
+              }"
+              >{{ getWordDisplayText(word) }}</span
+            >
+          </template>
+        </span>
         <span class="w-10 text-right text-xs opacity-40">{{
           getWordStatus(line)
         }}</span>

@@ -10,7 +10,7 @@ export function useLyricsEditor() {
 
   const activeLineId = ref<string | null>(null)
   const activeWordIndex = ref(0)
-  const splitBarMode = ref<'cut' | 'select'>('select')
+  const splitBarMode = ref<'cut' | 'timing' | 'edit'>('timing')
 
   const activeLine = computed(() =>
     activeLineId.value
@@ -88,6 +88,7 @@ export function useLyricsEditor() {
 
   function handleMarkKey(currentTime?: number): void {
     if (!activeLineId.value) return
+    splitBarMode.value = 'timing'
     const line = activeLine.value
     if (!line) return
     const N = line.words.length
@@ -129,6 +130,7 @@ export function useLyricsEditor() {
 
   function handleNextLineKey(currentTime?: number): void {
     if (!activeLineId.value) return
+    splitBarMode.value = 'timing'
     const lyrics = store.project.lyrics
     const lineIndex = lyrics.findIndex((l) => l.id === activeLineId.value)
     if (lineIndex === -1) return
@@ -155,6 +157,7 @@ export function useLyricsEditor() {
 
   function handleMarkNoAdvanceKey(currentTime?: number): void {
     if (!activeLineId.value) return
+    splitBarMode.value = 'timing'
     const line = activeLine.value
     if (!line) return
     const N = line.words.length

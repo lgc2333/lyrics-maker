@@ -140,14 +140,16 @@ function onEndTimeInput(event: Event): void {
           <div
             v-if="wIdx > 0"
             data-testid="split-line"
-            class="h-5 w-px cursor-pointer transition-colors"
-            :class="
-              lyricsEditor.splitBarMode.value === 'cut'
-                ? 'bg-warning hover:bg-error'
-                : 'bg-base-300'
-            "
+            class="flex h-5 w-3 cursor-pointer items-center justify-center"
             @click="onSplitLineClick(wIdx)"
-          />
+          >
+            <div
+              class="h-full w-px transition-colors"
+              :class="
+                lyricsEditor.splitBarMode.value === 'cut' ? 'bg-warning' : 'bg-base-300'
+              "
+            />
+          </div>
 
           <!-- Word block (in select mode: click to activate) -->
           <div
@@ -171,9 +173,11 @@ function onEndTimeInput(event: Event): void {
               <div
                 v-if="cIdx > 0"
                 data-testid="char-gap"
-                class="h-5 w-px cursor-pointer bg-transparent hover:bg-warning"
+                class="flex h-5 w-3 cursor-pointer items-center justify-center hover:bg-warning/20"
                 @click="onCharGapClick(wIdx, cIdx)"
-              />
+              >
+                <div class="h-full w-px bg-transparent transition-colors" />
+              </div>
               <span class="px-0.5 py-0.5 text-xs">{{ char }}</span>
             </template>
           </div>
