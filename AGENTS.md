@@ -171,6 +171,8 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 
 - **`snapToNearestGridPoint` finds nearest grid point (bidirectional).** Unlike `getNextSubdivisionTime` (forward-only) and `getPreviousSubdivisionTime` (backward-only), `snapToNearestGridPoint` returns whichever subdivision boundary is closest. Used by lyrics D-key snap logic.
 - **`ProjectSettings.snapEnabled` controls grid snap globally.** When `false`, D/Shift+D/Enter write raw `currentTime` without snap or anti-overlap. TransportBar magnet button toggles this setting.
+- **`splitBarMode` is a 3-state enum: `'cut' | 'timing' | 'edit'`.** Cut = split/merge words, timing = select words + set times (D/Enter auto-switch here), edit = inline word edit + whole-line rewrite. The old `'select'` mode was renamed to `'timing'`.
+- **`autoSplitText` preserves trailing whitespace on each token** (except the last). `"hello world"` → `["hello ", "world"]`. Display code uses `word.text.trimEnd()` for visible text and `/\s$/.test(word.text)` to decide whether to show `␣` between words.
 
 ### Testing
 

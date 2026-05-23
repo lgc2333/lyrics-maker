@@ -6,7 +6,6 @@ import type { WaveSurferViewOptions } from './wavesurfer-view'
 // ---------------------------------------------------------------------------
 // Mock wavesurfer.js — capture mock instances for test inspection
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockWsInstances: any[] = []
 
 function createMockWs(): Record<string, unknown> & {
