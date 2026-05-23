@@ -173,6 +173,8 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **`ProjectSettings.snapEnabled` controls grid snap globally.** When `false`, D/Shift+D/Enter write raw `currentTime` without snap or anti-overlap. TransportBar magnet button toggles this setting.
 - **`splitBarMode` is a 3-state enum: `'cut' | 'timing' | 'edit'`.** Cut = split/merge words, timing = select words + set times (D/Enter auto-switch here), edit = inline word edit + whole-line rewrite. The old `'select'` mode was renamed to `'timing'`.
 - **`autoSplitText` preserves trailing whitespace on each token** (except the last). `"hello world"` → `["hello ", "world"]`. Display code uses `word.text.trimEnd()` for visible text and `/\s$/.test(word.text)` to decide whether to show `␣` between words.
+- **Space characters render as `␣` symbol.** Use `splitBySpaces(text)` to split text into space/non-space segments. Space segments render as `<span class="text-[10px] text-base-content/30">␣</span>` (one ␣ per space char). In cut-mode per-character rendering, use `v-if="char === ' '"` to substitute. Never trim or use `whitespace-pre`.
+- **Lyrics line list word separators.** Always show `|` (`text-[8px] text-base-content/20`) between words regardless of trailing space. WordSplitBar timing/edit mode blocks have borders — no extra separators needed.
 
 ### Testing
 

@@ -400,29 +400,6 @@ describe('wordSplitBar', () => {
       // mergeWords is called with lineId and the ID of the previous word
       expect(mergeSpy).toHaveBeenCalledWith('line-1', 'w1')
     })
-
-    it('does not call mergeWords in select mode', async () => {
-      const store = useEditorStore()
-      store.insertLyricLines([
-        {
-          id: 'line-1',
-          words: [
-            { id: 'w1', text: 'Hello' },
-            { id: 'w2', text: 'world' },
-          ],
-        },
-      ])
-      const mergeSpy = vi.spyOn(store, 'mergeWords')
-      const lyricsEditor = createMockLyricsEditor()
-      lyricsEditor.activeLineId.value = 'line-1'
-      lyricsEditor.splitBarMode.value = 'timing'
-      const { wrapper } = mountComponent(lyricsEditor)
-
-      const splitLines = wrapper.findAll('[data-testid="split-line"]')
-      expect(splitLines).toHaveLength(1)
-      await splitLines[0].trigger('click')
-      expect(mergeSpy).not.toHaveBeenCalled()
-    })
   })
 
   describe('numeric editor', () => {

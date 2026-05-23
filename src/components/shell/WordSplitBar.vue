@@ -147,12 +147,20 @@ function confirmWholeLineEdit(): void {
 function cancelWholeLineEdit(): void {
   wholeLineEditMode.value = false
 }
+
+function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
+  const parts: { text: string; isSpace: boolean }[] = []
+  for (const match of text.matchAll(/(\s+)|(\S+)/g)) {
+    parts.push({ text: match[0], isSpace: match[1] !== undefined })
+  }
+  return parts
+}
 </script>
 
 <template>
   <div
     data-testid="word-split-bar"
-    class="flex flex-col border-b border-base-300 px-3 py-2"
+    class="flex flex-col border-b border-base-300 px-2 py-2"
   >
     <!-- Mode toggle + word blocks -->
     <div class="flex items-center gap-2">
@@ -210,21 +218,6 @@ function cancelWholeLineEdit(): void {
         <!-- Timing mode: word blocks -->
         <template v-if="lyricsEditor.splitBarMode.value === 'timing'">
           <template v-for="(word, wIdx) in words" :key="word.id">
-            <!-- Split line between words -->
-            <div
-              v-if="wIdx > 0"
-              data-testid="split-line"
-              class="flex h-5 w-3 cursor-pointer items-center justify-center"
-              @click="onSplitLineClick(wIdx)"
-            >
-              <span
-                v-if="/\s$/.test(words[wIdx - 1]?.text ?? '')"
-                class="text-[10px] text-base-content/30"
-                >&#x2423;</span
-              >
-              <div v-else class="h-full w-px transition-colors bg-base-300" />
-            </div>
-
             <!-- Word block (click to activate) -->
             <div
               data-testid="word-block"
@@ -232,7 +225,12 @@ function cancelWholeLineEdit(): void {
               :class="wordColor(wIdx)"
               @click="onWordClick(wIdx)"
             >
-              {{ word.text || '&nbsp;' }}
+              <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
+                  '␣'.repeat(part.text.length)
+                }}</span
+                ><template v-else>{{ part.text }}</template></template
+              ><template v-if="!word.text">&nbsp;</template>
             </div>
           </template>
         </template>
@@ -247,12 +245,7 @@ function cancelWholeLineEdit(): void {
               class="flex h-5 w-3 cursor-pointer items-center justify-center"
               @click="onSplitLineClick(wIdx)"
             >
-              <span
-                v-if="/\s$/.test(words[wIdx - 1]?.text ?? '')"
-                class="text-[10px] text-base-content/30"
-                >&#x2423;</span
-              >
-              <div v-else class="h-full w-px transition-colors bg-warning" />
+              <div class="h-full w-px transition-colors bg-warning" />
             </div>
 
             <div
@@ -269,7 +262,12 @@ function cancelWholeLineEdit(): void {
                 >
                   <div class="h-full w-px bg-transparent transition-colors" />
                 </div>
-                <span class="px-0.5 py-0.5 text-xs">{{ char }}</span>
+                <span
+                  v-if="char === ' '"
+                  class="px-0.5 py-0.5 text-[10px] text-base-content/30"
+                  >␣</span
+                >
+                <span v-else class="px-0.5 py-0.5 text-xs">{{ char }}</span>
               </template>
             </div>
           </template>
@@ -306,12 +304,7 @@ function cancelWholeLineEdit(): void {
               class="flex h-5 w-3 cursor-pointer items-center justify-center hover:bg-info/20"
               @click="onGapClickInsert(wIdx)"
             >
-              <span
-                v-if="/\s$/.test(words[wIdx - 1]?.text ?? '')"
-                class="text-[10px] text-base-content/30"
-                >&#x2423;</span
-              >
-              <div v-else class="h-full w-px bg-base-300" />
+              <div class="h-full w-px bg-base-300" />
             </div>
 
             <input
@@ -328,7 +321,12 @@ function cancelWholeLineEdit(): void {
               class="cursor-pointer rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-xs transition-colors hover:bg-info/20"
               @click="onWordClickEdit(word.id, word.text)"
             >
-              {{ word.text.trimEnd() || '&nbsp;' }}
+              <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
+                  '␣'.repeat(part.text.length)
+                }}</span
+                ><template v-else>{{ part.text }}</template></template
+              ><template v-if="!word.text">&nbsp;</template>
             </div>
           </template>
         </template>

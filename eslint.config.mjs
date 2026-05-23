@@ -27,6 +27,7 @@ export default antfu(
   {
     rules: {
       'antfu/if-newline': 'off',
+      'antfu/consistent-chaining': 'off',
       'perfectionist/sort-imports': 'off',
       'perfectionist/sort-named-imports': 'off',
       'ts/no-redeclare': ['error', { ignoreDeclarationMerge: true }],

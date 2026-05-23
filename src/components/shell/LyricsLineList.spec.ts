@@ -89,11 +89,6 @@ describe('lyricsLineList', () => {
   })
 
   describe('empty state', () => {
-    it('shows empty hint when lyrics is empty', () => {
-      const wrapper = mountComponent()
-      expect(wrapper.text()).toContain(zhCN.lyrics.emptyHint)
-    })
-
     it('does not render the line list when lyrics is empty', () => {
       const wrapper = mountComponent()
       const rows = wrapper.findAll('[data-testid="lyrics-line-row"]')

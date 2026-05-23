@@ -25,8 +25,12 @@ function isActive(lineId: string): boolean {
   return false
 }
 
-function getWordDisplayText(word: LyricWord): string {
-  return word.text.trimEnd()
+function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
+  const parts: { text: string; isSpace: boolean }[] = []
+  for (const match of text.matchAll(/(\s+)|(\S+)/g)) {
+    parts.push({ text: match[0], isSpace: match[1] !== undefined })
+  }
+  return parts
 }
 
 function hasTrailingSpace(word: LyricWord): boolean {
@@ -61,21 +65,9 @@ function getWordStatus(line: {
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 flex-col">
-    <header class="flex items-center border-b border-base-300 px-3 py-1.5 text-xs">
-      <span class="opacity-70">{{ t('lyrics.lineList.title') }}</span>
-    </header>
-
-    <!-- Empty state -->
-    <div
-      v-if="store.project.lyrics.length === 0"
-      class="flex flex-1 items-center justify-center text-sm opacity-40"
-    >
-      {{ t('lyrics.emptyHint') }}
-    </div>
-
+  <div class="flex h-full min-w-0 flex-col">
     <!-- Line list -->
-    <ul v-else role="listbox" tabindex="0" class="min-h-0 flex-1 overflow-auto">
+    <ul role="listbox" tabindex="0" class="min-h-0 flex-1 overflow-auto">
       <li
         v-for="(line, index) in store.project.lyrics"
         :key="line.id"
@@ -100,20 +92,18 @@ function getWordStatus(line: {
         </span>
         <span class="flex min-w-0 flex-1 items-center truncate">
           <template v-for="(word, wIdx) in line.words" :key="word.id">
-            <span
-              v-if="wIdx > 0"
-              class="mx-px text-base-content/20"
-              :class="
-                hasTrailingSpace(line.words[wIdx - 1]) ? 'text-[10px]' : 'text-[8px]'
-              "
-              >{{ hasTrailingSpace(line.words[wIdx - 1]) ? '␣' : '|' }}</span
-            >
+            <span v-if="wIdx > 0" class="mx-px text-[12px] text-base-content/25">|</span>
             <span
               :class="{
                 'font-bold': getWordTimingState(line, wIdx) === 'playing',
                 'opacity-50': getWordTimingState(line, wIdx) === 'unplayed',
               }"
-              >{{ getWordDisplayText(word) }}</span
+              ><template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                ><span v-if="part.isSpace" class="text-[10px] text-base-content/50">{{
+                  '␣'.repeat(part.text.length)
+                }}</span
+                ><template v-else>{{ part.text }}</template></template
+              ></span
             >
           </template>
         </span>
