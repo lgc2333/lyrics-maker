@@ -53,7 +53,8 @@ src/
 │       ├── history.ts     # createCommandHistory<T>() — undo/redo stack
 │       ├── project-commands.ts  # Command factories (timing points, settings, audio)
 │       └── lyrics-commands.ts   # Lyrics command factories (timing, split/merge, insert/remove)
-├── i18n/                  # vue-i18n instance + zh-CN locale messages (standalone Vue-dependent module)
+├── i18n/                  # vue-i18n instance + locale messages (standalone Vue-dependent module)
+│   └── locales/           # Locale message files
 ├── platform/              # Platform adapters (strictly Vue-free)
 │   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
 │   ├── persistence/       # File System Access API adapter + save service
@@ -78,7 +79,7 @@ src/
 │   ├── TimingPointControls.vue # Right-side controls for timing points
 │   ├── LyricsPanel.vue        # Lyrics workspace (LyricsLineList + WordSplitBar)
 │   ├── LyricsLineList.vue     # Scrollable line list with select/active states
-│   ├── WordSplitBar.vue       # Cut/select mode word blocks panel
+│   ├── WordSplitBar.vue       # Cut/timing/edit mode word blocks panel
 │   ├── LyricsPasteModal.vue   # Textarea modal for pasting lyrics
 │   ├── VolumePopover.vue      # Volume control popover (music + SFX)
 │   ├── MenuBar.vue        # Top menu bar
@@ -100,9 +101,9 @@ Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePi
 
 ### Design Docs
 
-Design decisions may evolve over time. If a newer document conflicts with an older one, defer to the newer document and ignore the conflicting parts of the older one.
+Design decisions may evolve over time. If a newer document conflicts with an older one, defer to the newer document and ignore the conflicting parts of the older one. The list below is ordered from oldest to newest.
 
-- [Requirements spec](temp/docs/歌词打轴软件需求文档.md)
+- [Initial design spec](docs/initial-design-spec.md)
 - [Phase 1–5 overall design](docs/superpowers/specs/2026-05-16-lyrics-maker-phased-design.md)
 - [Phase 2 audio + timing design](docs/superpowers/specs/2026-05-16-phase-2-audio-timing-design.md)
 - [Phase 3 pre-layout design](docs/superpowers/specs/2026-05-17-pre-phase-3-layout-design.md)
@@ -111,6 +112,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - [Phase 4 detailed proposal chat](docs/superpowers/specs/2026-05-20-phase-4-detailed-proposal-chat.md)
 - [Phase 4 lyrics timing design](docs/superpowers/specs/2026-05-20-phase-4-lyrics-timing-design.md)
 - [Phase 4 post fix lyrics UI/UX improvements design](docs/superpowers/specs/2026-05-23-phase-4-post-fix-lyrics-ui-improvements-design.md)
+- [Phase 5 Plus spec](docs/phase-5-plus-spec.md)
 
 ## Rules & Patterns
 
@@ -165,6 +167,8 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Metronome seek safety:** In `syncToTimeline`, always run backward-seek reset before duplicate-beat guard (`reset lastScheduledBeatTime` first, then `nextBeat.at <= lastScheduledBeatTime` check), and keep regression test `reschedules immediately after a backward timeline jump` green.
 - **AudioTransport `getIsPlaying()` must read `!audioElement.paused` directly.** Chrome can cancel queued 'pause' event tasks when `src` changes immediately after `pause()` (e.g. replacing audio during playback), so event-driven `playing` flags become permanently stale. Never use event listeners to track play state for gate logic.
 - **`importAudioFile` must explicitly stop playback before loading.** Browser events (pause/emptied) are unreliable when changing `audioElement.src` during playback. Always call `_stopPlaybackLoop()`, `_audioTransport.value?.pause()`, and reset `_isPlaying`/`_currentTime` synchronously before `loadFile`. Otherwise `_rafId` may block `_startPlaybackLoop` and `getIsPlaying()` may stay true.
+- **Metronome pause vs disable semantics:** Pausing audio must not turn `_metronomeState` off; keep the user's metronome intent as `on`, schedule one latch at the next beat, and re-enable metronome hardware on playback resume. Only user toggling the metronome off should set state to `off`.
+- **Metronome scheduled clicks must be cancelable.** Store `AudioBufferSourceNode`s created by `source.start(at)` so future tick/downbeat clicks can be stopped/replaced by latch on pause/disable, and clear pending clicks on silent shutdown paths.
 - **`audioContext.resume()` only when suspended.** Check `audioContext.state === 'suspended'` before calling `resume()` in hot paths like `syncToTimeline` (fired every RAF frame). Calling `resume()` unconditionally allocates a Promise per frame at 60fps.
 - **Platform objects that own resources must expose a `destroy()` that fully cleans up.** Never rely on GC alone for Web Audio API resources (AudioContext, AudioBufferSourceNode), object URLs, or event listeners.
 - **`destroy()` must clean up pending async operations.** When a platform object manages async loads (e.g. `loadFile`), `destroy()` must call the pending cleanup function and revoke any blob URLs. Otherwise listeners dangle after the object is destroyed.
