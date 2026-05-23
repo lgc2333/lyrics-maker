@@ -145,6 +145,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **`useLyricsEditor` watch suppression for no-advance handlers.** The `watch` on `activeLine` re-derives `activeWordIndex` from data state (for undo/redo sync). Any handler that mutates timing data WITHOUT advancing `activeWordIndex` (e.g. `handleMarkNoAdvanceKey`) must set `_suppressWatchSync = true` before the mutation — the watch clears the flag and skips re-derivation for that tick.
 - **`@vueuse/core` is available as a dependency.** Use `watchDebounced`, `useDebounceFn`, `useEventListener`, etc. from `@vueuse/core` instead of rolling manual debounce/throttle helpers.
 - **Conditional hover popovers:** gate `@mouseenter` with a mode check (e.g. `verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'`) instead of using `v-if` on the whole wrapper — keeps the button always present but only opens the popover in the relevant mode.
+- **Auto-focus after state change:** set the reactive flag → `await nextTick()` → call `.focus()` on a typed template ref (`ref<HTMLInputElement | null>(null)`). The `nextTick` ensures the DOM element exists before focusing. In tests, use `attachTo: document.body` so `document.activeElement` resolves.
 
 ### WaveSurfer & Timeline
 
@@ -190,6 +191,8 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Tailwind mutually-exclusive utilities must use conditional binding, not `class` + `:class` together.** When `border-l-transparent` and `border-l-success` both appear on an element, the generated CSS order determines precedence — HTML class order is irrelevant. Use `:class="{ 'border-l-success': active, 'border-l-transparent': !active }"` to keep them mutually exclusive. Apply a shared `border-l-[3px]` for consistent alignment across all rows.
 - **Multi-line `@click` handlers crash the Vue template parser.** Newlines inside `@click="..."` cause the compiler-core tokenizer to fail at build time. Use comma expressions: `@click="(emit('foo'), (bar = null))"`.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` — routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.
+- **DaisyUI `.btn:active:not(.btn-active)` applies `translate: 0px 0.5px`.** This 0.5px downward shift pushes content past `overflow-auto` containers at mousedown, producing a flickering 1px scrollbar. Remove `overflow-auto` from flex-wrap containers that hold buttons (flex-wrap handles overflow on its own). If scrollbars are genuinely needed, add `overflow-y-hidden` or `min-h-{N}` to the container.
+- **Hover-reveal child controls:** use `group` on the parent and `group-hover:opacity-100 opacity-0` on the child button. Add `pointer-events-none` to the hidden child and `group-hover:pointer-events-auto` to prevent clicks from registering when invisible. Use `@click.stop` on the child to avoid triggering the parent's click handler.
 
 ### General TypeScript
 
