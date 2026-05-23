@@ -77,9 +77,13 @@ function createMockLyricsEditor(overrides = {}) {
   }
 }
 
-function mountComponent(lyricsEditor = createMockLyricsEditor()) {
+function mountComponent(
+  lyricsEditor = createMockLyricsEditor(),
+  options: { attachTo?: HTMLElement } = {},
+) {
   return {
     wrapper: mount(WordSplitBar, {
+      attachTo: options.attachTo,
       global: {
         plugins: [i18n],
         provide: {
@@ -472,8 +476,10 @@ describe('wordSplitBar', () => {
       await startBlock.trigger('click')
       expect(lyricsEditor.activeWordIndex.value).toBe(0)
     })
+  })
 
-    it('does not change activeWordIndex when clicking start block in cut mode', async () => {
+  describe('start block visibility per mode', () => {
+    function mountWithMode(mode: 'cut' | 'timing' | 'edit') {
       const store = useEditorStore()
       store.insertLyricLines([
         {
@@ -483,13 +489,221 @@ describe('wordSplitBar', () => {
       ])
       const lyricsEditor = createMockLyricsEditor()
       lyricsEditor.activeLineId.value = 'line-1'
-      lyricsEditor.activeWordIndex.value = 1
+      lyricsEditor.splitBarMode.value = mode
+      return mountComponent(lyricsEditor)
+    }
+
+    it('shows start block in timing mode', () => {
+      const { wrapper } = mountWithMode('timing')
+      expect(wrapper.findAll('[data-testid="start-block"]')).toHaveLength(1)
+    })
+
+    it('hides start block in cut mode', () => {
+      const { wrapper } = mountWithMode('cut')
+      expect(wrapper.findAll('[data-testid="start-block"]')).toHaveLength(0)
+    })
+
+    it('hides start block in edit mode', () => {
+      const { wrapper } = mountWithMode('edit')
+      expect(wrapper.findAll('[data-testid="start-block"]')).toHaveLength(0)
+    })
+  })
+
+  describe('blur commits word edit', () => {
+    it('commits the edited text when the word input loses focus', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const updateSpy = vi.spyOn(store, 'updateWordText')
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const wordBlock = wrapper.findAll('[data-testid="word-edit-block"]')[0]
+      await wordBlock.trigger('click')
+
+      const input = wrapper.find('input[data-testid="word-edit-input"]')
+      expect(input.exists()).toBe(true)
+      await input.setValue('changed')
+      await input.trigger('blur')
+
+      expect(updateSpy).toHaveBeenCalledWith('line-1', 'w1', 'changed')
+    })
+  })
+
+  describe('whole-line edit auto focus', () => {
+    it('focuses the input after clicking the whole-line edit button', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor, {
+        attachTo: document.body,
+      })
+
+      const editBtn = wrapper.find('[data-testid="whole-line-edit-btn"]')
+      expect(editBtn.exists()).toBe(true)
+      await editBtn.trigger('click')
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+
+      const input = wrapper.find('input[data-testid="whole-line-input"]')
+      expect(input.exists()).toBe(true)
+      expect(document.activeElement).toBe(input.element)
+
+      wrapper.unmount()
+    })
+  })
+
+  describe('edit mode: delete word block', () => {
+    it('renders a delete button on each word block in edit mode', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const deleteBtns = wrapper.findAll('[data-testid="word-delete-btn"]')
+      expect(deleteBtns).toHaveLength(2)
+    })
+
+    it('does not render delete buttons in timing mode', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'timing'
+      const { wrapper } = mountComponent(lyricsEditor)
+      expect(wrapper.findAll('[data-testid="word-delete-btn"]')).toHaveLength(0)
+    })
+
+    it('does not render delete buttons in cut mode', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
       lyricsEditor.splitBarMode.value = 'cut'
       const { wrapper } = mountComponent(lyricsEditor)
-      const startBlock = wrapper.find('[data-testid="start-block"]')
-      await startBlock.trigger('click')
-      // Should remain unchanged because click is ignored in cut mode
-      expect(lyricsEditor.activeWordIndex.value).toBe(1)
+      expect(wrapper.findAll('[data-testid="word-delete-btn"]')).toHaveLength(0)
+    })
+
+    it('clicking the delete button removes the word via store.removeWord', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const removeSpy = vi.spyOn(store, 'removeWord')
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const deleteBtns = wrapper.findAll('[data-testid="word-delete-btn"]')
+      await deleteBtns[0].trigger('click')
+
+      expect(removeSpy).toHaveBeenCalledWith('line-1', 'w1')
+    })
+
+    it('clicking the delete button does NOT open the edit input for that word', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const deleteBtns = wrapper.findAll('[data-testid="word-delete-btn"]')
+      await deleteBtns[0].trigger('click')
+
+      // After delete, no word edit input should appear (the word is removed)
+      expect(wrapper.find('input[data-testid="word-edit-input"]').exists()).toBe(false)
+    })
+
+    it('right-clicking a word block removes the word via store.removeWord', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const removeSpy = vi.spyOn(store, 'removeWord')
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'edit'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const wordBlocks = wrapper.findAll('[data-testid="word-edit-block"]')
+      await wordBlocks[1].trigger('contextmenu')
+
+      expect(removeSpy).toHaveBeenCalledWith('line-1', 'w2')
+    })
+
+    it('right-click does NOT remove words in timing mode', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const removeSpy = vi.spyOn(store, 'removeWord')
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'timing'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const wordBlocks = wrapper.findAll('[data-testid="word-block"]')
+      await wordBlocks[0].trigger('contextmenu')
+
+      expect(removeSpy).not.toHaveBeenCalled()
     })
   })
 })

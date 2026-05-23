@@ -822,6 +822,24 @@ describe('lyrics actions', () => {
     store.undo()
     expect(store.project.lyrics[0].words).toHaveLength(2)
   })
+
+  it('removeWord removes a single word and is undoable', () => {
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world', endTime: 1.0 },
+          { id: 'w3', text: 'big' },
+        ],
+      },
+    ])
+    store.removeWord('l1', 'w2')
+    expect(store.project.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w3'])
+    store.undo()
+    expect(store.project.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w2', 'w3'])
+    expect(store.project.lyrics[0].words[1].endTime).toBe(1.0)
+  })
 })
 
 describe('editor store (phase 2 - bar-step seek)', () => {

@@ -8,6 +8,7 @@ import {
   createInsertWordCommand,
   createMergeWordsCommand,
   createRemoveLyricLineCommand,
+  createRemoveWordCommand,
   createReplaceLineWordsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
@@ -523,6 +524,10 @@ export const useEditorStore = defineStore('editor', () => {
     execute(createMergeWordsCommand(lineId, wordId))
   }
 
+  function removeWord(lineId: string, wordId: string): void {
+    execute(createRemoveWordCommand(lineId, wordId))
+  }
+
   function updateWordText(lineId: string, wordId: string, newText: string): void {
     execute(createUpdateWordTextCommand(lineId, wordId, newText))
   }
@@ -613,6 +618,7 @@ export const useEditorStore = defineStore('editor', () => {
     clearWordEndTime,
     splitWord,
     mergeWords,
+    removeWord,
     updateWordText,
     insertWord,
     replaceLineWords,

@@ -110,6 +110,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - [Phase 4 UX proposal chat](docs/superpowers/specs/2026-05-20-phase-4-ux-proposal-chat.md)
 - [Phase 4 detailed proposal chat](docs/superpowers/specs/2026-05-20-phase-4-detailed-proposal-chat.md)
 - [Phase 4 lyrics timing design](docs/superpowers/specs/2026-05-20-phase-4-lyrics-timing-design.md)
+- [Phase 4 post fix lyrics UI/UX improvements design](docs/superpowers/specs/2026-05-23-phase-4-post-fix-lyrics-ui-improvements-design.md)
 
 ## Rules & Patterns
 
@@ -139,7 +140,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Composable async error handling pattern.** When a composable wraps async callbacks, expose an `onError?: (error, context) => void` hook instead of silently swallowing or always `console.error`-ing. This keeps tests deterministic and production behavior observable.
 - **Use `loadError` ref pattern for async composable errors.** When a composable fires async operations (like `loadBlob`), expose a `ref<string | null>` that captures error messages. This lets UI bind to `loadError` reactively and prevents silent failures.
 - **`normalizeKeystroke` returns `string | null`.** Returns `null` when `event.isComposing` is true (IME input). Callers must guard against null before using the result.
-- **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide('mainViewHeight', ref(250))` in the parent and `inject<Ref<number>>('mainViewHeight')` in the child. Tests pass it via `mount(C, { global: { provide: { mainViewHeight: ref(N) } } })`. **Do NOT use `.value` on injected refs inside templates** — top-level injected refs auto-unwrap in `<script setup>` templates; calling `.value` bypasses the reactive dependency and updates are not tracked.
+- **Lifted height state pattern.** When a child component's size is controlled by a parent (e.g. resize handle in AppShell controls MainView height), `provide(MAIN_VIEW_HEIGHT_KEY, ref(250))` in the parent and `inject(MAIN_VIEW_HEIGHT_KEY)` in the child (key defined in `src/components/shell/injection-keys.ts`). Tests pass it via `mount(C, { global: { provide: { [MAIN_VIEW_HEIGHT_KEY as symbol]: ref(N) } } })`. **Do NOT use `.value` on injected refs inside templates** — top-level injected refs auto-unwrap in `<script setup>` templates; calling `.value` bypasses the reactive dependency and updates are not tracked.
 - **Use `Symbol`-based `InjectionKey<T>` for provide/inject.** Bare string keys lack type safety and are prone to typos. Define keys in `src/components/shell/injection-keys.ts` and import them in both provider and consumer components.
 - **`useLyricsEditor` watch suppression for no-advance handlers.** The `watch` on `activeLine` re-derives `activeWordIndex` from data state (for undo/redo sync). Any handler that mutates timing data WITHOUT advancing `activeWordIndex` (e.g. `handleMarkNoAdvanceKey`) must set `_suppressWatchSync = true` before the mutation — the watch clears the flag and skips re-derivation for that tick.
 - **`@vueuse/core` is available as a dependency.** Use `watchDebounced`, `useDebounceFn`, `useEventListener`, etc. from `@vueuse/core` instead of rolling manual debounce/throttle helpers.

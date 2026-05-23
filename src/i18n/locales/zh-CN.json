@@ -81,7 +81,8 @@
       "cutMode": "切词",
       "timingMode": "打轴",
       "editMode": "编辑",
-      "wholeLineEdit": "整行编辑"
+      "wholeLineEdit": "整行编辑",
+      "deleteWord": "删除词块"
     }
   },
   "project": {

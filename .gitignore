@@ -37,4 +37,7 @@ dist-ssr
 
 /.worktrees/
 /worktrees/
+.claude/worktrees
+
 /temp/
+/.tmp

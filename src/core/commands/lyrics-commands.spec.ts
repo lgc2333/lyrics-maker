@@ -8,6 +8,7 @@ import {
   createInsertWordCommand,
   createMergeWordsCommand,
   createRemoveLyricLineCommand,
+  createRemoveWordCommand,
   createReplaceLineWordsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
@@ -476,5 +477,89 @@ describe('createReplaceLineWordsCommand', () => {
     const result = cmd.undo(state)
     // Should return state unchanged (previousWords still null)
     expect(result.lyrics[0].words[0].text).toBe('old')
+  })
+})
+
+describe('createRemoveWordCommand', () => {
+  const line: LyricLine = {
+    id: 'line-1',
+    words: [
+      { id: 'w1', text: 'hello' },
+      { id: 'w2', text: 'world', endTime: 1.5 },
+      { id: 'w3', text: 'big' },
+    ],
+  }
+
+  it('removes the target word from the line', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w2')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w3'])
+  })
+
+  it('preserves other words unchanged', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w2')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words[0]).toEqual({ id: 'w1', text: 'hello' })
+    expect(result.lyrics[0].words[1]).toEqual({ id: 'w3', text: 'big' })
+  })
+
+  it('undo restores the removed word at its original index', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w2')
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w2', 'w3'])
+    expect(restored.lyrics[0].words[1]).toEqual({
+      id: 'w2',
+      text: 'world',
+      endTime: 1.5,
+    })
+  })
+
+  it('undo restores word at first index (head)', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w1')
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w2', 'w3'])
+  })
+
+  it('undo restores word at last index (tail)', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w3')
+    const after = cmd.do(state)
+    const restored = cmd.undo(after)
+    expect(restored.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w2', 'w3'])
+  })
+
+  it('returns state unchanged if lineId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('nonexistent', 'w1')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words).toHaveLength(3)
+  })
+
+  it('returns state unchanged if wordId not found', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w-nonexistent')
+    const result = cmd.do(state)
+    expect(result.lyrics[0].words).toHaveLength(3)
+  })
+
+  it('undo is a no-op if do was never called', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w2')
+    const result = cmd.undo(state)
+    expect(result.lyrics[0].words).toHaveLength(3)
+  })
+
+  it('do is idempotent (second do does not change state further)', () => {
+    const state = projectWithLine(line)
+    const cmd = createRemoveWordCommand('line-1', 'w2')
+    const after1 = cmd.do(state)
+    const after2 = cmd.do(after1)
+    expect(after2.lyrics[0].words.map((w) => w.id)).toEqual(['w1', 'w3'])
   })
 })

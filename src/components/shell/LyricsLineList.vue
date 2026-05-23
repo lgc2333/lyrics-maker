@@ -2,7 +2,7 @@
 import { inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { LyricLine, LyricWord } from '../../core/domain/project'
+import type { LyricLine } from '../../core/domain/project'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
 import type { LyricsEditorContext } from './injection-keys'
@@ -31,10 +31,6 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
     parts.push({ text: match[0], isSpace: match[1] !== undefined })
   }
   return parts
-}
-
-function hasTrailingSpace(word: LyricWord): boolean {
-  return /\s$/.test(word.text)
 }
 
 type WordTimingState = 'played' | 'playing' | 'unplayed'
@@ -92,7 +88,9 @@ function getWordStatus(line: {
         </span>
         <span class="flex min-w-0 flex-1 items-center truncate">
           <template v-for="(word, wIdx) in line.words" :key="word.id">
-            <span v-if="wIdx > 0" class="mx-px text-[12px] text-base-content/25">|</span>
+            <span v-if="wIdx > 0" class="mx-px text-[12px] text-base-content/25"
+              >|</span
+            >
             <span
               :class="{
                 'font-bold': getWordTimingState(line, wIdx) === 'playing',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { autoSplitText } from '../../core/lyrics/auto-split'
@@ -92,11 +92,18 @@ const editingWordId = ref<string | null>(null)
 const editingWordText = ref('')
 const wholeLineEditMode = ref(false)
 const wholeLineText = ref('')
+const wholeLineInputRef = ref<HTMLInputElement | null>(null)
 
 function onWordClickEdit(wordId: string, text: string): void {
   if (lyricsEditor.splitBarMode.value !== 'edit') return
   editingWordId.value = wordId
   editingWordText.value = text.trimEnd()
+}
+
+function onRemoveWord(wordId: string): void {
+  if (lyricsEditor.splitBarMode.value !== 'edit' || !activeLine.value) return
+  if (editingWordId.value === wordId) editingWordId.value = null
+  store.removeWord(activeLine.value.id, wordId)
 }
 
 function confirmWordEdit(): void {
@@ -127,10 +134,12 @@ function onGapClickInsert(insertIndex: number): void {
   })
 }
 
-function enterWholeLineEdit(): void {
+async function enterWholeLineEdit(): Promise<void> {
   if (!activeLine.value) return
   wholeLineEditMode.value = true
   wholeLineText.value = words.value.map((w) => w.text).join('')
+  await nextTick()
+  wholeLineInputRef.value?.focus()
 }
 
 function confirmWholeLineEdit(): void {
@@ -195,12 +204,10 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         </button>
       </div>
 
-      <div
-        v-if="activeLine"
-        class="flex flex-1 flex-wrap items-center gap-0.5 overflow-auto"
-      >
-        <!-- Start block -->
+      <div v-if="activeLine" class="flex flex-1 flex-wrap items-center gap-0.5">
+        <!-- Start block (timing mode only) -->
         <div
+          v-if="lyricsEditor.splitBarMode.value === 'timing'"
           data-testid="start-block"
           class="cursor-pointer rounded border px-1.5 py-0.5 text-xs transition-colors"
           :class="
@@ -242,7 +249,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             <div
               v-if="wIdx > 0"
               data-testid="split-line"
-              class="flex h-5 w-3 cursor-pointer items-center justify-center"
+              class="flex h-4 w-1.5 cursor-pointer items-center justify-center"
               @click="onSplitLineClick(wIdx)"
             >
               <div class="h-full w-px transition-colors bg-warning" />
@@ -257,17 +264,17 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
                 <div
                   v-if="cIdx > 0"
                   data-testid="char-gap"
-                  class="flex h-5 w-3 cursor-pointer items-center justify-center hover:bg-warning/20"
+                  class="flex h-5 w-1.5 cursor-pointer items-center justify-center hover:bg-warning/20"
                   @click="onCharGapClick(wIdx, cIdx)"
                 >
                   <div class="h-full w-px bg-transparent transition-colors" />
                 </div>
                 <span
                   v-if="char === ' '"
-                  class="px-0.5 py-0.5 text-[10px] text-base-content/30"
+                  class="py-0.5 text-[10px] text-base-content/30"
                   >␣</span
                 >
-                <span v-else class="px-0.5 py-0.5 text-xs">{{ char }}</span>
+                <span v-else class="py-0.5 text-xs">{{ char }}</span>
               </template>
             </div>
           </template>
@@ -279,23 +286,12 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         >
           <button
             class="btn btn-xs btn-ghost"
+            data-testid="whole-line-edit-btn"
             :title="t('lyrics.wordSplitBar.wholeLineEdit')"
             @click="enterWholeLineEdit"
           >
             <Icon icon="material-symbols:text-fields" class="text-sm" />
           </button>
-
-          <div
-            data-testid="start-block"
-            class="rounded border px-1.5 py-0.5 text-xs opacity-40"
-            :class="
-              activeLine.startTime !== undefined
-                ? 'bg-success/30 border-success'
-                : 'bg-base-300/50 border-base-300'
-            "
-          >
-            {{ t('lyrics.wordSplitBar.startBlock') }}
-          </div>
 
           <template v-for="(word, wIdx) in words" :key="word.id">
             <div
@@ -310,6 +306,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             <input
               v-if="editingWordId === word.id"
               v-model="editingWordText"
+              data-testid="word-edit-input"
               class="input input-xs input-bordered w-16"
               @keydown.enter="confirmWordEdit"
               @keydown.escape="cancelWordEdit"
@@ -318,8 +315,10 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
 
             <div
               v-else
-              class="cursor-pointer rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-xs transition-colors hover:bg-info/20"
+              data-testid="word-edit-block"
+              class="group relative cursor-pointer rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-xs transition-colors hover:bg-info/20"
               @click="onWordClickEdit(word.id, word.text)"
+              @contextmenu.prevent="onRemoveWord(word.id)"
             >
               <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
                 ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
@@ -327,6 +326,14 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
                 }}</span
                 ><template v-else>{{ part.text }}</template></template
               ><template v-if="!word.text">&nbsp;</template>
+              <button
+                data-testid="word-delete-btn"
+                class="pointer-events-none absolute -top-1.5 -right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-error text-error-content opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+                :title="t('lyrics.wordSplitBar.deleteWord')"
+                @click.stop="onRemoveWord(word.id)"
+              >
+                <Icon icon="material-symbols:close" class="text-[10px]" />
+              </button>
             </div>
           </template>
         </template>
@@ -336,7 +343,9 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
           v-else-if="lyricsEditor.splitBarMode.value === 'edit' && wholeLineEditMode"
         >
           <input
+            ref="wholeLineInputRef"
             v-model="wholeLineText"
+            data-testid="whole-line-input"
             class="input input-xs input-bordered flex-1"
             @keydown.enter="confirmWholeLineEdit"
             @keydown.escape="cancelWholeLineEdit"

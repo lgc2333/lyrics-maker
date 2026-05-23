@@ -329,6 +329,46 @@ export function createInsertWordCommand(
   }
 }
 
+export function createRemoveWordCommand(
+  lineId: string,
+  wordId: string,
+): Command<ProjectDocument> {
+  let removedWord: LyricLine['words'][number] | null = null
+  let removedIndex: number | null = null
+  return {
+    label: 'lyrics.removeWord',
+    do: (state) => {
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const wordIndex = line.words.findIndex((w) => w.id === wordId)
+      if (wordIndex === -1) return state
+      if (removedWord === null) {
+        removedWord = line.words[wordIndex]
+        removedIndex = wordIndex
+      }
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: l.words.filter((w) => w.id !== wordId) } : l,
+        ),
+      }
+    },
+    undo: (state) => {
+      if (removedWord === null || removedIndex === null) return state
+      const line = state.lyrics.find((l) => l.id === lineId)
+      if (!line) return state
+      const newWords = [...line.words]
+      newWords.splice(removedIndex, 0, removedWord)
+      return {
+        ...state,
+        lyrics: state.lyrics.map((l) =>
+          l.id === lineId ? { ...l, words: newWords } : l,
+        ),
+      }
+    },
+  }
+}
+
 export function createReplaceLineWordsCommand(
   lineId: string,
   newWords: readonly { id: string; text: string }[],
