@@ -6,6 +6,15 @@ export interface MetronomeScheduler {
     nextBeat: { at: number; isBarStart: boolean } | null,
   ) => void
   /**
+   * Handles an upstream audio pause by cancelling future beat clicks and,
+   * when the metronome was active, scheduling one latch at the next beat.
+   */
+  handlePlaybackPaused: (
+    currentTime: number,
+    nextBeat: { at: number; isBarStart: boolean } | null,
+  ) => void
+  cancelPendingClicks: () => void
+  /**
    * Immediately schedules one latch click at audioContext.currentTime + 0.05s.
    *  No-op if latch is not pending or metronome is destroyed.
    */
@@ -22,6 +31,7 @@ export interface MetronomeScheduler {
  * - Bar start (downbeat): plays downbeat WAV sample
  * - Normal beat: plays tick WAV sample
  * - When disabled: lets current click finish, schedules ONE latch click at next beat, then stops
+ * - When playback pauses: replaces any future click with ONE latch click at next beat
  * - If re-enabled before latch fires: cancels latch, resumes normal scheduling
  * - SFX volume controls metronome output independently from music volume
  */
@@ -35,6 +45,33 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
   let downbeatBuffer: AudioBuffer | null = null
   let latchBuffer: AudioBuffer | null = null
   let loadError: Error | null = null
+
+  interface ScheduledClick {
+    at: number
+    kind: 'beat' | 'latch'
+    source: AudioBufferSourceNode
+  }
+
+  const scheduledClicks: ScheduledClick[] = []
+
+  function removeScheduledClick(click: ScheduledClick): void {
+    const index = scheduledClicks.indexOf(click)
+    if (index >= 0) scheduledClicks.splice(index, 1)
+  }
+
+  function cancelScheduledClicks(
+    shouldCancel: (click: ScheduledClick) => boolean,
+  ): void {
+    for (const click of [...scheduledClicks]) {
+      if (!shouldCancel(click)) continue
+      try {
+        click.source.stop()
+      } catch {
+        // The source may already have finished; in that case it is safe to ignore.
+      }
+      removeScheduledClick(click)
+    }
+  }
 
   async function loadBuffer(path: string): Promise<AudioBuffer> {
     const response = await fetch(path)
@@ -61,12 +98,44 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
   /**
    * Schedules a WAV buffer to play at the given AudioContext time.
    */
-  function playBufferAt(at: number, buffer: AudioBuffer | null): void {
-    if (destroyed || !buffer) return
+  function playBufferAt(
+    at: number,
+    buffer: AudioBuffer | null,
+  ): AudioBufferSourceNode | null {
+    if (destroyed || !buffer) return null
     const source = audioContext.createBufferSource()
     source.buffer = buffer
     source.connect(masterGain)
     source.start(at)
+    return source
+  }
+
+  function trackScheduledClick(
+    source: AudioBufferSourceNode,
+    at: number,
+    kind: ScheduledClick['kind'],
+  ): void {
+    const click: ScheduledClick = { at, kind, source }
+    scheduledClicks.push(click)
+    source.onended = () => removeScheduledClick(click)
+  }
+
+  function scheduleLatchAtNextBeat(
+    currentTime: number,
+    nextBeat: { at: number; isBarStart: boolean } | null,
+  ): boolean {
+    if (destroyed || !nextBeat || loadError || !latchBuffer) return false
+
+    cancelScheduledClicks((click) => click.kind === 'beat' && click.at >= currentTime)
+
+    const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
+    const source = playBufferAt(audioCtxTime, latchBuffer)
+    if (!source) return false
+
+    trackScheduledClick(source, nextBeat.at, 'latch')
+    lastScheduledBeatTime = nextBeat.at
+    latchPending = false
+    return true
   }
 
   return {
@@ -74,6 +143,8 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
       if (value) {
         // Re-enabling: cancel any pending latch
         latchPending = false
+        cancelScheduledClicks((click) => click.kind === 'latch')
+        lastScheduledBeatTime = -1
       } else if (enabled) {
         // Disabling while enabled: schedule a latch
         latchPending = true
@@ -104,6 +175,11 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
         lastScheduledBeatTime = -1
       }
 
+      if (latchPending) {
+        scheduleLatchAtNextBeat(currentTime, nextBeat)
+        return
+      }
+
       // Avoid double-scheduling the same beat.
       // Must run after backward-seek reset so earlier beats can be re-scheduled.
       if (nextBeat.at <= lastScheduledBeatTime) return
@@ -114,19 +190,46 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
       const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
 
       if (enabled) {
-        playBufferAt(audioCtxTime, nextBeat.isBarStart ? downbeatBuffer : tickBuffer)
+        const source = playBufferAt(
+          audioCtxTime,
+          nextBeat.isBarStart ? downbeatBuffer : tickBuffer,
+        )
+        if (!source) return
+        trackScheduledClick(source, nextBeat.at, 'beat')
         lastScheduledBeatTime = nextBeat.at
-      } else if (latchPending) {
-        playBufferAt(audioCtxTime, latchBuffer)
-        lastScheduledBeatTime = nextBeat.at
-        latchPending = false
       }
       // else: not enabled and no latch pending → do nothing
     },
 
+    handlePlaybackPaused(
+      currentTime: number,
+      nextBeat: { at: number; isBarStart: boolean } | null,
+    ): void {
+      const shouldLatch = enabled || latchPending
+      enabled = false
+
+      if (!shouldLatch) {
+        latchPending = false
+        cancelScheduledClicks(
+          (click) => click.kind === 'beat' && click.at >= currentTime,
+        )
+        return
+      }
+
+      latchPending = true
+      scheduleLatchAtNextBeat(currentTime, nextBeat)
+    },
+
+    cancelPendingClicks(): void {
+      latchPending = false
+      cancelScheduledClicks(() => true)
+      lastScheduledBeatTime = -1
+    },
+
     fireLatchNow(): void {
       if (destroyed || !latchBuffer || !latchPending) return
-      playBufferAt(audioContext.currentTime + 0.05, latchBuffer)
+      const source = playBufferAt(audioContext.currentTime + 0.05, latchBuffer)
+      if (source) trackScheduledClick(source, audioContext.currentTime, 'latch')
       latchPending = false
     },
 
@@ -140,6 +243,7 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
 
     destroy(): void {
       destroyed = true
+      cancelScheduledClicks(() => true)
       masterGain.disconnect()
       audioContext.close()
     },

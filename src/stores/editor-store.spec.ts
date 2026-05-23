@@ -15,6 +15,7 @@ import {
 function createMockAudioTransport(): {
   transport: AudioTransport
   isPlaying: () => boolean
+  pauseExternally: () => void
 } {
   let _playing = false
   let _currentTime = 0
@@ -45,6 +46,9 @@ function createMockAudioTransport(): {
   return {
     transport,
     isPlaying: () => _playing,
+    pauseExternally: () => {
+      _playing = false
+    },
   }
 }
 
@@ -75,6 +79,13 @@ function createMockMetronome(): {
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
     fireLatchNow: vi.fn(() => {
+      _latchPending = false
+    }),
+    handlePlaybackPaused: vi.fn(() => {
+      _enabled = false
+      _latchPending = false
+    }),
+    cancelPendingClicks: vi.fn(() => {
       _latchPending = false
     }),
     getLoadError: vi.fn(() => null),
@@ -392,6 +403,31 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.isPlaying).toBe(true)
   })
 
+  it('schedules metronome latch from the old playback time before replacing audio', async () => {
+    let now = 1.2
+    const mock = createMockAudioTransport()
+    mock.transport.getCurrentTime = vi.fn(() => now)
+    const metronome = createMockMetronome()
+    __overrideAudioTransportFactory(() => mock.transport)
+    __overrideMetronomeFactory(() => metronome.scheduler)
+    setActivePinia(createPinia())
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+    store.toggleMetronome()
+
+    now = 1.2
+    await store.importAudioFile(new File(['y'], 'song2.mp3', { type: 'audio/mpeg' }))
+
+    expect(metronome.scheduler.handlePlaybackPaused).toHaveBeenCalledWith(1.2, {
+      at: 1.5,
+      isBarStart: false,
+    })
+    expect(store.metronomeState).toBe('on')
+    expect(store.currentTime).toBe(0)
+  })
+
   it('togglePlayback toggles isPlaying', async () => {
     const store = useEditorStore()
     // Need to initialize transport first
@@ -659,9 +695,10 @@ describe('editor store (phase 2 - metronome)', () => {
     store.toggleMetronome()
     expect(store.metronomeState).toBe('off')
     expect(store.isMetronomeEnabled).toBe(false)
+    expect(mockMetronome.fireLatchNow).not.toHaveBeenCalled()
   })
 
-  it('clears latch_pending state on pause', async () => {
+  it('schedules latch at the next beat when manually pausing playback', async () => {
     const mock = createMockAudioTransport()
     __overrideAudioTransportFactory(() => mock.transport)
     setActivePinia(createPinia())
@@ -671,12 +708,78 @@ describe('editor store (phase 2 - metronome)', () => {
     await store.togglePlayback() // start playing
 
     store.toggleMetronome() // off → on
-    store.toggleMetronome() // on → latch_pending (playing)
-    expect(store.metronomeState).toBe('latch_pending')
+    expect(store.metronomeState).toBe('on')
 
-    // Now pause: latch_pending should clear
     store.pausePlayback()
-    expect(store.metronomeState).toBe('off')
+    expect(store.metronomeState).toBe('on')
+    expect(mockMetronome.handlePlaybackPaused).toHaveBeenCalledWith(0, {
+      at: 0.5,
+      isBarStart: false,
+    })
+    expect(mockMetronome.fireLatchNow).not.toHaveBeenCalled()
+  })
+
+  it('keeps metronome on without latch when pause is requested while already paused', async () => {
+    const mock = createMockAudioTransport()
+    __overrideAudioTransportFactory(() => mock.transport)
+    setActivePinia(createPinia())
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.toggleMetronome()
+    expect(store.metronomeState).toBe('on')
+
+    store.pausePlayback()
+
+    expect(store.metronomeState).toBe('on')
+    expect(mockMetronome.handlePlaybackPaused).not.toHaveBeenCalled()
+    expect(mockMetronome.fireLatchNow).not.toHaveBeenCalled()
+  })
+
+  it('schedules latch and clears state when upstream audio pauses unexpectedly', async () => {
+    vi.useFakeTimers()
+    const mock = createMockAudioTransport()
+    __overrideAudioTransportFactory(() => mock.transport)
+    setActivePinia(createPinia())
+
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      setTimeout(() => cb(performance.now()), 0)
+      return 3
+    })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+    store.toggleMetronome()
+
+    mock.pauseExternally()
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.metronomeState).toBe('on')
+    expect(mockMetronome.handlePlaybackPaused).toHaveBeenCalledWith(0, {
+      at: 0.5,
+      isBarStart: false,
+    })
+    vi.useRealTimers()
+  })
+
+  it('re-enables metronome hardware when resuming after a pause latch', async () => {
+    const mock = createMockAudioTransport()
+    __overrideAudioTransportFactory(() => mock.transport)
+    setActivePinia(createPinia())
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+    store.toggleMetronome()
+
+    store.pausePlayback()
+    await store.togglePlayback()
+
+    expect(mockMetronome.setEnabled).toHaveBeenLastCalledWith(true)
+    expect(store.metronomeState).toBe('on')
   })
 
   it('setSfxVolume applies volume to metronome after it is created', () => {
@@ -699,17 +802,17 @@ describe('editor store (phase 2 - metronome)', () => {
     expect(store.project.audio.sfxVolume).toBe(0.8) // unchanged default
   })
 
-  it('fireLatchNow is called when turning metronome off while not playing', () => {
+  it('turns metronome off silently while not playing', () => {
     const store = useEditorStore()
 
     // off → on
     store.toggleMetronome()
     expect(store.metronomeState).toBe('on')
 
-    // on → off (not playing): should call fireLatchNow instead of waiting for latch
     store.toggleMetronome()
     expect(store.metronomeState).toBe('off')
-    expect(mockMetronome.fireLatchNow).toHaveBeenCalledOnce()
+    expect(mockMetronome.fireLatchNow).not.toHaveBeenCalled()
+    expect(mockMetronome.cancelPendingClicks).toHaveBeenCalledOnce()
   })
 })
 

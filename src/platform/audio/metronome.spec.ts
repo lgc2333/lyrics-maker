@@ -26,6 +26,7 @@ function createFakeAudioContext() {
     buffer: AudioBuffer | null
     connect: ReturnType<typeof vi.fn>
     start: ReturnType<typeof vi.fn>
+    stop: ReturnType<typeof vi.fn>
   }> = []
 
   const ctx = {
@@ -54,6 +55,7 @@ function createFakeAudioContext() {
         buffer: null as AudioBuffer | null,
         connect: vi.fn(),
         start: vi.fn(),
+        stop: vi.fn(),
       }
       sources.push(source)
       return source
@@ -194,6 +196,40 @@ describe('metronome', () => {
   })
 
   describe('latch policy', () => {
+    it('replaces an already scheduled beat with latch when disabled before the beat fires', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: false })
+      m.setEnabled(false)
+      m.syncToTimeline(10, { at: 10.5, isBarStart: false })
+
+      expect(fakeCtx._sources[0].stop).toHaveBeenCalled()
+      expect(fakeCtx._sources.length).toBe(2)
+      expect(fakeCtx._sources[1].start).toHaveBeenCalledWith(10.5)
+    })
+
+    it('replaces an already scheduled beat with latch when playback pauses', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: false })
+      ;(
+        m as unknown as {
+          handlePlaybackPaused: (
+            currentTime: number,
+            nextBeat: { at: number; isBarStart: boolean } | null,
+          ) => void
+        }
+      ).handlePlaybackPaused(10, { at: 10.5, isBarStart: false })
+
+      expect(fakeCtx._sources[0].stop).toHaveBeenCalled()
+      expect(fakeCtx._sources.length).toBe(2)
+      expect(fakeCtx._sources[1].start).toHaveBeenCalledWith(10.5)
+    })
+
     it('on disable keeps current click, schedules one latch, then stops', async () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)
       await flushMicrotasks()

@@ -160,6 +160,25 @@ export const useEditorStore = defineStore('editor', () => {
     return _metronome.value
   }
 
+  function _getNextBeatForMetronome(
+    currentTime: number,
+  ): { at: number; isBarStart: boolean } | null {
+    if (project.value.timingPoints.length === 0) return null
+
+    const nextAt = getNextBeatTime(project.value.timingPoints, currentTime)
+    const nextBeat = getBeatInfoAtTime(project.value.timingPoints, nextAt)
+    return { at: nextAt, isBarStart: nextBeat.isBarStart }
+  }
+
+  function _handlePlaybackStopped(previousTime: number, shouldLatch: boolean): void {
+    const m = _metronome.value
+    if (m && shouldLatch && _metronomeState.value === 'on') {
+      m.handlePlaybackPaused(previousTime, _getNextBeatForMetronome(previousTime))
+    } else if (m) {
+      m.cancelPendingClicks()
+    }
+  }
+
   // ---- Playback loop ----
 
   let _rafId: number | null = null
@@ -167,6 +186,7 @@ export const useEditorStore = defineStore('editor', () => {
   function _tickPlayback(): void {
     const transport = _audioTransport.value
     if (!transport || !transport.getIsPlaying()) {
+      _handlePlaybackStopped(_currentTime.value, _isPlaying.value)
       _rafId = null
       _isPlaying.value = false
       return
@@ -177,9 +197,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     const m = _metronome.value
     if (m && project.value.timingPoints.length > 0) {
-      const nextAt = getNextBeatTime(project.value.timingPoints, now)
-      const nextBeat = getBeatInfoAtTime(project.value.timingPoints, nextAt)
-      m.syncToTimeline(now, { at: nextAt, isBarStart: nextBeat.isBarStart })
+      m.syncToTimeline(now, _getNextBeatForMetronome(now))
 
       if (_metronomeState.value === 'latch_pending' && !m.hasPendingLatch()) {
         _metronomeState.value = 'off'
@@ -275,10 +293,14 @@ export const useEditorStore = defineStore('editor', () => {
     // Also reset _isPlaying / _currentTime / _rafId synchronously so the
     // UI reflects the stopped state immediately, not on the next RAF tick.
     _stopPlaybackLoop()
+    const wasPlaying = _audioTransport.value?.getIsPlaying() ?? false
+    const stoppedAt = wasPlaying
+      ? (_audioTransport.value?.getCurrentTime() ?? _currentTime.value)
+      : _currentTime.value
     _audioTransport.value?.pause()
     _isPlaying.value = false
+    _handlePlaybackStopped(stoppedAt, wasPlaying)
     _currentTime.value = 0
-    if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
 
     _audioFile.value = file
     const transport = _ensureAudioTransport()
@@ -291,24 +313,30 @@ export const useEditorStore = defineStore('editor', () => {
     if (!transport) return
 
     if (transport.getIsPlaying()) {
+      const stoppedAt = transport.getCurrentTime()
       transport.pause()
       _stopPlaybackLoop()
       _isPlaying.value = false
-      // Clear any pending metronome latch — no more syncToTimeline calls until next play
-      if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
+      _currentTime.value = stoppedAt
+      _handlePlaybackStopped(stoppedAt, true)
     } else {
       _isPlaying.value = true
       await transport.play()
+      if (_metronomeState.value === 'on') _metronome.value?.setEnabled(true)
       _startPlaybackLoop()
     }
   }
 
   function pausePlayback(): void {
+    const wasPlaying = _audioTransport.value?.getIsPlaying() ?? false
+    const stoppedAt = wasPlaying
+      ? (_audioTransport.value?.getCurrentTime() ?? _currentTime.value)
+      : _currentTime.value
     _audioTransport.value?.pause()
     _stopPlaybackLoop()
     _isPlaying.value = false
-    // Clear any pending metronome latch — no more syncToTimeline calls until next play
-    if (_metronomeState.value === 'latch_pending') _metronomeState.value = 'off'
+    _currentTime.value = stoppedAt
+    _handlePlaybackStopped(stoppedAt, wasPlaying)
   }
 
   // ---- Phase 2: Timing Points ----
@@ -404,9 +432,9 @@ export const useEditorStore = defineStore('editor', () => {
         m.setEnabled(false)
         _metronomeState.value = 'latch_pending'
       } else {
-        // Not playing → fire latch immediately, then stop
-        m.setEnabled(false) // sets latchPending = true inside metronome
-        m.fireLatchNow() // plays it at audioContext.currentTime + 0.05s
+        // Not playing → turn off silently.
+        m.setEnabled(false)
+        m.cancelPendingClicks()
         _metronomeState.value = 'off'
       }
     } else {
