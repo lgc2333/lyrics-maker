@@ -93,9 +93,10 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Remaining:
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus Part 1 (status bar + no-audio editing boundaries) and Part 2 (timing menu/WordSplitBar UI fixes) are complete. Remaining:
 
-- Phase 5: Import/export plugins + shortcut rebinding UI
+- Phase 5: Import/export plugins + shortcut rebinding UI.
+- Phase 5 Plus: Part 3+ timeline scrolling, seek-follow, and zoom behavior.
 
 Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
 
@@ -132,6 +133,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Command validation that depends on state must go in `do()`, not the factory.** Factory-level checks (e.g. `charIndex <= 0`) throw on construction. State-dependent checks (e.g. `charIndex >= word.text.length`) throw inside `do()`. Tests must call `cmd.do(state)` to trigger the latter.
 - **`validateTimingPoint` must be called in commands.** The validator checks for NaN/Infinity BPM and negative values. Call it in `createAddTimingPointCommand` and `createUpdateTimingPointCommand` before returning the command object.
 - **Undo/redo must re-sync hardware state.** Reverting project data via `history.undo()` does not automatically update the audio transport volume or metronome gain. After undo/redo, re-apply `musicVolume`/`sfxVolume` to the respective hardware.
+- **Command-backed editable actions should publish status messages.** Use `showStatus()` after meaningful command execution and use `history.nextUndoLabel` / `nextRedoLabel` for undo/redo-facing status text.
 - **Null sentinel `number | undefined | null` needs `?? undefined` for optional fields.** The undo-capture pattern (`let prev: number | undefined | null = null`) produces a 3-way type. When assigning back to an optional field like `endTime?: number`, use `prev ?? undefined` to narrow out `null`.
 
 ### Vue Reactivity & Composables
@@ -170,6 +172,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Metronome pause vs disable semantics:** Pausing audio must not turn `_metronomeState` off; keep the user's metronome intent as `on`, schedule one latch at the next beat, and re-enable metronome hardware on playback resume. Only user toggling the metronome off should set state to `off`.
 - **Metronome scheduled clicks must be cancelable.** Store `AudioBufferSourceNode`s created by `source.start(at)` so future tick/downbeat clicks can be stopped/replaced by latch on pause/disable, and clear pending clicks on silent shutdown paths.
 - **`audioContext.resume()` only when suspended.** Check `audioContext.state === 'suspended'` before calling `resume()` in hot paths like `syncToTimeline` (fired every RAF frame). Calling `resume()` unconditionally allocates a Promise per frame at 60fps.
+- **No-audio actions should report status, not silently disable controls.** Keep UI controls available when feedback is useful (play/seek/jump/Tap BPM/lyrics timing), guard in store/composables, and call `showStatus()` with localized messages.
 - **Platform objects that own resources must expose a `destroy()` that fully cleans up.** Never rely on GC alone for Web Audio API resources (AudioContext, AudioBufferSourceNode), object URLs, or event listeners.
 - **`destroy()` must clean up pending async operations.** When a platform object manages async loads (e.g. `loadFile`), `destroy()` must call the pending cleanup function and revoke any blob URLs. Otherwise listeners dangle after the object is destroyed.
 
@@ -181,6 +184,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **`autoSplitText` preserves trailing whitespace on each token** (except the last). `"hello world"` → `["hello ", "world"]`. Display code uses `word.text.trimEnd()` for visible text and `/\s$/.test(word.text)` to decide whether to show `␣` between words.
 - **Space characters render as `␣` symbol.** Use `splitBySpaces(text)` to split text into space/non-space segments. Space segments render as `<span class="text-[10px] text-base-content/30">␣</span>` (one ␣ per space char). In cut-mode per-character rendering, use `v-if="char === ' '"` to substitute. Never trim or use `whitespace-pre`.
 - **Lyrics line list word separators.** Always show `|` (`text-[8px] text-base-content/20`) between words regardless of trailing space. WordSplitBar timing/edit mode blocks have borders — no extra separators needed.
+- **Word timing edits use formatted timestamp text.** `WordSplitBar` time inputs display/accept `MM:SS.mmm` style strings via `formatTimestamp` / `parseTimestamp`, committing on Enter or blur; do not use `type="number"` seconds inputs.
 
 ### Testing
 
@@ -188,6 +192,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **`useEditorShortcuts` dispatches actions asynchronously (microtask).** Keyboard event handlers resolve via `Promise.resolve().then(...)`, so assertions after dispatching a key event must use `await vi.waitFor(() => expect(...))`, not synchronous `expect` or `await Promise.resolve()`.
 - **Composable tests that call `seekPlayback` / `togglePlayback` must init audio transport.** `_audioTransport` starts as `null`; `seekPlayback` is a no-op without it. Call `await store.importAudioFile(new File([], 'test.mp3'))` in `async beforeEach` to trigger `_ensureAudioTransport()`.
 - **Pinia setup store closure variables are invisible to DevTools `evaluate_script`.** Internal `_audioTransport`, `_rafId`, `_isPlaying` are not in `$state` or any public API. To debug, add temporary `console.log` in source — HMR won't reload Pinia stores, so use a full page refresh.
+- **Icon tests can inspect the Icon stub prop.** For controls rendered with `@iconify/vue`, prefer `findComponent({ name: 'Icon' }).props('icon')` when asserting which icon is shown.
 
 ### CSS / Tailwind / Template
 
@@ -196,6 +201,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Multi-line `@click` handlers crash the Vue template parser.** Newlines inside `@click="..."` cause the compiler-core tokenizer to fail at build time. Use comma expressions: `@click="(emit('foo'), (bar = null))"`.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` — routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.
 - **DaisyUI `.btn:active:not(.btn-active)` applies `translate: 0px 0.5px`.** This 0.5px downward shift pushes content past `overflow-auto` containers at mousedown, producing a flickering 1px scrollbar. Remove `overflow-auto` from flex-wrap containers that hold buttons (flex-wrap handles overflow on its own). If scrollbars are genuinely needed, add `overflow-y-hidden` or `min-h-{N}` to the container.
+- **Rhythm mode UI is a single icon toggle, not a button group.** In `TransportBar`, common/triplets share one `btn-square` toggle like waveform/spectrogram; Alt is a temporary yellow disabled state while held, not a selectable mode.
 - **Hover-reveal child controls:** use `group` on the parent and `group-hover:opacity-100 opacity-0` on the child button. Add `pointer-events-none` to the hidden child and `group-hover:pointer-events-auto` to prevent clicks from registering when invisible. Use `@click.stop` on the child to avoid triggering the parent's click handler.
 
 ### General TypeScript
@@ -203,6 +209,7 @@ Design decisions may evolve over time. If a newer document conflicts with an old
 - **Use `Math.round`, not `Math.floor`, for seconds<>milliseconds conversion.** `Math.floor(sec * 1000)` turns `8.030` (IEEE 754 actually `8.02999...`) into `8.029`, inconsistent with `.toFixed(3)` rounding. Always use `Math.round`.
 - **Error re-throw must preserve the cause.** Use `throw new Error(msg, { cause: error })` instead of ``throw new Error(`msg: ${error.message}`)``. The `cause` option preserves the original stack trace for debugging.
 - **Timing engine segment boundary handling must be consistent.** When adding a time-computation function, check whether sibling functions (`getNextBeatTime`, `getPreviousBarTime`, `getNextSubdivisionTime`) guard against crossing into the next/previous timing point's segment. Missing checks produce wrong results at BPM boundaries.
+- **Browser ID generation must use `createPrefixedId`.** Do not call `crypto.randomUUID()` directly in UI/store code; HTTP/non-secure contexts may not expose it. Use `src/platform/ids/create-id.ts`.
 
 ## Store Testing
 
