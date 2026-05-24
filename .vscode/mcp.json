@@ -10,16 +10,9 @@
     "chrome-devtools": {
       "type": "stdio",
       // "command": "pnpm",
-      // "args": ["exec", "chrome-devtools-mcp@latest"]
+      // "args": ["exec", "chrome-devtools-mcp"]
       "command": "fnm",
-      "args": [
-        "exec",
-        "--using",
-        "default",
-        "pnpm.cmd",
-        "exec",
-        "chrome-devtools-mcp@latest"
-      ]
+      "args": ["exec", "--using", "default", "pnpm.cmd", "exec", "chrome-devtools-mcp"]
     }
   }
 }
