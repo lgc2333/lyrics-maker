@@ -473,7 +473,7 @@ describe('wordSplitBar', () => {
       expect(wrapper.find('[data-testid="numeric-editor"]').exists()).toBe(false)
       const input = wrapper.get('[data-testid="start-time-input"]')
       expect(input.element.closest('[data-testid="start-block"]')).toBeNull()
-      expect((input.element as HTMLInputElement).value).toBe('1.25')
+      expect((input.element as HTMLInputElement).value).toBe('00:01.250')
     })
 
     it('does not show numeric editor when no active line', () => {
@@ -499,7 +499,7 @@ describe('wordSplitBar', () => {
       expect(wrapper.findAll('[data-testid="word-end-time-input"]')).toHaveLength(0)
     })
 
-    it('enter on start timestamp input applies line start time through the store', async () => {
+    it('enter on formatted start timestamp input applies line start time through the store', async () => {
       const store = useEditorStore()
       store.insertLyricLines([
         {
@@ -512,13 +512,13 @@ describe('wordSplitBar', () => {
       const { wrapper } = mountComponent(lyricsEditor)
 
       const input = wrapper.get('[data-testid="start-time-input"]')
-      await input.setValue('1.250')
+      await input.setValue('00:01.250')
       await input.trigger('keydown.enter')
 
       expect(store.project.lyrics[0].startTime).toBe(1.25)
     })
 
-    it('enter on word timestamp input applies word end time through the store', async () => {
+    it('blur on formatted word timestamp input applies word end time through the store', async () => {
       const store = useEditorStore()
       store.insertLyricLines([
         {
@@ -536,8 +536,8 @@ describe('wordSplitBar', () => {
       const { wrapper } = mountComponent(lyricsEditor)
 
       const input = wrapper.get('[data-testid="word-end-time-input"]')
-      await input.setValue('2.500')
-      await input.trigger('keydown.enter')
+      await input.setValue('00:02.500')
+      await input.trigger('blur')
 
       expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
       expect(store.project.lyrics[0].words[1].endTime).toBe(2.5)

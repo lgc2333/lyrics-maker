@@ -39,6 +39,12 @@ function stepSubdivision(direction: -1 | 1): void {
   )
   timeline.divisor.value = SUBDIVISION_OPTIONS[nextIndex]
 }
+
+function toggleRhythmMode(): void {
+  if (!timeline || timeline.altTripletActive.value) return
+  timeline.rhythmMode.value =
+    timeline.rhythmMode.value === 'triplets' ? 'common' : 'triplets'
+}
 </script>
 
 <template>
@@ -148,55 +154,34 @@ function stepSubdivision(direction: -1 | 1): void {
       </button>
     </div>
 
-    <!-- Rhythm mode buttons -->
-    <div
+    <!-- Rhythm mode toggle -->
+    <button
       v-if="timeline"
-      data-testid="rhythm-mode-group"
-      class="join"
+      data-testid="rhythm-mode-toggle"
+      class="btn btn-xs btn-square"
+      :class="
+        timeline.altTripletActive.value
+          ? 'btn-active btn-warning text-warning-content'
+          : timeline.effectiveTriplets.value
+            ? 'btn-active'
+            : 'btn-ghost'
+      "
+      :disabled="timeline.altTripletActive.value"
       :title="t('transport.rhythmMode')"
+      @click="toggleRhythmMode"
     >
-      <button
-        data-testid="rhythm-mode-common"
-        class="btn btn-xs btn-square join-item"
-        :class="
-          !timeline.effectiveTriplets.value && timeline.rhythmMode.value === 'common'
-            ? 'btn-active'
-            : 'btn-ghost'
-        "
-        :disabled="timeline.altTripletActive.value"
-        :title="t('transport.rhythmCommon')"
-        @click="timeline.rhythmMode.value = 'common'"
-      >
-        <Icon icon="lucide:music" class="h-4 w-4" />
-      </button>
-      <button
-        data-testid="rhythm-mode-triplets"
-        class="btn btn-xs btn-square join-item"
-        :class="
-          timeline.effectiveTriplets.value && !timeline.altTripletActive.value
-            ? 'btn-active'
-            : 'btn-ghost'
-        "
-        :disabled="timeline.altTripletActive.value"
-        :title="t('transport.rhythmTriplets')"
-        @click="timeline.rhythmMode.value = 'triplets'"
-      >
-        <Icon icon="lucide:triangle" class="h-4 w-4" />
-      </button>
-      <button
-        data-testid="rhythm-mode-alt"
-        class="btn btn-xs btn-square join-item"
-        :class="
-          timeline.altTripletActive.value
-            ? 'btn-active btn-warning text-warning-content'
-            : 'btn-ghost'
-        "
-        :title="t('transport.rhythmTripletsAlt')"
-        disabled
-      >
-        <Icon icon="lucide:keyboard" class="h-4 w-4" />
-      </button>
-    </div>
+      <Icon
+        v-if="timeline.altTripletActive.value"
+        icon="lucide:keyboard"
+        class="h-4 w-4"
+      />
+      <Icon
+        v-else-if="timeline.effectiveTriplets.value"
+        icon="lucide:triangle"
+        class="h-4 w-4"
+      />
+      <Icon v-else icon="lucide:music" class="h-4 w-4" />
+    </button>
 
     <div class="mx-1 h-5 w-px bg-base-300" />
 

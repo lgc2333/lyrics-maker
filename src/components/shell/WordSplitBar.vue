@@ -4,7 +4,7 @@ import { computed, inject, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { autoSplitText } from '../../core/lyrics/auto-split'
-import { formatTimestamp } from '../../core/utils/format-timestamp'
+import { formatTimestamp, parseTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
 import type { LyricsEditorContext } from './injection-keys'
 import { LYRICS_EDITOR_KEY } from './injection-keys'
@@ -92,16 +92,21 @@ function onSplitLineClick(wordIndex: number): void {
 
 function onStartTimeInput(event: Event): void {
   const input = event.target as HTMLInputElement
-  const value = Number.parseFloat(input.value)
-  if (!Number.isFinite(value) || !activeLine.value) return
-  store.setLineStartTime(activeLine.value.id, Math.max(0, value))
+  const value = parseTimestamp(input.value)
+  if (value === null || !activeLine.value) return
+  const nextValue = Math.max(0, value)
+  if (activeLine.value.startTime === nextValue) return
+  store.setLineStartTime(activeLine.value.id, nextValue)
 }
 
 function onWordEndTimeInput(wordId: string, event: Event): void {
   const input = event.target as HTMLInputElement
-  const value = Number.parseFloat(input.value)
-  if (!Number.isFinite(value) || !activeLine.value) return
-  store.setWordEndTime(activeLine.value.id, wordId, Math.max(0, value))
+  const value = parseTimestamp(input.value)
+  if (value === null || !activeLine.value) return
+  const word = words.value.find((w) => w.id === wordId)
+  const nextValue = Math.max(0, value)
+  if (word?.endTime === nextValue) return
+  store.setWordEndTime(activeLine.value.id, wordId, nextValue)
 }
 
 const editingWordId = ref<string | null>(null)
@@ -393,13 +398,16 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             </span>
             <input
               data-testid="start-time-input"
-              type="number"
-              step="0.001"
-              min="0"
-              class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
-              :value="activeLine.startTime ?? ''"
-              placeholder="--:--"
-              @change="onStartTimeInput"
+              type="text"
+              inputmode="decimal"
+              class="input input-xs h-5 w-[6.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              :value="
+                activeLine.startTime !== undefined
+                  ? formatTimestamp(activeLine.startTime)
+                  : ''
+              "
+              placeholder="00:00.000"
+              @blur="onStartTimeInput"
               @keydown.enter.stop.prevent="onStartTimeInput"
             />
           </template>
@@ -415,13 +423,16 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             </span>
             <input
               data-testid="word-end-time-input"
-              type="number"
-              step="0.001"
-              min="0"
-              class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
-              :value="selectedWord.endTime ?? ''"
-              placeholder="--:--"
-              @change="onWordEndTimeInput(selectedWord.id, $event)"
+              type="text"
+              inputmode="decimal"
+              class="input input-xs h-5 w-[6.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              :value="
+                selectedWord.endTime !== undefined
+                  ? formatTimestamp(selectedWord.endTime)
+                  : ''
+              "
+              placeholder="00:00.000"
+              @blur="onWordEndTimeInput(selectedWord.id, $event)"
               @keydown.enter.stop.prevent="onWordEndTimeInput(selectedWord.id, $event)"
             />
           </template>

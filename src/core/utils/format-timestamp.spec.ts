@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatTimestamp } from './format-timestamp'
+import { formatTimestamp, parseTimestamp } from './format-timestamp'
 
 describe('formatTimestamp', () => {
   it('formats zero as 00:00.000', () => {
@@ -46,5 +46,23 @@ describe('formatTimestamp', () => {
   it('returns valid format for value at the cap boundary', () => {
     // 359999.999 seconds ≈ 5999 minutes 59 seconds 999 ms
     expect(formatTimestamp(359999.999)).toBe('5999:59.999')
+  })
+})
+
+describe('parseTimestamp', () => {
+  it('parses formatted mm:ss.mmm timestamps', () => {
+    expect(parseTimestamp('00:01.250')).toBe(1.25)
+    expect(parseTimestamp('01:05.500')).toBe(65.5)
+  })
+
+  it('parses Adobe-style frame-like millisecond shorthand', () => {
+    expect(parseTimestamp('1:05:500')).toBe(65.5)
+  })
+
+  it('returns null for invalid or negative timestamps', () => {
+    expect(parseTimestamp('abc')).toBeNull()
+    expect(parseTimestamp('1.25')).toBeNull()
+    expect(parseTimestamp('-00:01.000')).toBeNull()
+    expect(parseTimestamp('00:60.000')).toBeNull()
   })
 })

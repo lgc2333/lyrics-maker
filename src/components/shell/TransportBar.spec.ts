@@ -449,24 +449,23 @@ describe('transportBar rhythm mode select', () => {
     setActivePinia(createPinia())
   })
 
-  it('renders rhythm-mode-select when timeline is provided', () => {
+  it('renders one rhythm mode toggle when timeline is provided', () => {
     const wrapper = mountWithTimeline(makeTimeline())
     expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="rhythm-mode-group"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="rhythm-mode-group"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="rhythm-mode-toggle"]').exists()).toBe(true)
   })
 
-  it('renders rhythm mode choices as icon-style square buttons', () => {
+  it('renders rhythm mode as a single icon-style square button', () => {
     const wrapper = mountWithTimeline(makeTimeline())
 
-    for (const testId of [
-      'rhythm-mode-common',
-      'rhythm-mode-triplets',
-      'rhythm-mode-alt',
-    ]) {
-      const button = wrapper.get(`[data-testid="${testId}"]`)
-      expect(button.classes()).toContain('btn-square')
-      expect(button.text().trim()).toBe('')
-    }
+    expect(wrapper.find('[data-testid="rhythm-mode-common"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="rhythm-mode-triplets"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="rhythm-mode-alt"]').exists()).toBe(false)
+
+    const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
+    expect(button.classes()).toContain('btn-square')
+    expect(button.text().trim()).toBe('')
   })
 
   it('marks common rhythm active when effectiveTriplets is false', () => {
@@ -476,7 +475,7 @@ describe('transportBar rhythm mode select', () => {
       ) as TimelineViewContext['effectiveTriplets'],
     })
     const wrapper = mountWithTimeline(timeline)
-    expect(wrapper.get('[data-testid="rhythm-mode-common"]').classes()).toContain(
+    expect(wrapper.get('[data-testid="rhythm-mode-toggle"]').classes()).not.toContain(
       'btn-active',
     )
   })
@@ -488,19 +487,19 @@ describe('transportBar rhythm mode select', () => {
       ) as TimelineViewContext['effectiveTriplets'],
     })
     const wrapper = mountWithTimeline(timeline)
-    expect(wrapper.get('[data-testid="rhythm-mode-triplets"]').classes()).toContain(
+    expect(wrapper.get('[data-testid="rhythm-mode-toggle"]').classes()).toContain(
       'btn-active',
     )
   })
 
-  it('clicking rhythm buttons updates timeline rhythm mode', async () => {
+  it('clicking rhythm toggle alternates common and triplets mode', async () => {
     const timeline = makeTimeline()
     const wrapper = mountWithTimeline(timeline)
 
-    await wrapper.get('[data-testid="rhythm-mode-triplets"]').trigger('click')
+    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
     expect(timeline.rhythmMode.value).toBe('triplets')
 
-    await wrapper.get('[data-testid="rhythm-mode-common"]').trigger('click')
+    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
     expect(timeline.rhythmMode.value).toBe('common')
   })
 
@@ -513,9 +512,9 @@ describe('transportBar rhythm mode select', () => {
     })
     const wrapper = mountWithTimeline(timeline)
 
-    expect(wrapper.get('[data-testid="rhythm-mode-alt"]').classes()).toContain(
-      'btn-active',
-    )
+    const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
+    expect(button.classes()).toContain('btn-active')
+    expect(button.classes()).toContain('btn-warning')
   })
 
   it('colors Alt triplet state and blocks rhythm changes while Alt is held', async () => {
@@ -529,16 +528,12 @@ describe('transportBar rhythm mode select', () => {
     })
     const wrapper = mountWithTimeline(timeline)
 
-    const common = wrapper.get('[data-testid="rhythm-mode-common"]')
-    const triplets = wrapper.get('[data-testid="rhythm-mode-triplets"]')
-    const alt = wrapper.get('[data-testid="rhythm-mode-alt"]')
+    const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
 
-    expect((common.element as HTMLButtonElement).disabled).toBe(true)
-    expect((triplets.element as HTMLButtonElement).disabled).toBe(true)
-    expect((alt.element as HTMLButtonElement).disabled).toBe(true)
-    expect(alt.classes()).toContain('btn-warning')
+    expect((button.element as HTMLButtonElement).disabled).toBe(true)
+    expect(button.classes()).toContain('btn-warning')
 
-    await common.trigger('click')
+    await button.trigger('click')
 
     expect(rhythmMode.value).toBe('triplets')
   })
