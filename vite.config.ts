@@ -7,6 +7,8 @@ import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
 import VueRouter from 'vue-router/vite'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig({
   plugins: [
     VueRouter({ dts: 'src/typed-router.d.ts' }),
@@ -17,6 +19,7 @@ export default defineConfig({
       dts: 'src/auto-imports.d.ts',
     }),
     Components({ dts: 'src/components.d.ts' }),
+    cloudflare()
   ],
   resolve: {
     alias: {
