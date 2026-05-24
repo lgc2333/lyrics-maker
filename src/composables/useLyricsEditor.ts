@@ -104,6 +104,7 @@ export function useLyricsEditor() {
     if (activeWordIndex.value === 0) {
       const time = _getSnappedTime(rawTime)
       const clamped = clampWordTime(time, undefined, store.duration)
+      _suppressWatchSync = true
       store.setLineStartTime(activeLineId.value, clamped)
       activeWordIndex.value = 1
       if (!store.isPlaying) store.togglePlayback()
@@ -122,12 +123,14 @@ export function useLyricsEditor() {
     for (let k = wordIndex + 1; k < line.words.length; k++) {
       const w = line.words[k]
       if (w.endTime !== undefined && w.endTime <= clamped) {
+        _suppressWatchSync = true
         store.clearWordEndTime(activeLineId.value, w.id)
       } else {
         break
       }
     }
 
+    _suppressWatchSync = true
     store.setWordEndTime(activeLineId.value, word.id, clamped)
     activeWordIndex.value += 1
   }

@@ -17,6 +17,18 @@ const activeLine = computed(() => lyricsEditor.activeLine.value)
 
 const words = computed(() => activeLine.value?.words ?? [])
 
+const selectedWord = computed(() => {
+  const index = lyricsEditor.activeWordIndex.value - 1
+  if (index < 0) return null
+  return words.value[index] ?? null
+})
+
+const selectedWordStartTime = computed(() => {
+  const index = lyricsEditor.activeWordIndex.value - 1
+  if (index < 0 || !selectedWord.value) return undefined
+  return getDerivedStartTime(index)
+})
+
 function wordColor(index: number): string {
   const wordIdx = index + 1 // +1 because index 0 is startBlock
   if (wordIdx === lyricsEditor.activeWordIndex.value) return 'bg-error/30 border-error'
@@ -208,193 +220,212 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         </button>
       </div>
 
-      <div v-if="activeLine" class="flex flex-1 flex-wrap items-center gap-0.5">
-        <!-- Start block (timing mode only) -->
-        <div
-          v-if="lyricsEditor.splitBarMode.value === 'timing'"
-          data-testid="start-block"
-          class="grid min-h-7 cursor-pointer grid-cols-[auto_5.75rem] items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors"
-          :class="
-            isStartBlockActive()
-              ? 'bg-error/30 border-error'
-              : activeLine.startTime !== undefined
-                ? 'bg-success/30 border-success'
-                : 'bg-base-300/50 border-base-300'
-          "
-          @click="onStartBlockClick"
-        >
-          <span>{{ t('lyrics.wordSplitBar.startBlock') }}</span>
-          <input
-            data-testid="start-time-input"
-            type="number"
-            step="0.001"
-            min="0"
-            class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
-            :value="activeLine.startTime ?? ''"
-            placeholder="--:--"
-            @click.stop
-            @change="onStartTimeInput"
-            @keydown.enter.stop.prevent="onStartTimeInput"
-          />
-        </div>
+      <div v-if="activeLine" class="flex min-w-0 flex-1 items-center gap-2">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
+          <!-- Start block (timing mode only) -->
+          <div
+            v-if="lyricsEditor.splitBarMode.value === 'timing'"
+            data-testid="start-block"
+            class="flex min-h-7 cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
+            :class="
+              isStartBlockActive()
+                ? 'bg-error/30 border-error'
+                : activeLine.startTime !== undefined
+                  ? 'bg-success/30 border-success'
+                  : 'bg-base-300/50 border-base-300'
+            "
+            @click="onStartBlockClick"
+          >
+            <span>{{ t('lyrics.wordSplitBar.startBlock') }}</span>
+          </div>
 
-        <!-- Timing mode: word blocks -->
-        <template v-if="lyricsEditor.splitBarMode.value === 'timing'">
-          <template v-for="(word, wIdx) in words" :key="word.id">
-            <!-- Word block (click to activate) -->
-            <div
-              data-testid="word-block"
-              class="grid min-h-7 cursor-pointer grid-cols-[auto_auto_5.75rem] items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors"
-              :class="wordColor(wIdx)"
-              @click="onWordClick(wIdx)"
+          <!-- Timing mode: word blocks -->
+          <template v-if="lyricsEditor.splitBarMode.value === 'timing'">
+            <template v-for="(word, wIdx) in words" :key="word.id">
+              <!-- Word block (click to activate) -->
+              <div
+                data-testid="word-block"
+                class="flex min-h-7 cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
+                :class="wordColor(wIdx)"
+                @click="onWordClick(wIdx)"
+              >
+                <span>
+                  <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                    ><span
+                      v-if="part.isSpace"
+                      class="text-[10px] text-base-content/30"
+                      >{{ '␣'.repeat(part.text.length) }}</span
+                    ><template v-else>{{ part.text }}</template></template
+                  ><template v-if="!word.text">&nbsp;</template>
+                </span>
+              </div>
+            </template>
+          </template>
+
+          <!-- Cut mode: individual characters with gap hotspots -->
+          <template v-else-if="lyricsEditor.splitBarMode.value === 'cut'">
+            <template v-for="(word, wIdx) in words" :key="word.id">
+              <!-- Split line between words (clickable to merge) -->
+              <div
+                v-if="wIdx > 0"
+                data-testid="split-line"
+                class="flex h-4 w-1.5 cursor-pointer items-center justify-center"
+                @click="onSplitLineClick(wIdx)"
+              >
+                <div class="h-full w-px transition-colors bg-warning" />
+              </div>
+
+              <div
+                data-testid="word-block-cut"
+                class="flex items-center rounded border transition-colors"
+                :class="wordColor(wIdx)"
+              >
+                <template v-for="(char, cIdx) in word.text.split('')" :key="cIdx">
+                  <div
+                    v-if="cIdx > 0"
+                    data-testid="char-gap"
+                    class="flex h-5 w-1.5 cursor-pointer items-center justify-center hover:bg-warning/20"
+                    @click="onCharGapClick(wIdx, cIdx)"
+                  >
+                    <div class="h-full w-px bg-transparent transition-colors" />
+                  </div>
+                  <span
+                    v-if="char === ' '"
+                    class="py-0.5 text-[10px] text-base-content/30"
+                    >␣</span
+                  >
+                  <span v-else class="py-0.5 text-xs">{{ char }}</span>
+                </template>
+              </div>
+            </template>
+          </template>
+
+          <!-- Edit mode: inline word editing -->
+          <template
+            v-else-if="lyricsEditor.splitBarMode.value === 'edit' && !wholeLineEditMode"
+          >
+            <button
+              class="btn btn-xs btn-ghost"
+              data-testid="whole-line-edit-btn"
+              :title="t('lyrics.wordSplitBar.wholeLineEdit')"
+              @click="enterWholeLineEdit"
             >
-              <span>
+              <Icon icon="material-symbols:text-fields" class="text-sm" />
+            </button>
+
+            <template v-for="(word, wIdx) in words" :key="word.id">
+              <div
+                v-if="wIdx > 0"
+                data-testid="edit-gap"
+                class="flex h-5 w-3 cursor-pointer items-center justify-center hover:bg-info/20"
+                @click="onGapClickInsert(wIdx)"
+              >
+                <div class="h-full w-px bg-base-300" />
+              </div>
+
+              <input
+                v-if="editingWordId === word.id"
+                v-model="editingWordText"
+                data-testid="word-edit-input"
+                class="input input-xs input-bordered w-16"
+                @keydown.enter="confirmWordEdit"
+                @keydown.escape="cancelWordEdit"
+                @blur="confirmWordEdit"
+              />
+
+              <div
+                v-else
+                data-testid="word-edit-block"
+                class="group relative cursor-pointer rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-xs transition-colors hover:bg-info/20"
+                @click="onWordClickEdit(word.id, word.text)"
+                @contextmenu.prevent="onRemoveWord(word.id)"
+              >
                 <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
                   ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
                     '␣'.repeat(part.text.length)
                   }}</span
                   ><template v-else>{{ part.text }}</template></template
                 ><template v-if="!word.text">&nbsp;</template>
-              </span>
-              <span class="text-[10px] text-base-content/45">
-                {{
-                  getDerivedStartTime(wIdx) !== undefined
-                    ? formatTimestamp(getDerivedStartTime(wIdx)!)
-                    : '--:--'
-                }}
-                ~
-              </span>
-              <input
-                data-testid="word-end-time-input"
-                type="number"
-                step="0.001"
-                min="0"
-                class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
-                :value="word.endTime ?? ''"
-                placeholder="--:--"
-                @click.stop
-                @change="onWordEndTimeInput(word.id, $event)"
-                @keydown.enter.stop.prevent="onWordEndTimeInput(word.id, $event)"
-              />
-            </div>
-          </template>
-        </template>
-
-        <!-- Cut mode: individual characters with gap hotspots -->
-        <template v-else-if="lyricsEditor.splitBarMode.value === 'cut'">
-          <template v-for="(word, wIdx) in words" :key="word.id">
-            <!-- Split line between words (clickable to merge) -->
-            <div
-              v-if="wIdx > 0"
-              data-testid="split-line"
-              class="flex h-4 w-1.5 cursor-pointer items-center justify-center"
-              @click="onSplitLineClick(wIdx)"
-            >
-              <div class="h-full w-px transition-colors bg-warning" />
-            </div>
-
-            <div
-              data-testid="word-block-cut"
-              class="flex items-center rounded border transition-colors"
-              :class="wordColor(wIdx)"
-            >
-              <template v-for="(char, cIdx) in word.text.split('')" :key="cIdx">
-                <div
-                  v-if="cIdx > 0"
-                  data-testid="char-gap"
-                  class="flex h-5 w-1.5 cursor-pointer items-center justify-center hover:bg-warning/20"
-                  @click="onCharGapClick(wIdx, cIdx)"
+                <button
+                  data-testid="word-delete-btn"
+                  class="pointer-events-none absolute -top-1.5 -right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-error text-error-content opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
+                  :title="t('lyrics.wordSplitBar.deleteWord')"
+                  @click.stop="onRemoveWord(word.id)"
                 >
-                  <div class="h-full w-px bg-transparent transition-colors" />
-                </div>
-                <span
-                  v-if="char === ' '"
-                  class="py-0.5 text-[10px] text-base-content/30"
-                  >␣</span
-                >
-                <span v-else class="py-0.5 text-xs">{{ char }}</span>
-              </template>
-            </div>
+                  <Icon icon="material-symbols:close" class="text-[10px]" />
+                </button>
+              </div>
+            </template>
           </template>
-        </template>
 
-        <!-- Edit mode: inline word editing -->
-        <template
-          v-else-if="lyricsEditor.splitBarMode.value === 'edit' && !wholeLineEditMode"
-        >
-          <button
-            class="btn btn-xs btn-ghost"
-            data-testid="whole-line-edit-btn"
-            :title="t('lyrics.wordSplitBar.wholeLineEdit')"
-            @click="enterWholeLineEdit"
+          <!-- Whole-line edit mode -->
+          <template
+            v-else-if="lyricsEditor.splitBarMode.value === 'edit' && wholeLineEditMode"
           >
-            <Icon icon="material-symbols:text-fields" class="text-sm" />
-          </button>
-
-          <template v-for="(word, wIdx) in words" :key="word.id">
-            <div
-              v-if="wIdx > 0"
-              data-testid="edit-gap"
-              class="flex h-5 w-3 cursor-pointer items-center justify-center hover:bg-info/20"
-              @click="onGapClickInsert(wIdx)"
-            >
-              <div class="h-full w-px bg-base-300" />
-            </div>
-
             <input
-              v-if="editingWordId === word.id"
-              v-model="editingWordText"
-              data-testid="word-edit-input"
-              class="input input-xs input-bordered w-16"
-              @keydown.enter="confirmWordEdit"
-              @keydown.escape="cancelWordEdit"
-              @blur="confirmWordEdit"
+              ref="wholeLineInputRef"
+              v-model="wholeLineText"
+              data-testid="whole-line-input"
+              class="input input-xs input-bordered flex-1"
+              @keydown.enter="confirmWholeLineEdit"
+              @keydown.escape="cancelWholeLineEdit"
             />
-
-            <div
-              v-else
-              data-testid="word-edit-block"
-              class="group relative cursor-pointer rounded border border-info/30 bg-info/10 px-1.5 py-0.5 text-xs transition-colors hover:bg-info/20"
-              @click="onWordClickEdit(word.id, word.text)"
-              @contextmenu.prevent="onRemoveWord(word.id)"
-            >
-              <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
-                ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
-                  '␣'.repeat(part.text.length)
-                }}</span
-                ><template v-else>{{ part.text }}</template></template
-              ><template v-if="!word.text">&nbsp;</template>
-              <button
-                data-testid="word-delete-btn"
-                class="pointer-events-none absolute -top-1.5 -right-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-error text-error-content opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100"
-                :title="t('lyrics.wordSplitBar.deleteWord')"
-                @click.stop="onRemoveWord(word.id)"
-              >
-                <Icon icon="material-symbols:close" class="text-[10px]" />
-              </button>
-            </div>
+            <button class="btn btn-xs btn-success" @click="confirmWholeLineEdit">
+              <Icon icon="material-symbols:check" class="text-sm" />
+            </button>
+            <button class="btn btn-xs btn-ghost" @click="cancelWholeLineEdit">
+              <Icon icon="material-symbols:close" class="text-sm" />
+            </button>
           </template>
-        </template>
+        </div>
 
-        <!-- Whole-line edit mode -->
-        <template
-          v-else-if="lyricsEditor.splitBarMode.value === 'edit' && wholeLineEditMode"
+        <div
+          v-if="
+            lyricsEditor.splitBarMode.value === 'timing' &&
+            (isStartBlockActive() || selectedWord)
+          "
+          data-testid="selected-time-editor"
+          class="ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded border border-base-300 bg-base-200/60 px-1.5 text-[10px] text-base-content/60"
         >
-          <input
-            ref="wholeLineInputRef"
-            v-model="wholeLineText"
-            data-testid="whole-line-input"
-            class="input input-xs input-bordered flex-1"
-            @keydown.enter="confirmWholeLineEdit"
-            @keydown.escape="cancelWholeLineEdit"
-          />
-          <button class="btn btn-xs btn-success" @click="confirmWholeLineEdit">
-            <Icon icon="material-symbols:check" class="text-sm" />
-          </button>
-          <button class="btn btn-xs btn-ghost" @click="cancelWholeLineEdit">
-            <Icon icon="material-symbols:close" class="text-sm" />
-          </button>
-        </template>
+          <template v-if="isStartBlockActive()">
+            <span class="whitespace-nowrap">
+              {{ t('lyrics.wordSplitBar.startBlock') }}
+            </span>
+            <input
+              data-testid="start-time-input"
+              type="number"
+              step="0.001"
+              min="0"
+              class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              :value="activeLine.startTime ?? ''"
+              placeholder="--:--"
+              @change="onStartTimeInput"
+              @keydown.enter.stop.prevent="onStartTimeInput"
+            />
+          </template>
+
+          <template v-else-if="selectedWord">
+            <span class="whitespace-nowrap tabular-nums">
+              {{
+                selectedWordStartTime !== undefined
+                  ? formatTimestamp(selectedWordStartTime)
+                  : '--:--'
+              }}
+              ~
+            </span>
+            <input
+              data-testid="word-end-time-input"
+              type="number"
+              step="0.001"
+              min="0"
+              class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              :value="selectedWord.endTime ?? ''"
+              placeholder="--:--"
+              @change="onWordEndTimeInput(selectedWord.id, $event)"
+              @keydown.enter.stop.prevent="onWordEndTimeInput(selectedWord.id, $event)"
+            />
+          </template>
+        </div>
       </div>
 
       <div v-else class="flex-1 text-xs opacity-40">

@@ -426,11 +426,10 @@ describe('wordSplitBar', () => {
       lyricsEditor.activeWordIndex.value = 1 // first word active
       const { wrapper } = mountComponent(lyricsEditor)
       expect(wrapper.find('[data-testid="numeric-editor"]').exists()).toBe(false)
-      expect(wrapper.find('[data-testid="start-time-input"]').exists()).toBe(true)
-      expect(wrapper.findAll('[data-testid="word-end-time-input"]')).toHaveLength(1)
+      expect(wrapper.find('[data-testid="selected-time-editor"]').exists()).toBe(true)
     })
 
-    it('renders start and word timestamp inputs inline in timing mode', () => {
+    it('renders only the selected word timestamp input in a right-side timing editor', () => {
       const store = useEditorStore()
       store.insertLyricLines([
         {
@@ -444,19 +443,26 @@ describe('wordSplitBar', () => {
       ])
       const lyricsEditor = createMockLyricsEditor()
       lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 2 // second word active
       const { wrapper } = mountComponent(lyricsEditor)
 
-      expect(wrapper.find('[data-testid="start-time-input"]').exists()).toBe(true)
-      expect(wrapper.findAll('[data-testid="word-end-time-input"]')).toHaveLength(2)
-      expect(wrapper.text()).toContain('00:01.250 ~')
-      expect(wrapper.text()).toContain('00:02.500 ~')
+      const editor = wrapper.get('[data-testid="selected-time-editor"]')
+      expect(editor.text()).toContain('00:02.500 ~')
+      expect(wrapper.find('[data-testid="start-time-input"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-testid="word-end-time-input"]')).toHaveLength(1)
+      expect(
+        wrapper
+          .get('[data-testid="word-end-time-input"]')
+          .element.closest('[data-testid="word-block"]'),
+      ).toBeNull()
     })
 
-    it('shows start timestamp input when start block is active', () => {
+    it('shows start timestamp input in the right-side editor when start block is active', () => {
       const store = useEditorStore()
       store.insertLyricLines([
         {
           id: 'line-1',
+          startTime: 1.25,
           words: [{ id: 'w1', text: 'Hello' }],
         },
       ])
@@ -465,7 +471,9 @@ describe('wordSplitBar', () => {
       lyricsEditor.activeWordIndex.value = 0
       const { wrapper } = mountComponent(lyricsEditor)
       expect(wrapper.find('[data-testid="numeric-editor"]').exists()).toBe(false)
-      expect(wrapper.find('[data-testid="start-time-input"]').exists()).toBe(true)
+      const input = wrapper.get('[data-testid="start-time-input"]')
+      expect(input.element.closest('[data-testid="start-block"]')).toBeNull()
+      expect((input.element as HTMLInputElement).value).toBe('1.25')
     })
 
     it('does not show numeric editor when no active line', () => {
@@ -516,18 +524,23 @@ describe('wordSplitBar', () => {
         {
           id: 'line-1',
           startTime: 0,
-          words: [{ id: 'w1', text: 'Hello' }],
+          words: [
+            { id: 'w1', text: 'Hello' },
+            { id: 'w2', text: 'world' },
+          ],
         },
       ])
       const lyricsEditor = createMockLyricsEditor()
       lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 2 // second word active
       const { wrapper } = mountComponent(lyricsEditor)
 
       const input = wrapper.get('[data-testid="word-end-time-input"]')
       await input.setValue('2.500')
       await input.trigger('keydown.enter')
 
-      expect(store.project.lyrics[0].words[0].endTime).toBe(2.5)
+      expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+      expect(store.project.lyrics[0].words[1].endTime).toBe(2.5)
     })
   })
 

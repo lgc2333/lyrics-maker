@@ -455,6 +455,20 @@ describe('transportBar rhythm mode select', () => {
     expect(wrapper.find('[data-testid="rhythm-mode-group"]').exists()).toBe(true)
   })
 
+  it('renders rhythm mode choices as icon-style square buttons', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+
+    for (const testId of [
+      'rhythm-mode-common',
+      'rhythm-mode-triplets',
+      'rhythm-mode-alt',
+    ]) {
+      const button = wrapper.get(`[data-testid="${testId}"]`)
+      expect(button.classes()).toContain('btn-square')
+      expect(button.text().trim()).toBe('')
+    }
+  })
+
   it('marks common rhythm active when effectiveTriplets is false', () => {
     const timeline = makeTimeline({
       effectiveTriplets: computed(
@@ -502,6 +516,31 @@ describe('transportBar rhythm mode select', () => {
     expect(wrapper.get('[data-testid="rhythm-mode-alt"]').classes()).toContain(
       'btn-active',
     )
+  })
+
+  it('colors Alt triplet state and blocks rhythm changes while Alt is held', async () => {
+    const rhythmMode = ref('triplets') as TimelineViewContext['rhythmMode']
+    const timeline = makeTimeline({
+      rhythmMode,
+      altTripletActive: ref(true) as TimelineViewContext['altTripletActive'],
+      effectiveTriplets: computed(
+        () => true,
+      ) as TimelineViewContext['effectiveTriplets'],
+    })
+    const wrapper = mountWithTimeline(timeline)
+
+    const common = wrapper.get('[data-testid="rhythm-mode-common"]')
+    const triplets = wrapper.get('[data-testid="rhythm-mode-triplets"]')
+    const alt = wrapper.get('[data-testid="rhythm-mode-alt"]')
+
+    expect((common.element as HTMLButtonElement).disabled).toBe(true)
+    expect((triplets.element as HTMLButtonElement).disabled).toBe(true)
+    expect((alt.element as HTMLButtonElement).disabled).toBe(true)
+    expect(alt.classes()).toContain('btn-warning')
+
+    await common.trigger('click')
+
+    expect(rhythmMode.value).toBe('triplets')
   })
 })
 

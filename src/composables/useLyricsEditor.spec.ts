@@ -171,6 +171,29 @@ describe('handleMarkKey (D)', () => {
     expect(editor.activeWordIndex.value).toBe(1)
   })
 
+  it('at index 0: advances to index 1 even when a later word is the first untimed word', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'already', endTime: 1.0 },
+          { id: 'w2', text: 'timed', endTime: 2.0 },
+          { id: 'w3', text: 'next' },
+        ],
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 0
+
+    editor.handleMarkKey(0.5)
+    await nextTick()
+
+    expect(store.project.lyrics[0].startTime).toBe(0.5)
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+
   it('at index 1: sets word[0].endTime and advances to 2', async () => {
     const store = useEditorStore()
     store.insertLyricLines([
@@ -190,6 +213,31 @@ describe('handleMarkKey (D)', () => {
     await nextTick()
     expect(store.project.lyrics[0].words[0].endTime).toBe(1.5)
     expect(editor.activeWordIndex.value).toBe(2)
+  })
+
+  it('at a word index: advances to the current index plus one instead of first untimed word', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'first', endTime: 1.0 },
+          { id: 'w2', text: 'current' },
+          { id: 'w3', text: 'already', endTime: 4.0 },
+          { id: 'w4', text: 'untimed' },
+        ],
+        startTime: 0,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 2
+
+    editor.handleMarkKey(2.5)
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[1].endTime).toBe(2.5)
+    expect(editor.activeWordIndex.value).toBe(3)
   })
 
   it('at index N (last word): does nothing', async () => {

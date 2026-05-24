@@ -157,35 +157,44 @@ function stepSubdivision(direction: -1 | 1): void {
     >
       <button
         data-testid="rhythm-mode-common"
-        class="btn btn-xs join-item"
+        class="btn btn-xs btn-square join-item"
         :class="
           !timeline.effectiveTriplets.value && timeline.rhythmMode.value === 'common'
             ? 'btn-active'
             : 'btn-ghost'
         "
+        :disabled="timeline.altTripletActive.value"
+        :title="t('transport.rhythmCommon')"
         @click="timeline.rhythmMode.value = 'common'"
       >
-        {{ t('transport.rhythmCommon') }}
+        <Icon icon="lucide:music" class="h-4 w-4" />
       </button>
       <button
         data-testid="rhythm-mode-triplets"
-        class="btn btn-xs join-item"
+        class="btn btn-xs btn-square join-item"
         :class="
           timeline.effectiveTriplets.value && !timeline.altTripletActive.value
             ? 'btn-active'
             : 'btn-ghost'
         "
+        :disabled="timeline.altTripletActive.value"
+        :title="t('transport.rhythmTriplets')"
         @click="timeline.rhythmMode.value = 'triplets'"
       >
-        {{ t('transport.rhythmTriplets') }}
+        <Icon icon="lucide:triangle" class="h-4 w-4" />
       </button>
       <button
         data-testid="rhythm-mode-alt"
-        class="btn btn-xs join-item"
-        :class="timeline.altTripletActive.value ? 'btn-active' : 'btn-ghost'"
+        class="btn btn-xs btn-square join-item"
+        :class="
+          timeline.altTripletActive.value
+            ? 'btn-active btn-warning text-warning-content'
+            : 'btn-ghost'
+        "
+        :title="t('transport.rhythmTripletsAlt')"
         disabled
       >
-        {{ t('transport.rhythmTripletsAlt') }}
+        <Icon icon="lucide:keyboard" class="h-4 w-4" />
       </button>
     </div>
 
