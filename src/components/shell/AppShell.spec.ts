@@ -87,6 +87,7 @@ describe('appShell', () => {
     expect(wrapper.find('[data-testid="transport-bar"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="main-view"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="status-bar"]').exists()).toBe(true)
   })
 
   it('renders timing panel by default and can switch to lyrics panel', async () => {
@@ -99,6 +100,15 @@ describe('appShell', () => {
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(false)
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
+  })
+
+  it('can switch to lyrics panel without imported audio', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+
     expect(wrapper.find('[data-testid="timing-points-panel"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
   })
@@ -125,6 +135,20 @@ describe('appShell', () => {
     )
     await vi.waitFor(() => {
       expect(store.project.lyrics).toHaveLength(0)
+    })
+  })
+
+  it('shows a status message when Ctrl+Z has nothing to undo', async () => {
+    const wrapper = mount(AppShell)
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
+
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+        '没有可撤销的操作',
+      )
     })
   })
 

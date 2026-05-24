@@ -266,6 +266,12 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       pxPerSec.value = newPps
       wavesurferView?.zoom(newPps)
     } else if (e.shiftKey) {
+      if (!store.hasAudio) {
+        store.showStatus('status.audioRequired', {
+          action: e.deltaY < 0 ? 'transport.nextBeat' : 'transport.prevBeat',
+        })
+        return
+      }
       const options = [1, 2, 4, 8, 16] as const
       const idx = options.indexOf(divisor.value as (typeof options)[number])
       if (e.deltaY < 0 && idx < options.length - 1) {

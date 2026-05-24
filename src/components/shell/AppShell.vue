@@ -12,6 +12,7 @@ import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
+import StatusBar from './StatusBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
 import {
@@ -183,10 +184,8 @@ useEditorShortcuts({
       data-testid="menu-bar"
       :mode="editorMode"
       :theme="theme"
-      :audio-loaded="!!store.audioFile"
       @switchMode="
         (mode) => {
-          if (mode === 'lyrics' && !store.audioFile) return
           editorMode = mode
         }
       "
@@ -224,5 +223,6 @@ useEditorShortcuts({
       data-testid="timing-points-panel"
     />
     <LyricsPanel v-else data-testid="lyrics-panel" />
+    <StatusBar />
   </div>
 </template>

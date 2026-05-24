@@ -249,6 +249,96 @@ describe('handleMarkKey (D)', () => {
   })
 })
 
+describe('lyrics timing guards without audio', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('handleMarkKey reports missing audio and does not set line startTime', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'hello' }] }])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+
+    editor.handleMarkKey()
+    await nextTick()
+
+    expect(store.project.lyrics[0].startTime).toBeUndefined()
+    expect(editor.activeWordIndex.value).toBe(0)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('lyrics.mark')
+  })
+
+  it('handleMarkNoAdvanceKey reports missing audio and does not set word endTime', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handleMarkNoAdvanceKey()
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+    expect(editor.activeWordIndex.value).toBe(1)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('lyrics.mark')
+  })
+
+  it('handleNextLineKey reports missing audio and does not finalize current line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+
+    editor.handleNextLineKey()
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+    expect(editor.activeLineId.value).toBe('l1')
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('lyrics.nextLine')
+  })
+
+  it('play line interval reports missing audio without starting playback', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 2 }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+
+    editor.handlePlayLineInterval()
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('lyrics.playLineInterval')
+  })
+
+  it('play word interval reports missing audio without starting playback', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 2 }], startTime: 0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handlePlayWordInterval()
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('lyrics.playWordInterval')
+  })
+})
+
 describe('handleNextLineKey (Enter)', () => {
   beforeEach(async () => {
     __overrideAudioTransportFactory(() => createMockAudioTransport())

@@ -207,6 +207,52 @@ describe('editor store (phase 1)', () => {
     expect(store.lastError).toBeNull()
   })
 
+  it('initializes status message as null', () => {
+    const store = useEditorStore()
+    expect(store.statusMessage).toBeNull()
+  })
+
+  it('reports no undo and no redo through status messages', () => {
+    const store = useEditorStore()
+
+    store.undo()
+    expect(store.statusMessage?.key).toBe('status.history.noUndo')
+
+    store.redo()
+    expect(store.statusMessage?.key).toBe('status.history.noRedo')
+  })
+
+  it('reports undo and redo with command labels', () => {
+    const store = useEditorStore()
+
+    store.addLyricLine('hello world')
+    store.undo()
+
+    expect(store.statusMessage?.key).toBe('status.history.undo')
+    expect(store.statusMessage?.params?.commandLabel).toBe('lyrics.addLine')
+
+    store.redo()
+
+    expect(store.statusMessage?.key).toBe('status.history.redo')
+    expect(store.statusMessage?.params?.commandLabel).toBe('lyrics.addLine')
+  })
+
+  it('can show and clear a manual status message', () => {
+    const store = useEditorStore()
+
+    store.showStatus('status.audioRequired', {
+      action: 'transport.playPause',
+    })
+
+    expect(store.statusMessage).toMatchObject({
+      key: 'status.audioRequired',
+      params: { action: 'transport.playPause' },
+    })
+
+    store.clearStatus()
+    expect(store.statusMessage).toBeNull()
+  })
+
   it('markClean sets dirty to false', () => {
     const store = useEditorStore()
 
@@ -237,6 +283,7 @@ describe('editor store (phase 1)', () => {
     expect(parsed.lyrics).toHaveLength(1)
     expect(parsed.lyrics[0].words[0].text).toBe('hello world')
     expect(store.dirty).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.project.saveSuccess')
   })
 
   it('saveProject sets lastError on failure', async () => {
@@ -255,6 +302,7 @@ describe('editor store (phase 1)', () => {
 
     expect(result.ok).toBe(false)
     expect(store.lastError).toBe('unsupported')
+    expect(store.statusMessage?.key).toBe('status.project.saveFailed')
   })
 })
 
@@ -379,6 +427,26 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.isPlaying).toBe(false)
   })
 
+  it('reports load failure and does not mark audio as available when import fails', async () => {
+    const failingTransport = createMockAudioTransport().transport
+    failingTransport.loadFile = vi.fn(async () => {
+      throw new Error('load failed')
+    })
+    failingTransport.getDuration = vi.fn(() => 120)
+    __overrideAudioTransportFactory(() => failingTransport)
+    setActivePinia(createPinia())
+
+    const store = useEditorStore()
+
+    await expect(
+      store.importAudioFile(new File(['x'], 'broken.mp3', { type: 'audio/mpeg' })),
+    ).rejects.toThrow('load failed')
+
+    expect(store.audioFile).toBeNull()
+    expect(store.hasAudio).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audio.loadFailed')
+  })
+
   it('can toggle playback after replacing audio during playback', async () => {
     // Bug: When replacing audio while playing, Chrome may cancel the queued
     // 'pause' event task when audioElement.src changes inside loadFile().
@@ -459,12 +527,13 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(mockTransport.pause).toHaveBeenCalled()
   })
 
-  it('togglePlayback is a no-op when no transport loaded', async () => {
+  it('togglePlayback reports missing audio when no transport loaded', async () => {
     const store = useEditorStore()
 
-    // Should not throw
     await store.togglePlayback()
     expect(store.isPlaying).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.playPause')
   })
 
   it('pausePlayback is a no-op when no transport loaded', () => {
@@ -616,13 +685,13 @@ describe('editor store (phase 2 - TAP BPM)', () => {
     expect(store.tapCount).toBe(2)
   })
 
-  it('tapBpm is a no-op when no transport loaded', () => {
+  it('tapBpm reports missing audio when no transport loaded', () => {
     // Use a fresh store with no audio imported
     const store = useEditorStore()
 
-    // no audio imported, tapBpm should be a no-op
     store.tapBpm(0.5)
     expect(store.tapCount).toBe(0)
+    expect(store.statusMessage?.key).toBe('status.tapBpm.noAudio')
   })
 })
 

@@ -181,8 +181,8 @@ export class LineOverlayPlugin extends BasePlugin<
           const sx = Math.round((wordStart - this.visibleStart) * pxPerSec) + 0.5
           if (sx >= 0 && sx <= w) {
             ctx.strokeStyle = isActive
-              ? 'rgba(255, 255, 255, 0.5)'
-              : 'rgba(255, 255, 255, 0.25)'
+              ? 'rgba(255, 214, 80, 0.85)'
+              : 'rgba(255, 214, 80, 0.45)'
             ctx.lineWidth = 1
             ctx.setLineDash([4, 3])
             ctx.beginPath()

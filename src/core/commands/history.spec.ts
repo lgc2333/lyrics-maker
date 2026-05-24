@@ -49,6 +49,32 @@ describe('createCommandHistory', () => {
     expect(history.canRedo).toBe(false)
   })
 
+  it('exposes next undo and redo command labels', () => {
+    const addOne: Command<number> = {
+      label: 'add one',
+      do: (state) => state + 1,
+      undo: (state) => state - 1,
+    }
+    const addTwo: Command<number> = {
+      label: 'add two',
+      do: (state) => state + 2,
+      undo: (state) => state - 2,
+    }
+
+    const history = createCommandHistory(0)
+    expect(history.nextUndoLabel).toBeNull()
+    expect(history.nextRedoLabel).toBeNull()
+
+    history.execute(addOne)
+    history.execute(addTwo)
+    expect(history.nextUndoLabel).toBe('add two')
+    expect(history.nextRedoLabel).toBeNull()
+
+    history.undo()
+    expect(history.nextUndoLabel).toBe('add one')
+    expect(history.nextRedoLabel).toBe('add two')
+  })
+
   it('clears redo history after a new execute', () => {
     const addOne: Command<number> = {
       label: 'add one',

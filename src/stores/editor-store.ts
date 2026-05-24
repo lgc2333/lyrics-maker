@@ -46,6 +46,12 @@ function makeId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`
 }
 
+export interface StatusMessage {
+  id: number
+  key: string
+  params?: Record<string, string | number | boolean>
+}
+
 export interface ProjectFileService {
   saveAs: (content: string) => Promise<SaveResult>
   save: (content: string) => Promise<SaveResult>
@@ -92,6 +98,8 @@ export const useEditorStore = defineStore('editor', () => {
   )
   const dirty = shallowRef(false)
   const lastError = shallowRef<string | null>(null)
+  const statusMessage = shallowRef<StatusMessage | null>(null)
+  let statusMessageId = 0
 
   // ---- Phase 2: audio + timing state ----
   const _audioTransport = shallowRef<AudioTransport | null>(null)
@@ -129,6 +137,7 @@ export const useEditorStore = defineStore('editor', () => {
   const tapSampleCount = computed(() => _tapSampleCount.value)
   const tapEstimatedBpm = computed(() => _tapEstimatedBpm.value)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
+  const hasAudio = computed(() => _audioFile.value !== null && duration.value > 0)
   const progressRatio = computed(() =>
     duration.value > 0
       ? Math.min(1, Math.max(0, _currentTime.value / duration.value))
@@ -137,10 +146,35 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ---- Helpers ----
 
-  function execute(command: Parameters<typeof history.value.execute>[0]) {
+  function showStatus(
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ): void {
+    statusMessage.value = {
+      id: ++statusMessageId,
+      key,
+      params,
+    }
+  }
+
+  function clearStatus(): void {
+    statusMessage.value = null
+  }
+
+  function execute(
+    command: Parameters<typeof history.value.execute>[0],
+    statusKey?: string,
+    statusParams?: Record<string, string | number | boolean>,
+  ) {
     history.value.execute(command)
     dirty.value = true
     triggerRef(history)
+    if (statusKey) {
+      showStatus(statusKey, {
+        commandLabel: command.label,
+        ...(statusParams ?? {}),
+      })
+    }
   }
 
   function _ensureAudioTransport(): AudioTransport {
@@ -226,6 +260,7 @@ export const useEditorStore = defineStore('editor', () => {
         id: makeId('line'),
         words: [{ id: makeId('word'), text }],
       }),
+      'status.lyrics.addLine',
     )
   }
 
@@ -239,17 +274,29 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function undo() {
+    const commandLabel = history.value.nextUndoLabel
+    if (!commandLabel) {
+      showStatus('status.history.noUndo')
+      return
+    }
     history.value.undo()
     dirty.value = true
     triggerRef(history)
     _syncAudioHardware()
+    showStatus('status.history.undo', { commandLabel })
   }
 
   function redo() {
+    const commandLabel = history.value.nextRedoLabel
+    if (!commandLabel) {
+      showStatus('status.history.noRedo')
+      return
+    }
     history.value.redo()
     dirty.value = true
     triggerRef(history)
     _syncAudioHardware()
+    showStatus('status.history.redo', { commandLabel })
   }
 
   function markClean() {
@@ -266,8 +313,15 @@ export const useEditorStore = defineStore('editor', () => {
       if (saveAsResult.ok) {
         markClean()
         lastError.value = null
+        showStatus('status.project.saveSuccess')
       } else if (saveAsResult.reason !== 'cancelled') {
         lastError.value = saveAsResult.reason ?? 'unknown'
+        showStatus('status.project.saveFailed', {
+          reason: saveAsResult.reason ?? 'unknown',
+        })
+      }
+      if (!saveAsResult.ok && saveAsResult.reason === 'cancelled') {
+        showStatus('status.project.saveCancelled')
       }
       return saveAsResult
     }
@@ -275,8 +329,10 @@ export const useEditorStore = defineStore('editor', () => {
     if (result.ok) {
       markClean()
       lastError.value = null
-    } else if (result.reason !== 'cancelled') {
+      showStatus('status.project.saveSuccess')
+    } else {
       lastError.value = result.reason ?? 'unknown'
+      showStatus('status.project.saveFailed', { reason: result.reason ?? 'unknown' })
     }
 
     return result
@@ -304,13 +360,23 @@ export const useEditorStore = defineStore('editor', () => {
 
     _audioFile.value = file
     const transport = _ensureAudioTransport()
-    await transport.loadFile(file)
-    triggerRef(_audioTransport)
+    try {
+      await transport.loadFile(file)
+      triggerRef(_audioTransport)
+      showStatus('status.audio.importSuccess', { fileName: file.name })
+    } catch (error) {
+      _audioFile.value = null
+      showStatus('status.audio.loadFailed')
+      throw error
+    }
   }
 
   async function togglePlayback(): Promise<void> {
     const transport = _audioTransport.value
-    if (!transport) return
+    if (!transport) {
+      showStatus('status.audioRequired', { action: 'transport.playPause' })
+      return
+    }
 
     if (transport.getIsPlaying()) {
       const stoppedAt = transport.getCurrentTime()
@@ -343,15 +409,15 @@ export const useEditorStore = defineStore('editor', () => {
 
   function addTimingPoint(input: Omit<TimingPoint, 'id'>): void {
     const point: TimingPoint = { id: makeId('tp'), ...input }
-    execute(createAddTimingPointCommand(point))
+    execute(createAddTimingPointCommand(point), 'status.timing.addPoint')
   }
 
   function updateTimingPoint(id: string, patch: Partial<TimingPoint>): void {
-    execute(createUpdateTimingPointCommand(id, patch))
+    execute(createUpdateTimingPointCommand(id, patch), 'status.timing.updatePoint')
   }
 
   function removeTimingPoint(id: string): void {
-    execute(createRemoveTimingPointCommand(id))
+    execute(createRemoveTimingPointCommand(id), 'status.timing.removePoint')
   }
 
   // ---- Phase 2: TAP BPM ----
@@ -368,7 +434,10 @@ export const useEditorStore = defineStore('editor', () => {
     const transport = _audioTransport.value
 
     // Guard: require a loaded transport so timestamps are meaningful
-    if (!transport) return
+    if (!transport) {
+      showStatus('status.tapBpm.noAudio')
+      return
+    }
 
     // Determine tap timestamp
     let t: number
@@ -408,6 +477,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (estimate) {
       const activePoint = getActiveTimingPoint(project.value.timingPoints, t)
       updateTimingPoint(activePoint.id, { bpm: estimate.bpm })
+      showStatus('status.tapBpm.updated', { bpm: estimate.bpm.toFixed(1) })
     }
   }
 
@@ -431,16 +501,19 @@ export const useEditorStore = defineStore('editor', () => {
         // Playing → schedule one latch click at next beat, then stop
         m.setEnabled(false)
         _metronomeState.value = 'latch_pending'
+        showStatus('status.metronome.latchPending')
       } else {
         // Not playing → turn off silently.
         m.setEnabled(false)
         m.cancelPendingClicks()
         _metronomeState.value = 'off'
+        showStatus('status.metronome.off')
       }
     } else {
       // off or latch_pending → turn on (setEnabled(true) also cancels any pending latch)
       m.setEnabled(true)
       _metronomeState.value = 'on'
+      showStatus('status.metronome.on')
     }
   }
 
@@ -448,21 +521,32 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setMusicVolume(value: number): void {
     const clamped = Math.max(0, Math.min(1, value))
-    execute(createSetAudioVolumeCommand('music', clamped))
+    execute(
+      createSetAudioVolumeCommand('music', clamped),
+      'status.settings.musicVolume',
+      {
+        value: Math.round(clamped * 100),
+      },
+    )
     // Also apply to audio transport if loaded
     _audioTransport.value?.setVolume(clamped)
   }
 
   function setSfxVolume(value: number): void {
     const clamped = Math.max(0, Math.min(1, value))
-    execute(createSetAudioVolumeCommand('sfx', clamped))
+    execute(createSetAudioVolumeCommand('sfx', clamped), 'status.settings.sfxVolume', {
+      value: Math.round(clamped * 100),
+    })
     // Also apply to metronome if loaded
     _metronome.value?.setSfxVolume(clamped)
   }
 
   function seekPlayback(time: number): void {
     const transport = _audioTransport.value
-    if (!transport) return
+    if (!transport) {
+      showStatus('status.audioRequired', { action: 'transport.seek' })
+      return
+    }
     const d = duration.value
     const target = Math.max(0, Math.min(d || 0, time))
     transport.seek(target)
@@ -476,12 +560,20 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function seekToPreviousBar(): void {
+    if (!hasAudio.value) {
+      showStatus('status.audioRequired', { action: 'transport.prevBar' })
+      return
+    }
     if (project.value.timingPoints.length === 0) return
     const t = getPreviousBarTime(project.value.timingPoints, _currentTime.value)
     seekPlayback(Math.max(0, t))
   }
 
   function seekToNextBar(): void {
+    if (!hasAudio.value) {
+      showStatus('status.audioRequired', { action: 'transport.nextBar' })
+      return
+    }
     if (project.value.timingPoints.length === 0) return
     const t = getNextBarBoundaryTime(project.value.timingPoints, _currentTime.value)
     const d = duration.value
@@ -491,16 +583,22 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 3: Settings ----
 
   function setRhythmMode(mode: 'common' | 'triplets'): void {
-    execute(createSetRhythmModeCommand(mode))
+    execute(createSetRhythmModeCommand(mode), 'status.settings.rhythmMode', { mode })
   }
 
   function setSnapDivisor(divisor: 1 | 2 | 4 | 8 | 16): void {
-    execute(createSetSnapDivisorCommand(divisor))
+    execute(createSetSnapDivisorCommand(divisor), 'status.settings.snapDivisor', {
+      divisor,
+    })
   }
 
   // ---- Phase 3: Subdivision seek ----
 
   function seekToNextBeat(divisor: number, triplets: boolean): void {
+    if (!hasAudio.value) {
+      showStatus('status.audioRequired', { action: 'transport.nextBeat' })
+      return
+    }
     if (project.value.timingPoints.length === 0) return
     const t = getNextSubdivisionTime(
       project.value.timingPoints,
@@ -512,6 +610,10 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function seekToPrevBeat(divisor: number, triplets: boolean): void {
+    if (!hasAudio.value) {
+      showStatus('status.audioRequired', { action: 'transport.prevBeat' })
+      return
+    }
     if (project.value.timingPoints.length === 0) return
     const t = getPreviousSubdivisionTime(
       project.value.timingPoints,
@@ -525,39 +627,56 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 4: Lyrics ----
 
   function insertLyricLines(lines: LyricLine[]): void {
-    execute(createInsertLyricLinesCommand(lines))
+    execute(createInsertLyricLinesCommand(lines), 'status.lyrics.insertLines', {
+      count: lines.length,
+    })
   }
 
   function removeLyricLine(lineId: string): void {
-    execute(createRemoveLyricLineCommand(lineId))
+    execute(createRemoveLyricLineCommand(lineId), 'status.lyrics.removeLine')
   }
 
   function setLineStartTime(lineId: string, time: number): void {
-    execute(createSetLineStartTimeCommand(lineId, time))
+    execute(
+      createSetLineStartTimeCommand(lineId, time),
+      'status.lyrics.setLineStartTime',
+    )
   }
 
   function setWordEndTime(lineId: string, wordId: string, time: number): void {
-    execute(createSetWordEndTimeCommand(lineId, wordId, time))
+    execute(
+      createSetWordEndTimeCommand(lineId, wordId, time),
+      'status.lyrics.setWordEndTime',
+    )
   }
 
   function clearWordEndTime(lineId: string, wordId: string): void {
-    execute(createClearWordEndTimeCommand(lineId, wordId))
+    execute(
+      createClearWordEndTimeCommand(lineId, wordId),
+      'status.lyrics.clearWordEndTime',
+    )
   }
 
   function splitWord(lineId: string, wordId: string, charIndex: number): void {
-    execute(createSplitWordCommand(lineId, wordId, charIndex, crypto.randomUUID()))
+    execute(
+      createSplitWordCommand(lineId, wordId, charIndex, crypto.randomUUID()),
+      'status.lyrics.splitWord',
+    )
   }
 
   function mergeWords(lineId: string, wordId: string): void {
-    execute(createMergeWordsCommand(lineId, wordId))
+    execute(createMergeWordsCommand(lineId, wordId), 'status.lyrics.mergeWords')
   }
 
   function removeWord(lineId: string, wordId: string): void {
-    execute(createRemoveWordCommand(lineId, wordId))
+    execute(createRemoveWordCommand(lineId, wordId), 'status.lyrics.removeWord')
   }
 
   function updateWordText(lineId: string, wordId: string, newText: string): void {
-    execute(createUpdateWordTextCommand(lineId, wordId, newText))
+    execute(
+      createUpdateWordTextCommand(lineId, wordId, newText),
+      'status.lyrics.updateWordText',
+    )
   }
 
   function insertWord(
@@ -565,14 +684,20 @@ export const useEditorStore = defineStore('editor', () => {
     insertIndex: number,
     word: { id: string; text: string },
   ): void {
-    execute(createInsertWordCommand(lineId, insertIndex, word))
+    execute(
+      createInsertWordCommand(lineId, insertIndex, word),
+      'status.lyrics.insertWord',
+    )
   }
 
   function replaceLineWords(
     lineId: string,
     newWords: { id: string; text: string }[],
   ): void {
-    execute(createReplaceLineWordsCommand(lineId, newWords))
+    execute(
+      createReplaceLineWordsCommand(lineId, newWords),
+      'status.lyrics.replaceLineWords',
+    )
   }
 
   // ---- Return ----
@@ -584,6 +709,9 @@ export const useEditorStore = defineStore('editor', () => {
     canUndo,
     canRedo,
     lastError,
+    statusMessage,
+    showStatus,
+    clearStatus,
     addLyricLine,
     undo,
     redo,
@@ -600,6 +728,7 @@ export const useEditorStore = defineStore('editor', () => {
     tapSampleCount,
     tapEstimatedBpm,
     duration,
+    hasAudio,
     progressRatio,
 
     // Phase 2: audio

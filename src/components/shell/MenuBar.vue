@@ -6,7 +6,6 @@ import { useI18n } from 'vue-i18n'
 defineProps<{
   mode: 'timing' | 'lyrics'
   theme: 'light' | 'dark'
-  audioLoaded: boolean
 }>()
 const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
@@ -276,7 +275,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
               ? 'bg-base-100 font-semibold shadow'
               : 'text-base-content/70 hover:text-base-content'
           "
-          :disabled="!audioLoaded"
           @click="emit('switchMode', 'lyrics')"
         >
           {{ t('shell.mode.lyrics') }}

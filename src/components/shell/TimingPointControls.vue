@@ -155,7 +155,6 @@ const tapBpmClass = computed(() => {
       <button
         data-testid="tap-bpm-button"
         :class="tapBpmClass"
-        :disabled="store.duration <= 0"
         @click="$emit('tapBpm')"
       >
         {{ tapBpmLabel }}

@@ -106,14 +106,26 @@ describe('transportBar', () => {
     expect(Number((slider.element as HTMLInputElement).value)).toBe(store.currentTime)
   })
 
-  it('disables slider when no audio loaded (duration=0)', () => {
+  it('keeps slider enabled when no audio is loaded so it can report status', () => {
     const transport = createMockTransport()
     transport.getDuration = vi.fn(() => 0)
     __overrideAudioTransportFactory(() => transport)
 
     const wrapper = mount(TransportBar)
     const slider = wrapper.get('[data-testid="playback-progress"]')
-    expect((slider.element as HTMLInputElement).disabled).toBe(true)
+    expect((slider.element as HTMLInputElement).disabled).toBe(false)
+  })
+
+  it('reports missing audio when progress slider is moved before import', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+    const slider = wrapper.get('[data-testid="playback-progress"]')
+
+    await slider.setValue(12)
+
+    expect(store.currentTime).toBe(0)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.seek')
   })
 
   // ---- Seek behavior ----
@@ -179,6 +191,16 @@ describe('transportBar', () => {
     // seekToPreviousBar is called via click — verify it doesn't throw
   })
 
+  it('previous bar button reports missing audio before import', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="prev-bar"]').trigger('click')
+
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.prevBar')
+  })
+
   it('next bar button calls store.seekToNextBar', async () => {
     const wrapper = mount(TransportBar)
     const store = useEditorStore()
@@ -194,6 +216,16 @@ describe('transportBar', () => {
     await btn.trigger('click')
 
     // seekToNextBar is called via click — verify it doesn't throw
+  })
+
+  it('next bar button reports missing audio before import', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="next-bar"]').trigger('click')
+
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.nextBar')
   })
 
   // ---- Volume wheel ----
@@ -318,6 +350,17 @@ describe('transportBar', () => {
   })
 
   // ---- Play/Pause ----
+
+  it('play/pause button reports missing audio before import', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="play-pause"]').trigger('click')
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.playPause')
+  })
 
   it('play/pause button triggers togglePlayback without error', async () => {
     const mockTransport = createMockTransport()

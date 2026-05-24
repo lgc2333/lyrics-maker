@@ -89,6 +89,10 @@ export function useLyricsEditor() {
   function handleMarkKey(currentTime?: number): void {
     if (!activeLineId.value) return
     splitBarMode.value = 'timing'
+    if (currentTime === undefined && !store.hasAudio) {
+      store.showStatus('status.audioRequired', { action: 'lyrics.mark' })
+      return
+    }
     const line = activeLine.value
     if (!line) return
     const N = line.words.length
@@ -131,6 +135,10 @@ export function useLyricsEditor() {
   function handleNextLineKey(currentTime?: number): void {
     if (!activeLineId.value) return
     splitBarMode.value = 'timing'
+    if (currentTime === undefined && !store.hasAudio) {
+      store.showStatus('status.audioRequired', { action: 'lyrics.nextLine' })
+      return
+    }
     const lyrics = store.project.lyrics
     const lineIndex = lyrics.findIndex((l) => l.id === activeLineId.value)
     if (lineIndex === -1) return
@@ -158,6 +166,10 @@ export function useLyricsEditor() {
   function handleMarkNoAdvanceKey(currentTime?: number): void {
     if (!activeLineId.value) return
     splitBarMode.value = 'timing'
+    if (currentTime === undefined && !store.hasAudio) {
+      store.showStatus('status.audioRequired', { action: 'lyrics.mark' })
+      return
+    }
     const line = activeLine.value
     if (!line) return
     const N = line.words.length
@@ -217,6 +229,10 @@ export function useLyricsEditor() {
 
   function handlePlayLineInterval(): void {
     if (!activeLineId.value) return
+    if (!store.hasAudio) {
+      store.showStatus('status.audioRequired', { action: 'lyrics.playLineInterval' })
+      return
+    }
     const line = activeLine.value
     if (!line || line.startTime === undefined) return
     const lastWord = line.words[line.words.length - 1]
@@ -227,6 +243,10 @@ export function useLyricsEditor() {
 
   function handlePlayWordInterval(): void {
     if (!activeLineId.value) return
+    if (!store.hasAudio) {
+      store.showStatus('status.audioRequired', { action: 'lyrics.playWordInterval' })
+      return
+    }
     const line = activeLine.value
     if (!line) return
     if (activeWordIndex.value === 0 || activeWordIndex.value > line.words.length) return

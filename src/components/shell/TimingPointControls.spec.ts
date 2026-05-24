@@ -66,6 +66,17 @@ describe('timingPointControls', () => {
     expect((select.element as HTMLSelectElement).value).toBe('8')
   })
 
+  it('renders localized timing labels', () => {
+    const point = makePoint()
+    const wrapper = mount(TimingPointControls, {
+      props: { focusedPoint: point, activePoint: null },
+    })
+
+    expect(wrapper.text()).toContain('偏移')
+    expect(wrapper.text()).toContain('设为当前时间')
+    expect(wrapper.text()).toContain('点击测 BPM')
+  })
+
   it('renders with default values when focusedPoint is null', () => {
     const wrapper = mount(TimingPointControls, {
       props: { focusedPoint: null, activePoint: null },
@@ -152,14 +163,14 @@ describe('timingPointControls', () => {
     expect(wrapper.emitted('updateDenominator')![0]).toEqual([2])
   })
 
-  it('tap bpm button is disabled when no audio loaded', () => {
+  it('tap bpm button stays enabled when no audio is loaded so callers can report status', () => {
     const point = makePoint()
     const wrapper = mount(TimingPointControls, {
       props: { focusedPoint: point, activePoint: null },
     })
 
     const btn = wrapper.get('[data-testid="tap-bpm-button"]')
-    expect((btn.element as HTMLButtonElement).disabled).toBe(true)
+    expect((btn.element as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('tap bpm button is enabled and emits tapBpm when audio loaded', async () => {

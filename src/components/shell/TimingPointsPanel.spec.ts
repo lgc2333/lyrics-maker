@@ -188,10 +188,15 @@ describe('timingPointsPanel', () => {
     expect(store.tapCount).toBeGreaterThan(0)
   })
 
-  it('tap bpm button is disabled when no audio loaded', () => {
+  it('tap bpm button reports missing audio when no audio loaded', async () => {
     const wrapper = mount(TimingPointsPanel)
+    const store = useEditorStore()
     const btn = wrapper.get('[data-testid="tap-bpm-button"]')
-    expect((btn.element as HTMLButtonElement).disabled).toBe(true)
+    expect((btn.element as HTMLButtonElement).disabled).toBe(false)
+
+    await btn.trigger('click')
+
+    expect(store.statusMessage?.key).toBe('status.tapBpm.noAudio')
   })
 
   it('clears selectedId when selected timing point is removed', async () => {

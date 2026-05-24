@@ -4,6 +4,8 @@ export interface CommandHistory<TState> {
   readonly state: TState
   readonly canUndo: boolean
   readonly canRedo: boolean
+  readonly nextUndoLabel: string | null
+  readonly nextRedoLabel: string | null
   execute: (command: Command<TState>) => void
   undo: () => void
   redo: () => void
@@ -35,6 +37,12 @@ export function createCommandHistory<TState>(
     },
     get canRedo() {
       return redoStack.length > 0
+    },
+    get nextUndoLabel() {
+      return undoStack[undoStack.length - 1]?.label ?? null
+    },
+    get nextRedoLabel() {
+      return redoStack[redoStack.length - 1]?.label ?? null
     },
     execute(command) {
       const newState = command.do(state)

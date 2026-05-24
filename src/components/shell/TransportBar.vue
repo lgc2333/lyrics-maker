@@ -198,11 +198,10 @@ function onVerticalZoomWheel(event: WheelEvent): void {
       data-testid="playback-progress"
       type="range"
       min="0"
-      :max="store.duration || 0"
+      :max="store.duration || 1"
       step="0.001"
       :value="store.currentTime"
       class="range range-xs flex-1"
-      :disabled="store.duration <= 0"
       @input="onSeek"
     />
 

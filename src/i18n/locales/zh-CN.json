@@ -54,11 +54,11 @@
       "delete": "删除"
     },
     "controls": {
-      "offset": "Offset",
-      "setToCurrentTime": "Set offset to current time",
+      "offset": "偏移",
+      "setToCurrentTime": "设为当前时间",
       "bpm": "BPM",
       "timeSignature": "拍号",
-      "tapBpmIdle": "Tap to get BPM! (B)",
+      "tapBpmIdle": "点击测 BPM (B)",
       "tapBpmHint": "Tap",
       "tapBpmActive": "{bpm} BPM / {count} Taps"
     }
@@ -102,7 +102,103 @@
     "waveformLoadFailed": "波形加载失败"
   },
   "status": {
+    "ready": "就绪",
     "dirty": "未保存更改",
-    "saved": "已保存"
+    "saved": "已保存",
+    "audioRequired": "{action} 需要先导入音频",
+    "history": {
+      "undo": "已撤销：{commandLabel}",
+      "redo": "已重做：{commandLabel}",
+      "noUndo": "没有可撤销的操作",
+      "noRedo": "没有可重做的操作"
+    },
+    "project": {
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失败：{reason}",
+      "saveCancelled": "已取消保存"
+    },
+    "audio": {
+      "importSuccess": "已导入音乐：{fileName}",
+      "loadFailed": "音频加载失败"
+    },
+    "tapBpm": {
+      "noAudio": "Tap BPM 需要先导入音频",
+      "updated": "Tap BPM 已更新为 {bpm}"
+    },
+    "timing": {
+      "addPoint": "已新增 Timing Point",
+      "updatePoint": "已更新 Timing Point",
+      "removePoint": "已删除 Timing Point"
+    },
+    "metronome": {
+      "on": "节拍器已开启",
+      "off": "节拍器已关闭",
+      "latchPending": "节拍器将在下一拍后关闭"
+    },
+    "settings": {
+      "rhythmMode": "节奏模式已切换为 {mode}",
+      "snapDivisor": "细分倍数已设为 {divisor}x",
+      "musicVolume": "音乐音量 {value}%",
+      "sfxVolume": "音效音量 {value}%"
+    },
+    "lyrics": {
+      "addLine": "已添加歌词行",
+      "insertLines": "已导入 {count} 行歌词",
+      "removeLine": "已删除歌词行",
+      "setLineStartTime": "已设置行起始时间",
+      "setWordEndTime": "已设置词结束时间",
+      "clearWordEndTime": "已清除词结束时间",
+      "splitWord": "已切分词块",
+      "mergeWords": "已合并词块",
+      "removeWord": "已删除词块",
+      "updateWordText": "已编辑词块",
+      "insertWord": "已插入词块",
+      "replaceLineWords": "已重写歌词行"
+    },
+    "action": {
+      "transport": {
+        "playPause": "播放/暂停",
+        "seek": "跳转进度",
+        "prevBeat": "上一拍线",
+        "nextBeat": "下一拍线",
+        "prevBar": "上一小节",
+        "nextBar": "下一小节"
+      },
+      "lyrics": {
+        "mark": "歌词打轴",
+        "nextLine": "切到下一句",
+        "playLineInterval": "播放当前行",
+        "playWordInterval": "播放当前词"
+      }
+    },
+    "command": {
+      "audio": {
+        "setMusicVolume": "调整音乐音量",
+        "setSfxVolume": "调整音效音量"
+      },
+      "lyrics": {
+        "addLine": "添加歌词行",
+        "insertLines": "导入歌词",
+        "removeLine": "删除歌词行",
+        "setLineStartTime": "设置行起始时间",
+        "setWordEndTime": "设置词结束时间",
+        "clearWordEndTime": "清除词结束时间",
+        "splitWord": "切分词块",
+        "mergeWords": "合并词块",
+        "removeWord": "删除词块",
+        "updateWordText": "编辑词块",
+        "insertWord": "插入词块",
+        "replaceLineWords": "重写歌词行"
+      },
+      "settings": {
+        "setRhythmMode": "切换节奏模式",
+        "setSnapDivisor": "调整细分倍数"
+      },
+      "timing": {
+        "addPoint": "新增 Timing Point",
+        "updatePoint": "更新 Timing Point",
+        "removePoint": "删除 Timing Point"
+      }
+    }
   }
 }

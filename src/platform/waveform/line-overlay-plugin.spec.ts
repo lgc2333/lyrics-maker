@@ -3,16 +3,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LineOverlayPlugin } from './line-overlay-plugin'
 import type { LineOverlayOptions } from './line-overlay-plugin'
 
-function createMockCanvas() {
+function createMockCanvas(context: unknown = null) {
   const parentDiv = document.createElement('div')
   parentDiv.style.width = '800px'
   parentDiv.style.height = '200px'
+  Object.defineProperty(parentDiv, 'clientWidth', { value: 800 })
+  Object.defineProperty(parentDiv, 'clientHeight', { value: 200 })
   return {
     tagName: 'CANVAS',
     style: {} as Record<string, string>,
     width: 0,
     height: 0,
-    getContext: vi.fn(() => null),
+    getContext: vi.fn(() => context),
     remove: vi.fn(),
     parentElement: parentDiv,
   }
@@ -107,6 +109,58 @@ describe('lineOverlayPlugin', () => {
           currentTime: 1.2,
         }),
       ).not.toThrow()
+    })
+
+    it('draws word separator dashed lines in yellow', () => {
+      const strokeStyles: string[] = []
+      const ctx = {
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        stroke: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        setLineDash: vi.fn(),
+        fillText: vi.fn(),
+        fillStyle: '',
+        strokeStyle: '',
+        lineWidth: 0,
+        shadowColor: '',
+        shadowBlur: 0,
+        textAlign: '',
+        textBaseline: '',
+        font: '',
+      }
+      Object.defineProperty(ctx, 'strokeStyle', {
+        get: () => strokeStyles.at(-1) ?? '',
+        set: (value: string) => {
+          strokeStyles.push(value)
+        },
+      })
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', { getDuration: vi.fn(() => 4) })
+      Reflect.set(plugin, 'canvas', createMockCanvas(ctx))
+      Reflect.set(plugin, 'visibleStart', 0)
+      Reflect.set(plugin, 'visibleEnd', 4)
+
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 0,
+            words: [
+              { id: 'w1', text: 'hello', endTime: 1 },
+              { id: 'w2', text: 'world', endTime: 2 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        currentTime: 0,
+      })
+
+      expect(strokeStyles).toContain('rgba(255, 214, 80, 0.85)')
     })
   })
 

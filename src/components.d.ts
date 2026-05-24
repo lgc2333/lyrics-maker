@@ -19,6 +19,7 @@ declare module 'vue' {
     MenuBar: typeof import('./components/shell/MenuBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    StatusBar: typeof import('./components/shell/StatusBar.vue')['default']
     TimingPointControls: typeof import('./components/shell/TimingPointControls.vue')['default']
     TimingPointList: typeof import('./components/shell/TimingPointList.vue')['default']
     TimingPointsPanel: typeof import('./components/shell/TimingPointsPanel.vue')['default']

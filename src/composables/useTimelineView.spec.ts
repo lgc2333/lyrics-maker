@@ -6,6 +6,7 @@ import { defineComponent, h, shallowRef } from 'vue'
 import {
   __overrideAudioTransportFactory,
   __overrideMetronomeFactory,
+  useEditorStore,
 } from '../stores/editor-store'
 import { useTimelineView } from './useTimelineView'
 
@@ -157,6 +158,27 @@ describe('useTimelineView', () => {
     timeline!.onWheel(event)
     // pxPerSec should be unchanged — plain scroll just relays to WaveSurfer
     expect(timeline!.pxPerSec.value).toBe(initialPps)
+
+    wrapper.unmount()
+  })
+
+  it('shift wheel reports missing audio before changing subdivision', () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const containerRef = shallowRef<HTMLElement | null>(null)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    const initialDivisor = store.project.settings.snapDivisor
+
+    const event = new WheelEvent('wheel', { deltaY: -100 })
+    Object.defineProperty(event, 'shiftKey', { value: true })
+    Object.defineProperty(event, 'deltaY', { value: -100 })
+    timeline!.onWheel(event)
+
+    expect(store.project.settings.snapDivisor).toBe(initialDivisor)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.nextBeat')
 
     wrapper.unmount()
   })
