@@ -123,6 +123,24 @@ function toggleRhythmMode(): void {
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
 
+    <!-- Rhythm mode toggle -->
+    <button
+      v-if="timeline"
+      data-testid="rhythm-mode-toggle"
+      class="btn btn-sm btn-square"
+      :class="timeline.altTripletActive.value ? 'btn-active text-warning' : 'btn-ghost'"
+      :disabled="timeline.altTripletActive.value"
+      :title="t('transport.rhythmMode')"
+      @click="toggleRhythmMode"
+    >
+      <Icon
+        v-if="timeline.altTripletActive.value || timeline.effectiveTriplets.value"
+        icon="mynaui:three-square"
+        class="h-5 w-5"
+      />
+      <Icon v-else icon="mynaui:four-square" class="h-5 w-5" />
+    </button>
+
     <!-- Subdivision divisor stepper -->
     <div
       v-if="timeline"
@@ -153,35 +171,6 @@ function toggleRhythmMode(): void {
         <Icon icon="material-symbols:add-rounded" class="h-4 w-4" />
       </button>
     </div>
-
-    <!-- Rhythm mode toggle -->
-    <button
-      v-if="timeline"
-      data-testid="rhythm-mode-toggle"
-      class="btn btn-xs btn-square"
-      :class="
-        timeline.altTripletActive.value
-          ? 'btn-active btn-warning text-warning-content'
-          : timeline.effectiveTriplets.value
-            ? 'btn-active'
-            : 'btn-ghost'
-      "
-      :disabled="timeline.altTripletActive.value"
-      :title="t('transport.rhythmMode')"
-      @click="toggleRhythmMode"
-    >
-      <Icon
-        v-if="timeline.altTripletActive.value"
-        icon="lucide:keyboard"
-        class="h-4 w-4"
-      />
-      <Icon
-        v-else-if="timeline.effectiveTriplets.value"
-        icon="lucide:triangle"
-        class="h-4 w-4"
-      />
-      <Icon v-else icon="lucide:music" class="h-4 w-4" />
-    </button>
 
     <div class="mx-1 h-5 w-px bg-base-300" />
 
