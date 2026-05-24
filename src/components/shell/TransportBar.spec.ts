@@ -480,27 +480,34 @@ describe('transportBar rhythm mode select', () => {
     )
   })
 
-  it('marks triplets rhythm active when effectiveTriplets is true', () => {
+  it('shows triplets icon when effectiveTriplets is true', () => {
     const timeline = makeTimeline({
       effectiveTriplets: computed(
         () => true,
       ) as TimelineViewContext['effectiveTriplets'],
     })
     const wrapper = mountWithTimeline(timeline)
-    expect(wrapper.get('[data-testid="rhythm-mode-toggle"]').classes()).toContain(
-      'btn-active',
+
+    const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
+    expect(button.classes()).toContain('btn-ghost')
+    expect(button.findComponent({ name: 'Icon' }).props('icon')).toBe(
+      'mynaui:three-square',
     )
   })
 
-  it('clicking rhythm toggle alternates common and triplets mode', async () => {
-    const timeline = makeTimeline()
+  it('shows common icon when effectiveTriplets is false', () => {
+    const timeline = makeTimeline({
+      effectiveTriplets: computed(
+        () => false,
+      ) as TimelineViewContext['effectiveTriplets'],
+    })
     const wrapper = mountWithTimeline(timeline)
 
-    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
-    expect(timeline.rhythmMode.value).toBe('triplets')
-
-    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
-    expect(timeline.rhythmMode.value).toBe('common')
+    const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
+    expect(button.classes()).toContain('btn-ghost')
+    expect(button.findComponent({ name: 'Icon' }).props('icon')).toBe(
+      'mynaui:four-square',
+    )
   })
 
   it('shows an active Alt triplet indicator while Alt is held', () => {
@@ -514,7 +521,10 @@ describe('transportBar rhythm mode select', () => {
 
     const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
     expect(button.classes()).toContain('btn-active')
-    expect(button.classes()).toContain('btn-warning')
+    expect(button.classes()).toContain('text-warning')
+    expect(button.findComponent({ name: 'Icon' }).props('icon')).toBe(
+      'mynaui:three-square',
+    )
   })
 
   it('colors Alt triplet state and blocks rhythm changes while Alt is held', async () => {
@@ -531,11 +541,22 @@ describe('transportBar rhythm mode select', () => {
     const button = wrapper.get('[data-testid="rhythm-mode-toggle"]')
 
     expect((button.element as HTMLButtonElement).disabled).toBe(true)
-    expect(button.classes()).toContain('btn-warning')
+    expect(button.classes()).toContain('text-warning')
 
     await button.trigger('click')
 
     expect(rhythmMode.value).toBe('triplets')
+  })
+
+  it('clicking rhythm toggle alternates common and triplets mode', async () => {
+    const timeline = makeTimeline()
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
+    expect(timeline.rhythmMode.value).toBe('triplets')
+
+    await wrapper.get('[data-testid="rhythm-mode-toggle"]').trigger('click')
+    expect(timeline.rhythmMode.value).toBe('common')
   })
 })
 

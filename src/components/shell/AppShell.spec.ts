@@ -216,6 +216,62 @@ describe('appShell', () => {
     expect(wrapper.find('[data-testid="audio-file-input"]').exists()).toBe(true)
   })
 
+  it('adds a lyric line when crypto.randomUUID is unavailable over HTTP', async () => {
+    const originalRandomUUID = globalThis.crypto.randomUUID
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined,
+    })
+    try {
+      const wrapper = mount(AppShell)
+      const store = useEditorStore()
+
+      await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
+      await wrapper.get('[data-testid="menu-add-lyric-line"]').trigger('click')
+
+      expect(store.project.lyrics).toHaveLength(1)
+      expect(store.project.lyrics[0].id).toBeTruthy()
+      expect(store.project.lyrics[0].words[0].id).toBeTruthy()
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', {
+        configurable: true,
+        value: originalRandomUUID,
+      })
+    }
+  })
+
+  it('pastes lyrics when crypto.randomUUID is unavailable over HTTP', async () => {
+    const originalRandomUUID = globalThis.crypto.randomUUID
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined,
+    })
+    try {
+      const wrapper = mount(AppShell)
+      const store = useEditorStore()
+
+      await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
+      await wrapper.get('[data-testid="menu-paste-lyrics"]').trigger('click')
+      await wrapper
+        .get('[data-testid="lyrics-paste-textarea"]')
+        .setValue('hello world\nsecond line')
+      await wrapper.get('[data-testid="paste-confirm-btn"]').trigger('click')
+
+      expect(store.project.lyrics).toHaveLength(2)
+      expect(store.project.lyrics[0].id).toBeTruthy()
+      expect(store.project.lyrics[0].words.map((word) => word.text)).toEqual([
+        'hello ',
+        'world',
+      ])
+      expect(store.project.lyrics[1].words[0].id).toBeTruthy()
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', {
+        configurable: true,
+        value: originalRandomUUID,
+      })
+    }
+  })
+
   it('opens audio picker when menu open-file action is clicked', async () => {
     const wrapper = mount(AppShell)
     const inputEl = wrapper.get('[data-testid="audio-file-input"]')

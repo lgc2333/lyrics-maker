@@ -41,10 +41,11 @@ import type { AudioTransport } from '../platform/audio/audio-transport'
 import { createAudioTransport } from '../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../platform/audio/metronome'
 import { createMetronome } from '../platform/audio/metronome'
+import { createPrefixedId } from '../platform/ids/create-id'
 import type { SaveResult } from '../platform/persistence/project-file-service'
 
 function makeId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`
+  return createPrefixedId(prefix)
 }
 
 export interface StatusMessage {
@@ -669,7 +670,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function splitWord(lineId: string, wordId: string, charIndex: number): void {
     execute(
-      createSplitWordCommand(lineId, wordId, charIndex, crypto.randomUUID()),
+      createSplitWordCommand(lineId, wordId, charIndex, createPrefixedId('word')),
       'status.lyrics.splitWord',
     )
   }

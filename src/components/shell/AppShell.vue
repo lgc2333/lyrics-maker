@@ -7,6 +7,7 @@ import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import type { LyricLine, LyricWord } from '../../core/domain/project'
 import { autoSplitText } from '../../core/lyrics/auto-split'
+import { createPrefixedId } from '../../platform/ids/create-id'
 import { useEditorStore } from '../../stores/editor-store'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
@@ -98,17 +99,20 @@ function onPasteLyricsConfirm(text: string): void {
   const lines: LyricLine[] = rawLines.map((rawText) => {
     const tokens = autoSplitText(rawText.trim())
     const words: LyricWord[] = tokens.map((t) => ({
-      id: crypto.randomUUID(),
+      id: createPrefixedId('word'),
       text: t,
     }))
-    return { id: crypto.randomUUID(), words }
+    return { id: createPrefixedId('line'), words }
   })
   if (lines.length > 0) store.insertLyricLines(lines)
 }
 
 function onAddLyricLine(): void {
   store.insertLyricLines([
-    { id: crypto.randomUUID(), words: [{ id: crypto.randomUUID(), text: '' }] },
+    {
+      id: createPrefixedId('line'),
+      words: [{ id: createPrefixedId('word'), text: '' }],
+    },
   ])
 }
 

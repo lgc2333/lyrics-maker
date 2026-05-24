@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 
 import { autoSplitText } from '../../core/lyrics/auto-split'
 import { formatTimestamp, parseTimestamp } from '../../core/utils/format-timestamp'
+import { createPrefixedId } from '../../platform/ids/create-id'
 import { useEditorStore } from '../../stores/editor-store'
 import type { LyricsEditorContext } from './injection-keys'
 import { LYRICS_EDITOR_KEY } from './injection-keys'
@@ -150,7 +151,7 @@ function cancelWordEdit(): void {
 function onGapClickInsert(insertIndex: number): void {
   if (lyricsEditor.splitBarMode.value !== 'edit' || !activeLine.value) return
   store.insertWord(activeLine.value.id, insertIndex, {
-    id: crypto.randomUUID(),
+    id: createPrefixedId('word'),
     text: '',
   })
 }
@@ -167,7 +168,7 @@ function confirmWholeLineEdit(): void {
   if (!activeLine.value) return
   const tokens = autoSplitText(wholeLineText.value)
   const newWords = tokens.map((t) => ({
-    id: crypto.randomUUID(),
+    id: createPrefixedId('word'),
     text: t,
   }))
   store.replaceLineWords(activeLine.value.id, newWords)

@@ -188,6 +188,28 @@ describe('editor store (phase 1)', () => {
     expect(ids[0]).not.toBe(ids[1])
   })
 
+  it('can add a lyric line when crypto.randomUUID is unavailable', () => {
+    const originalRandomUUID = globalThis.crypto.randomUUID
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined,
+    })
+    try {
+      const store = useEditorStore()
+
+      store.addLyricLine('line 1')
+
+      expect(store.project.lyrics).toHaveLength(1)
+      expect(store.project.lyrics[0].id).toMatch(/^line-/)
+      expect(store.project.lyrics[0].words[0].id).toMatch(/^word-/)
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', {
+        configurable: true,
+        value: originalRandomUUID,
+      })
+    }
+  })
+
   it('returns fresh snapshot after each mutation', () => {
     const store = useEditorStore()
 
