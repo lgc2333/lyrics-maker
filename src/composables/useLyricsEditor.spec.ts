@@ -395,6 +395,30 @@ describe('handleNextLineKey (Enter)', () => {
     expect(editor.activeLineId.value).toBe('l2')
     expect(editor.activeWordIndex.value).toBe(0)
   })
+
+  it('always resets active word to start block after advancing to a pre-timed next line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 0 },
+      {
+        id: 'l2',
+        words: [
+          { id: 'w2', text: 'pre', endTime: 4 },
+          { id: 'w3', text: 'timed' },
+        ],
+        startTime: 3,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handleNextLineKey(2.0)
+    await nextTick()
+
+    expect(editor.activeLineId.value).toBe('l2')
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
 })
 
 describe('handleNextLineKey on last line', () => {

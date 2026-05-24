@@ -102,11 +102,22 @@ describe('timingPointList', () => {
 
     const wrapper = mount(TimingPointList, { props: { selectedId: null } })
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
-    const deleteBtn = rows[0].find('button')
+    const deleteBtn = rows[0].get('[data-testid="remove-timing-point"]')
     await deleteBtn.trigger('click')
 
     expect(wrapper.emitted('remove')).toBeTruthy()
     expect(wrapper.emitted('remove')![0]).toEqual([firstId])
+  })
+
+  it('renders delete action as an icon button', () => {
+    addTwoPoints()
+    const wrapper = mount(TimingPointList, { props: { selectedId: null } })
+
+    const deleteBtn = wrapper.get('[data-testid="remove-timing-point"]')
+
+    expect(deleteBtn.text()).toBe('')
+    expect(deleteBtn.find('[data-icon]').exists()).toBe(true)
+    expect(deleteBtn.attributes('title')).toBe('删除')
   })
 
   it('isActive() returns false when store has no timing points', () => {

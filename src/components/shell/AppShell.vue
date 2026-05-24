@@ -184,12 +184,18 @@ useEditorShortcuts({
       data-testid="menu-bar"
       :mode="editorMode"
       :theme="theme"
+      :can-undo="store.canUndo"
+      :can-redo="store.canRedo"
+      :next-undo-label="store.nextUndoLabel"
+      :next-redo-label="store.nextRedoLabel"
       @switchMode="
         (mode) => {
           editorMode = mode
         }
       "
       @toggleTheme="toggleTheme"
+      @undo="store.undo"
+      @redo="store.redo"
       @openAudioFile="openAudioPicker"
       @pasteLyrics="showPasteModal = true"
       @importLyricsFile="() => {}"

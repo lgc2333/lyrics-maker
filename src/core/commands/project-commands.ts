@@ -133,6 +133,26 @@ export function createSetSnapDivisorCommand(
   }
 }
 
+export function createSetSnapEnabledCommand(
+  enabled: boolean,
+): Command<ProjectDocument> {
+  let previousEnabled: boolean | null = null
+  return {
+    label: 'settings.setSnapEnabled',
+    do: (state) => {
+      previousEnabled = state.settings.snapEnabled
+      return { ...state, settings: { ...state.settings, snapEnabled: enabled } }
+    },
+    undo: (state) => {
+      if (previousEnabled === null) return state
+      return {
+        ...state,
+        settings: { ...state.settings, snapEnabled: previousEnabled },
+      }
+    },
+  }
+}
+
 export function createSetAudioVolumeCommand(
   kind: 'music' | 'sfx',
   value: number,

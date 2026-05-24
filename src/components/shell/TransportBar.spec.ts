@@ -67,6 +67,21 @@ describe('transportBar', () => {
     expect(wrapper.find('[data-testid="snap-toggle"]').exists()).toBe(true)
   })
 
+  it('snap toggle updates project snapEnabled', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    expect(store.project.settings.snapEnabled).toBe(true)
+
+    const toggle = wrapper.get('[data-testid="snap-toggle"]')
+    expect((toggle.element as HTMLButtonElement).disabled).toBe(false)
+
+    await toggle.trigger('click')
+
+    expect(store.project.settings.snapEnabled).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.settings.snapEnabled')
+  })
+
   it('renders previous bar button', () => {
     const wrapper = mount(TransportBar)
     expect(wrapper.find('[data-testid="prev-bar"]').exists()).toBe(true)
@@ -349,6 +364,16 @@ describe('transportBar', () => {
     expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(false)
   })
 
+  it('subdivision stepper is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="subdivision-stepper"]').exists()).toBe(false)
+  })
+
+  it('rhythm mode button group is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="rhythm-mode-group"]').exists()).toBe(false)
+  })
+
   // ---- Play/Pause ----
 
   it('play/pause button reports missing audio before import', async () => {
@@ -426,29 +451,99 @@ describe('transportBar rhythm mode select', () => {
 
   it('renders rhythm-mode-select when timeline is provided', () => {
     const wrapper = mountWithTimeline(makeTimeline())
-    expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="rhythm-mode-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="rhythm-mode-group"]').exists()).toBe(true)
   })
 
-  it('shows "common" when effectiveTriplets is false', () => {
+  it('marks common rhythm active when effectiveTriplets is false', () => {
     const timeline = makeTimeline({
       effectiveTriplets: computed(
         () => false,
       ) as TimelineViewContext['effectiveTriplets'],
     })
     const wrapper = mountWithTimeline(timeline)
-    const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
-    expect(select.element.value).toBe('common')
+    expect(wrapper.get('[data-testid="rhythm-mode-common"]').classes()).toContain(
+      'btn-active',
+    )
   })
 
-  it('shows "triplets" when effectiveTriplets is true', () => {
+  it('marks triplets rhythm active when effectiveTriplets is true', () => {
     const timeline = makeTimeline({
       effectiveTriplets: computed(
         () => true,
       ) as TimelineViewContext['effectiveTriplets'],
     })
     const wrapper = mountWithTimeline(timeline)
-    const select = wrapper.get<HTMLSelectElement>('[data-testid="rhythm-mode-select"]')
-    expect(select.element.value).toBe('triplets')
+    expect(wrapper.get('[data-testid="rhythm-mode-triplets"]').classes()).toContain(
+      'btn-active',
+    )
+  })
+
+  it('clicking rhythm buttons updates timeline rhythm mode', async () => {
+    const timeline = makeTimeline()
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="rhythm-mode-triplets"]').trigger('click')
+    expect(timeline.rhythmMode.value).toBe('triplets')
+
+    await wrapper.get('[data-testid="rhythm-mode-common"]').trigger('click')
+    expect(timeline.rhythmMode.value).toBe('common')
+  })
+
+  it('shows an active Alt triplet indicator while Alt is held', () => {
+    const timeline = makeTimeline({
+      altTripletActive: ref(true) as TimelineViewContext['altTripletActive'],
+      effectiveTriplets: computed(
+        () => true,
+      ) as TimelineViewContext['effectiveTriplets'],
+    })
+    const wrapper = mountWithTimeline(timeline)
+
+    expect(wrapper.get('[data-testid="rhythm-mode-alt"]').classes()).toContain(
+      'btn-active',
+    )
+  })
+})
+
+describe('transportBar subdivision stepper', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('renders subdivision stepper when timeline is provided', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+
+    expect(wrapper.find('[data-testid="subdivision-select"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="subdivision-stepper"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="subdivision-value"]').text()).toBe('4x')
+  })
+
+  it('increments and decrements subdivision divisor through timeline', async () => {
+    const timeline = makeTimeline()
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="subdivision-increase"]').trigger('click')
+    expect(timeline.divisor.value).toBe(8)
+
+    await wrapper.get('[data-testid="subdivision-decrease"]').trigger('click')
+    expect(timeline.divisor.value).toBe(4)
+  })
+
+  it('clamps subdivision divisor at supported bounds', async () => {
+    const timeline = makeTimeline({
+      divisor: ref(1) as TimelineViewContext['divisor'],
+    })
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="subdivision-decrease"]').trigger('click')
+    expect(timeline.divisor.value).toBe(1)
+
+    timeline.divisor.value = 16
+    await wrapper.vm.$nextTick()
+    await wrapper.get('[data-testid="subdivision-increase"]').trigger('click')
+    expect(timeline.divisor.value).toBe(16)
   })
 })
 

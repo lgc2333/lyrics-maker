@@ -14,13 +14,7 @@ const store = useEditorStore()
 
 const timeline = inject(TIMELINE_VIEW_KEY)
 
-const SUBDIVISION_OPTIONS = [
-  { value: 1 as const, label: '1x' },
-  { value: 2 as const, label: '2x' },
-  { value: 4 as const, label: '4x' },
-  { value: 8 as const, label: '8x' },
-  { value: 16 as const, label: '16x' },
-]
+const SUBDIVISION_OPTIONS = [1, 2, 4, 8, 16] as const
 
 const verticalZoomPopoverOpen = ref(false)
 
@@ -34,6 +28,16 @@ function onVerticalZoomWheel(event: WheelEvent): void {
   event.preventDefault()
   const delta = event.deltaY < 0 ? 0.1 : -0.1
   timeline.setVerticalZoom((timeline.verticalZoom.value ?? 1) + delta)
+}
+
+function stepSubdivision(direction: -1 | 1): void {
+  if (!timeline) return
+  const index = SUBDIVISION_OPTIONS.indexOf(timeline.divisor.value)
+  const nextIndex = Math.max(
+    0,
+    Math.min(SUBDIVISION_OPTIONS.length - 1, index + direction),
+  )
+  timeline.divisor.value = SUBDIVISION_OPTIONS[nextIndex]
 }
 </script>
 
@@ -106,55 +110,84 @@ function onVerticalZoomWheel(event: WheelEvent): void {
     <button
       data-testid="snap-toggle"
       class="btn btn-ghost btn-sm btn-square"
+      :class="{ 'btn-active text-primary': store.project.settings.snapEnabled }"
       :title="t('transport.snap')"
-      disabled
+      @click="store.setSnapEnabled(!store.project.settings.snapEnabled)"
     >
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
 
-    <!-- Subdivision divisor dropdown -->
-    <select
+    <!-- Subdivision divisor stepper -->
+    <div
       v-if="timeline"
-      data-testid="subdivision-select"
-      class="select select-xs w-16"
+      data-testid="subdivision-stepper"
+      class="join"
       :title="t('transport.subdivisionDivisor')"
-      :value="timeline.divisor.value"
-      @change="
-        timeline.divisor.value = Number(($event.target as HTMLSelectElement).value) as
-          | 1
-          | 2
-          | 4
-          | 8
-          | 16
-      "
     >
-      <option v-for="opt in SUBDIVISION_OPTIONS" :key="opt.value" :value="opt.value">
-        {{ opt.label }}
-      </option>
-    </select>
+      <button
+        data-testid="subdivision-decrease"
+        class="btn btn-xs join-item btn-ghost"
+        :disabled="timeline.divisor.value === 1"
+        @click="stepSubdivision(-1)"
+      >
+        <Icon icon="material-symbols:remove-rounded" class="h-4 w-4" />
+      </button>
+      <div
+        data-testid="subdivision-value"
+        class="join-item flex h-6 min-w-9 items-center justify-center border border-base-300 px-2 text-[11px] tabular-nums"
+      >
+        {{ timeline.divisor.value }}x
+      </div>
+      <button
+        data-testid="subdivision-increase"
+        class="btn btn-xs join-item btn-ghost"
+        :disabled="timeline.divisor.value === 16"
+        @click="stepSubdivision(1)"
+      >
+        <Icon icon="material-symbols:add-rounded" class="h-4 w-4" />
+      </button>
+    </div>
 
-    <!-- Rhythm mode dropdown -->
-    <select
+    <!-- Rhythm mode buttons -->
+    <div
       v-if="timeline"
-      data-testid="rhythm-mode-select"
-      class="select select-xs w-26"
+      data-testid="rhythm-mode-group"
+      class="join"
       :title="t('transport.rhythmMode')"
-      :value="timeline.effectiveTriplets.value ? 'triplets' : 'common'"
-      @change="
-        timeline.rhythmMode.value = ($event.target as HTMLSelectElement).value as
-          | 'common'
-          | 'triplets'
-      "
     >
-      <option value="common">{{ t('transport.rhythmCommon') }}</option>
-      <option value="triplets">
-        {{
-          timeline.altTripletActive.value
-            ? t('transport.rhythmTripletsAlt')
-            : t('transport.rhythmTriplets')
-        }}
-      </option>
-    </select>
+      <button
+        data-testid="rhythm-mode-common"
+        class="btn btn-xs join-item"
+        :class="
+          !timeline.effectiveTriplets.value && timeline.rhythmMode.value === 'common'
+            ? 'btn-active'
+            : 'btn-ghost'
+        "
+        @click="timeline.rhythmMode.value = 'common'"
+      >
+        {{ t('transport.rhythmCommon') }}
+      </button>
+      <button
+        data-testid="rhythm-mode-triplets"
+        class="btn btn-xs join-item"
+        :class="
+          timeline.effectiveTriplets.value && !timeline.altTripletActive.value
+            ? 'btn-active'
+            : 'btn-ghost'
+        "
+        @click="timeline.rhythmMode.value = 'triplets'"
+      >
+        {{ t('transport.rhythmTriplets') }}
+      </button>
+      <button
+        data-testid="rhythm-mode-alt"
+        class="btn btn-xs join-item"
+        :class="timeline.altTripletActive.value ? 'btn-active' : 'btn-ghost'"
+        disabled
+      >
+        {{ t('transport.rhythmTripletsAlt') }}
+      </button>
+    </div>
 
     <div class="mx-1 h-5 w-px bg-base-300" />
 

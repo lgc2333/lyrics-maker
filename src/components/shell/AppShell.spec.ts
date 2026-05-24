@@ -138,6 +138,39 @@ describe('appShell', () => {
     })
   })
 
+  it('dispatches undo from edit menu and shows the command label', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('test')
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+
+    const undo = wrapper.get('[data-testid="menu-undo"]')
+    expect(undo.text()).toContain('添加歌词行')
+
+    await undo.trigger('click')
+
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain('已撤销')
+  })
+
+  it('dispatches redo from edit menu and shows the command label', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('test')
+    store.undo()
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+
+    const redo = wrapper.get('[data-testid="menu-redo"]')
+    expect(redo.text()).toContain('添加歌词行')
+
+    await redo.trigger('click')
+
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain('已重做')
+  })
+
   it('shows a status message when Ctrl+Z has nothing to undo', async () => {
     const wrapper = mount(AppShell)
 

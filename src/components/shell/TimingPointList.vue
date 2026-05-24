@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 
 import { getActiveTimingPoint } from '../../core/timing/timing-engine'
@@ -77,10 +78,16 @@ function isActive(id: string): boolean {
           >{{ point.timeSignatureNumerator }}/{{ point.timeSignatureDenominator }}</span
         >
         <button
-          class="btn btn-xs btn-ghost ml-auto"
+          data-testid="remove-timing-point"
+          class="btn btn-xs btn-ghost btn-square ml-auto"
+          :title="t('timing.pointList.delete')"
           @click.stop="$emit('remove', point.id)"
         >
-          {{ t('timing.pointList.delete') }}
+          <Icon
+            icon="material-symbols:delete-outline"
+            data-icon="remove-timing-point"
+            class="h-4 w-4"
+          />
         </button>
       </li>
     </ul>

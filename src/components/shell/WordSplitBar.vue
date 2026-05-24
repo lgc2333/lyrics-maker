@@ -78,14 +78,18 @@ function onSplitLineClick(wordIndex: number): void {
   store.mergeWords(activeLine.value!.id, prevWord.id)
 }
 
-function onEndTimeInput(event: Event): void {
+function onStartTimeInput(event: Event): void {
   const input = event.target as HTMLInputElement
   const value = Number.parseFloat(input.value)
   if (!Number.isFinite(value) || !activeLine.value) return
-  const wordIndex = lyricsEditor.activeWordIndex.value - 1
-  const word = words.value[wordIndex]
-  if (!word) return
-  store.setWordEndTime(activeLine.value.id, word.id, Math.max(0, value))
+  store.setLineStartTime(activeLine.value.id, Math.max(0, value))
+}
+
+function onWordEndTimeInput(wordId: string, event: Event): void {
+  const input = event.target as HTMLInputElement
+  const value = Number.parseFloat(input.value)
+  if (!Number.isFinite(value) || !activeLine.value) return
+  store.setWordEndTime(activeLine.value.id, wordId, Math.max(0, value))
 }
 
 const editingWordId = ref<string | null>(null)
@@ -209,7 +213,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         <div
           v-if="lyricsEditor.splitBarMode.value === 'timing'"
           data-testid="start-block"
-          class="cursor-pointer rounded border px-1.5 py-0.5 text-xs transition-colors"
+          class="grid min-h-7 cursor-pointer grid-cols-[auto_5.75rem] items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors"
           :class="
             isStartBlockActive()
               ? 'bg-error/30 border-error'
@@ -219,7 +223,19 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
           "
           @click="onStartBlockClick"
         >
-          {{ t('lyrics.wordSplitBar.startBlock') }}
+          <span>{{ t('lyrics.wordSplitBar.startBlock') }}</span>
+          <input
+            data-testid="start-time-input"
+            type="number"
+            step="0.001"
+            min="0"
+            class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+            :value="activeLine.startTime ?? ''"
+            placeholder="--:--"
+            @click.stop
+            @change="onStartTimeInput"
+            @keydown.enter.stop.prevent="onStartTimeInput"
+          />
         </div>
 
         <!-- Timing mode: word blocks -->
@@ -228,16 +244,38 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             <!-- Word block (click to activate) -->
             <div
               data-testid="word-block"
-              class="cursor-pointer rounded border px-1.5 py-0.5 text-xs transition-colors"
+              class="grid min-h-7 cursor-pointer grid-cols-[auto_auto_5.75rem] items-center gap-1 rounded border px-1.5 py-0.5 text-xs transition-colors"
               :class="wordColor(wIdx)"
               @click="onWordClick(wIdx)"
             >
-              <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
-                ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
-                  '␣'.repeat(part.text.length)
-                }}</span
-                ><template v-else>{{ part.text }}</template></template
-              ><template v-if="!word.text">&nbsp;</template>
+              <span>
+                <template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                  ><span v-if="part.isSpace" class="text-[10px] text-base-content/30">{{
+                    '␣'.repeat(part.text.length)
+                  }}</span
+                  ><template v-else>{{ part.text }}</template></template
+                ><template v-if="!word.text">&nbsp;</template>
+              </span>
+              <span class="text-[10px] text-base-content/45">
+                {{
+                  getDerivedStartTime(wIdx) !== undefined
+                    ? formatTimestamp(getDerivedStartTime(wIdx)!)
+                    : '--:--'
+                }}
+                ~
+              </span>
+              <input
+                data-testid="word-end-time-input"
+                type="number"
+                step="0.001"
+                min="0"
+                class="input input-xs h-5 w-[5.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+                :value="word.endTime ?? ''"
+                placeholder="--:--"
+                @click.stop
+                @change="onWordEndTimeInput(word.id, $event)"
+                @keydown.enter.stop.prevent="onWordEndTimeInput(word.id, $event)"
+              />
             </div>
           </template>
         </template>
@@ -362,38 +400,6 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
       <div v-else class="flex-1 text-xs opacity-40">
         {{ t('lyrics.emptyHint') }}
       </div>
-    </div>
-
-    <!-- Numeric editor (timing mode only, when a word is active) -->
-    <div
-      v-if="
-        lyricsEditor.splitBarMode.value === 'timing' &&
-        activeLine &&
-        lyricsEditor.activeWordIndex.value > 0 &&
-        lyricsEditor.activeWordIndex.value <= words.length
-      "
-      data-testid="numeric-editor"
-      class="mt-1.5 flex items-center gap-3 text-xs"
-    >
-      <span class="opacity-50">{{ t('lyrics.wordSplitBar.derivedStartLabel') }}:</span>
-      <span class="tabular-nums">
-        {{
-          getDerivedStartTime(lyricsEditor.activeWordIndex.value - 1) !== undefined
-            ? formatTimestamp(
-                getDerivedStartTime(lyricsEditor.activeWordIndex.value - 1)!,
-              )
-            : '--:--'
-        }}
-      </span>
-      <span class="opacity-50">{{ t('lyrics.wordSplitBar.endTimeLabel') }}:</span>
-      <input
-        type="number"
-        step="0.001"
-        class="input input-xs input-bordered w-24 tabular-nums"
-        :value="words[lyricsEditor.activeWordIndex.value - 1]?.endTime ?? ''"
-        placeholder="--:--"
-        @change="onEndTimeInput($event)"
-      />
     </div>
   </div>
 </template>

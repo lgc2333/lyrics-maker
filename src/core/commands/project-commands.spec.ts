@@ -8,6 +8,7 @@ import {
   createSetAudioVolumeCommand,
   createSetRhythmModeCommand,
   createSetSnapDivisorCommand,
+  createSetSnapEnabledCommand,
   createUpdateTimingPointCommand,
 } from './project-commands'
 
@@ -247,6 +248,14 @@ describe('settings commands', () => {
     expect(undone.settings.snapDivisor).toBe(4)
   })
 
+  it('createSetSnapEnabledCommand sets snapEnabled and is undoable', () => {
+    const cmd = createSetSnapEnabledCommand(false)
+    const after = cmd.do(createEmptyProject())
+    expect(after.settings.snapEnabled).toBe(false)
+    const undone = cmd.undo(after)
+    expect(undone.settings.snapEnabled).toBe(true)
+  })
+
   it('rhythmMode command undo is a no-op if do() was never called', () => {
     const cmd = createSetRhythmModeCommand('triplets')
     const project = createEmptyProject()
@@ -259,6 +268,13 @@ describe('settings commands', () => {
     const project = createEmptyProject()
     const result = cmd.undo(project)
     expect(result.settings.snapDivisor).toBe(4) // unchanged
+  })
+
+  it('snapEnabled command undo is a no-op if do() was never called', () => {
+    const cmd = createSetSnapEnabledCommand(false)
+    const project = createEmptyProject()
+    const result = cmd.undo(project)
+    expect(result.settings.snapEnabled).toBe(true) // unchanged
   })
 
   it('rhythmMode command can be reused — undo restores original value', () => {
@@ -290,5 +306,19 @@ describe('settings commands', () => {
 
     const undone = cmd.undo(afterTwo)
     expect(undone.settings.snapDivisor).toBe(4)
+  })
+
+  it('snapEnabled command can be reused — undo restores original value', () => {
+    const project = createEmptyProject()
+    const cmd = createSetSnapEnabledCommand(false)
+
+    const afterOne = cmd.do(project)
+    expect(afterOne.settings.snapEnabled).toBe(false)
+
+    const afterTwo = cmd.do(project)
+    expect(afterTwo.settings.snapEnabled).toBe(false)
+
+    const undone = cmd.undo(afterTwo)
+    expect(undone.settings.snapEnabled).toBe(true)
   })
 })

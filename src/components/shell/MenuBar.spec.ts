@@ -77,6 +77,19 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="menu-popup-edit"]').exists()).toBe(true)
   })
 
+  it('switches open top-level menu on hover', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    expect(wrapper.find('[data-testid="menu-popup-file"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="menu-trigger-help"]').trigger('mouseenter')
+
+    expect(wrapper.find('[data-testid="menu-popup-file"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="menu-popup-help"]').exists()).toBe(true)
+  })
+
   it('closes menu on click outside', async () => {
     const wrapper = mount(MenuBar, {
       props: { mode: 'timing', theme: 'light', audioLoaded: true },
@@ -96,6 +109,108 @@ describe('menuBar', () => {
     await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
     await wrapper.get('[data-testid="menu-open-audio"]').trigger('click')
     expect(wrapper.emitted('openAudioFile')).toHaveLength(1)
+  })
+
+  it('renders reorganized file menu items with future actions disabled', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="menu-new-project"]').text()).toContain('新建项目')
+    expect(wrapper.get('[data-testid="menu-open-project"]').text()).toContain(
+      '打开工程',
+    )
+    expect(wrapper.get('[data-testid="menu-open-audio"]').text()).toContain('打开音乐')
+    expect(wrapper.get('[data-testid="menu-save-project"]').text()).toContain(
+      '保存项目',
+    )
+    expect(wrapper.get('[data-testid="menu-save-as"]').text()).toContain('项目另存为')
+    expect(wrapper.get('[data-testid="menu-preferences"]').text()).toContain('首选项')
+    expect(
+      (wrapper.get('[data-testid="menu-new-project"]').element as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    expect(
+      (wrapper.get('[data-testid="menu-open-project"]').element as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    expect(
+      (wrapper.get('[data-testid="menu-preferences"]').element as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  it('emits undo with translated command label from edit menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        canUndo: true,
+        nextUndoLabel: 'lyrics.addLine',
+      },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+    const undo = wrapper.get('[data-testid="menu-undo"]')
+
+    expect((undo.element as HTMLButtonElement).disabled).toBe(false)
+    expect(undo.text()).toContain('添加歌词行')
+
+    await undo.trigger('click')
+
+    expect(wrapper.emitted('undo')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="menu-popup-edit"]').exists()).toBe(false)
+  })
+
+  it('emits redo with translated command label from edit menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        canRedo: true,
+        nextRedoLabel: 'settings.setSnapDivisor',
+      },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+    const redo = wrapper.get('[data-testid="menu-redo"]')
+
+    expect((redo.element as HTMLButtonElement).disabled).toBe(false)
+    expect(redo.text()).toContain('调整细分倍数')
+
+    await redo.trigger('click')
+
+    expect(wrapper.emitted('redo')).toHaveLength(1)
+  })
+
+  it('disables undo and redo when no operations are available', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+
+    expect(
+      (wrapper.get('[data-testid="menu-undo"]').element as HTMLButtonElement).disabled,
+    ).toBe(true)
+    expect(
+      (wrapper.get('[data-testid="menu-redo"]').element as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
+  it('renders help menu with about item only for now', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-help"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="menu-about"]').text()).toContain('关于')
+    expect(wrapper.find('[data-testid="menu-shortcuts"]').exists()).toBe(false)
   })
 
   it('lyrics menu trigger button exists', () => {

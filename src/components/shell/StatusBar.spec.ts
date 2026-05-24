@@ -53,4 +53,19 @@ describe('statusBar', () => {
     )
     expect(wrapper.get('[data-testid="status-message"]').text()).toContain('播放/暂停')
   })
+
+  it('renders snap enabled status and command labels', async () => {
+    const store = useEditorStore()
+    const wrapper = mount(StatusBar)
+
+    store.setSnapEnabled(false)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain('吸附已关闭')
+
+    store.undo()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain('切换吸附')
+  })
 })

@@ -3,9 +3,13 @@
     "menu": {
       "file": "文件",
       "newProject": "新建项目",
+      "openProject": "打开工程",
+      "openAudio": "打开音乐",
       "openFile": "打开文件...",
+      "saveProject": "保存项目",
       "save": "保存 (Ctrl+S)",
-      "saveAs": "另存为...",
+      "saveAs": "项目另存为",
+      "preferences": "首选项",
       "edit": "编辑",
       "undo": "撤销 (Ctrl+Z)",
       "redo": "重做 (Ctrl+Y)",
@@ -138,6 +142,7 @@
     "settings": {
       "rhythmMode": "节奏模式已切换为 {mode}",
       "snapDivisor": "细分倍数已设为 {divisor}x",
+      "snapEnabled": "吸附已{state}",
       "musicVolume": "音乐音量 {value}%",
       "sfxVolume": "音效音量 {value}%"
     },
@@ -192,7 +197,8 @@
       },
       "settings": {
         "setRhythmMode": "切换节奏模式",
-        "setSnapDivisor": "调整细分倍数"
+        "setSnapDivisor": "调整细分倍数",
+        "setSnapEnabled": "切换吸附"
       },
       "timing": {
         "addPoint": "新增 Timing Point",

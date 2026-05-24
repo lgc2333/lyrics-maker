@@ -159,6 +159,7 @@ export function useLyricsEditor() {
     // Advance to next line (skip if last line)
     if (lineIndex >= lyrics.length - 1) return
     const nextLine = lyrics[lineIndex + 1]
+    _suppressWatchSync = true
     activeLineId.value = nextLine.id
     activeWordIndex.value = 0
   }

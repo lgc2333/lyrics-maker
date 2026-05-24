@@ -405,6 +405,29 @@ describe('editor store (phase 2 - volume)', () => {
   })
 })
 
+describe('editor store (phase 5 plus part 2 - settings)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('updates snapEnabled through command history and reports status', () => {
+    const store = useEditorStore()
+
+    expect(store.project.settings.snapEnabled).toBe(true)
+
+    store.setSnapEnabled(false)
+
+    expect(store.project.settings.snapEnabled).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.settings.snapEnabled')
+    expect(store.statusMessage?.params?.enabled).toBe(false)
+
+    store.undo()
+    expect(store.project.settings.snapEnabled).toBe(true)
+    expect(store.canRedo).toBe(true)
+
+    store.redo()
+    expect(store.project.settings.snapEnabled).toBe(false)
+  })
+})
+
 describe('editor store (phase 2 - audio transport)', () => {
   let mockTransport: AudioTransport
   let transportPlaying: () => boolean

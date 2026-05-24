@@ -24,6 +24,7 @@ const COMMAND_LABEL_KEYS: Record<string, string> = {
   'lyrics.updateWordText': 'status.command.lyrics.updateWordText',
   'settings.setRhythmMode': 'status.command.settings.setRhythmMode',
   'settings.setSnapDivisor': 'status.command.settings.setSnapDivisor',
+  'settings.setSnapEnabled': 'status.command.settings.setSnapEnabled',
   'timing.addPoint': 'status.command.timing.addPoint',
   'timing.removePoint': 'status.command.timing.removePoint',
   'timing.updatePoint': 'status.command.timing.updatePoint',

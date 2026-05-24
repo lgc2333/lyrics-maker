@@ -22,6 +22,7 @@ import {
   createSetAudioVolumeCommand,
   createSetRhythmModeCommand,
   createSetSnapDivisorCommand,
+  createSetSnapEnabledCommand,
   createUpdateTimingPointCommand,
 } from '../core/commands/project-commands'
 import { createEmptyProject } from '../core/domain/project'
@@ -119,6 +120,8 @@ export const useEditorStore = defineStore('editor', () => {
   const project = computed(() => history.value.state)
   const canUndo = computed(() => history.value.canUndo)
   const canRedo = computed(() => history.value.canRedo)
+  const nextUndoLabel = computed(() => history.value.nextUndoLabel)
+  const nextRedoLabel = computed(() => history.value.nextRedoLabel)
 
   const isPlaying = computed(() => _isPlaying.value)
   const currentTime = computed(() => _currentTime.value)
@@ -592,6 +595,13 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  function setSnapEnabled(enabled: boolean): void {
+    execute(createSetSnapEnabledCommand(enabled), 'status.settings.snapEnabled', {
+      enabled,
+      state: enabled ? '开启' : '关闭',
+    })
+  }
+
   // ---- Phase 3: Subdivision seek ----
 
   function seekToNextBeat(divisor: number, triplets: boolean): void {
@@ -708,6 +718,8 @@ export const useEditorStore = defineStore('editor', () => {
     dirty,
     canUndo,
     canRedo,
+    nextUndoLabel,
+    nextRedoLabel,
     lastError,
     statusMessage,
     showStatus,
@@ -762,6 +774,7 @@ export const useEditorStore = defineStore('editor', () => {
     // Phase 3: settings
     setRhythmMode,
     setSnapDivisor,
+    setSnapEnabled,
 
     // Phase 3: beat-level seek
     seekToNextBeat,
