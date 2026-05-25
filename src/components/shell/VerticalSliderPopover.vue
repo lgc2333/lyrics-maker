@@ -72,7 +72,7 @@ function onSliderInput(event: Event): void {
       v-if="popoverEnabled"
       v-show="open"
       :data-testid="panelTestid"
-      class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
+      class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg after:absolute after:top-full after:left-0 after:h-2 after:w-full after:content-['']"
     >
       <div class="mb-1 text-center text-[10px] tabular-nums">{{ percentage }}%</div>
       <div class="relative h-24 w-6">

@@ -4,6 +4,22 @@ import { normalizeKeystroke } from '../platform/shortcuts/keystroke'
 import { createShortcutRegistry } from '../platform/shortcuts/registry'
 import type { ShortcutAction } from '../platform/shortcuts/registry'
 
+const TEXT_INPUT_TYPES = new Set([
+  '',
+  'date',
+  'datetime-local',
+  'email',
+  'month',
+  'number',
+  'password',
+  'search',
+  'tel',
+  'text',
+  'time',
+  'url',
+  'week',
+])
+
 export function useEditorShortcuts(options: {
   onAction: (action: ShortcutAction) => void | Promise<void>
   onError?: (error: unknown, action: ShortcutAction) => void
@@ -38,10 +54,7 @@ export function useEditorShortcuts(options: {
   }
 
   function onKeydown(event: KeyboardEvent) {
-    const inInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(
-      (event.target as HTMLElement)?.tagName ?? '',
-    )
-    if (inInput) return
+    if (shouldIgnoreShortcutTarget(event.target)) return
 
     const key = normalizeKeystroke(event)
     if (!key) return
@@ -56,4 +69,19 @@ export function useEditorShortcuts(options: {
 
   onMounted(() => window.addEventListener('keydown', onKeydown))
   onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+}
+
+function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+    return true
+  }
+
+  if (target instanceof HTMLInputElement) {
+    return TEXT_INPUT_TYPES.has(target.type)
+  }
+
+  return false
 }

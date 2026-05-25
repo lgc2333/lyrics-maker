@@ -54,4 +54,48 @@ describe('useEditorShortcuts', () => {
     })
     wrapper.unmount()
   })
+
+  it('keeps global shortcuts active from range sliders', async () => {
+    const onAction = vi.fn()
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          useEditorShortcuts({ onAction })
+          return () => h('input', { type: 'range' })
+        },
+      }),
+      { attachTo: document.body },
+    )
+    const slider = wrapper.get('input')
+
+    slider.element.dispatchEvent(
+      new KeyboardEvent('keydown', { key: ' ', bubbles: true }),
+    )
+
+    await vi.waitFor(() => {
+      expect(onAction).toHaveBeenCalledWith('transport.togglePlay')
+    })
+    wrapper.unmount()
+  })
+
+  it('does not dispatch character shortcuts from text inputs', async () => {
+    const onAction = vi.fn()
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          useEditorShortcuts({ onAction })
+          return () => h('input', { type: 'text' })
+        },
+      }),
+      { attachTo: document.body },
+    )
+    const input = wrapper.get('input')
+
+    input.element.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'd', bubbles: true }),
+    )
+
+    expect(onAction).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
 })

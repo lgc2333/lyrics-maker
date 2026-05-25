@@ -127,6 +127,10 @@ Detailed project rules live in focused pattern docs:
 - [Timeline, audio, and lyrics patterns](docs/patterns/timeline-audio-lyrics.md): WaveSurfer, metronome/audio, and lyrics timing rules.
 - [Testing patterns](docs/patterns/testing.md): test environment, Vue/store/composable test setup, and testing gotchas.
 
+When starting work, proactively read the linked pattern docs relevant to the files or domain you will touch. When adding new durable project rules, update the relevant linked `docs/patterns/*` file instead of appending them under this section.
+
 ## Before Committing
+
+Use semantic/conventional commit messages, e.g. `fix: keep vertical slider popovers reachable`.
 
 Before committing or claiming work is done, always run `pnpm lint` then `pnpm format` to catch lint errors and normalize formatting. Run `pnpm check` too when Vue or TypeScript types changed.

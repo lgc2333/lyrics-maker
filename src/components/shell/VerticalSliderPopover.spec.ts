@@ -45,4 +45,24 @@ describe('verticalSliderPopover', () => {
 
     expect(wrapper.emitted('update:modelValue')).toEqual([[2.5]])
   })
+
+  it('keeps the hover path continuous between button and panel', () => {
+    const wrapper = mount(VerticalSliderPopover, {
+      props: {
+        modelValue: 1,
+        label: 'Zoom',
+        dataTestid: 'zoom-control',
+        panelTestid: 'zoom-panel',
+      },
+      slots: {
+        icon: '<span data-testid="icon" />',
+      },
+    })
+
+    expect(wrapper.get('[data-testid="zoom-panel"]').classes()).toContain('mb-1')
+    expect(wrapper.get('[data-testid="zoom-panel"]').classes()).toContain('after:h-2')
+    expect(wrapper.get('[data-testid="zoom-panel"]').classes()).toContain(
+      'after:top-full',
+    )
+  })
 })

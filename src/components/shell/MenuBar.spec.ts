@@ -165,6 +165,30 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="menu-popup-edit"]').exists()).toBe(false)
   })
 
+  it('lets edit menu grow to fit long undo and redo labels without wrapping', async () => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        canUndo: true,
+        canRedo: true,
+        nextUndoLabel: 'lyrics.clearWordEndTime',
+        nextRedoLabel: 'lyrics.replaceLineWords',
+      },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="menu-popup-edit"]').classes()).toContain('w-max')
+    expect(wrapper.get('[data-testid="menu-undo"]').classes()).toContain(
+      'whitespace-nowrap',
+    )
+    expect(wrapper.get('[data-testid="menu-redo"]').classes()).toContain(
+      'whitespace-nowrap',
+    )
+  })
+
   it('emits redo with translated command label from edit menu', async () => {
     const wrapper = mount(MenuBar, {
       props: {
