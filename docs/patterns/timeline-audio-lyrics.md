@@ -1,0 +1,36 @@
+# Timeline, Audio, And Lyrics Patterns
+
+## WaveSurfer & Timeline
+
+- **WaveSurfer `ready` event must trigger grid update.** `GridOverlayPlugin._draw()` exits early when `duration <= 0`. After a view-mode switch the `scroll` event hasn't fired, so call `gridPlugin.update(params)` inside the `ready` handler to show lines immediately.
+- **Grid overlay `zoom` handler must recompute `visibleStart`/`visibleEnd` before `_draw()`.** WaveSurfer's `zoom` event fires before the `scroll` event, so stale visible-range values produce grid lines at wrong positions. Recompute from `wrapper.scrollWidth`, `scrollContainer.scrollLeft`, and `duration` - same pattern as the `ready` handler.
+- **WaveSurfer spectrogram vertical zoom via `frequencyMax`.** Set `frequencyMax = Math.round(22050 / zoom)` in `WindowedSpectrogramPlugin.create()` - not a post-init method. Requires recreating the WaveSurfer instance to take effect.
+- **WaveSurfer waveform hidden in spectrogram mode:** set both `height: 0` and `waveColor: 'transparent'`. `height: 0` collapses the canvas; `waveColor: 'transparent'` prevents pixel bleed if height rounds up.
+- **WaveSurfer `progressColor: 'transparent'` + `hideScrollbar: true`** when drawing a custom playhead overlay and managing scrolling manually.
+- **WaveSurfer container needs `bg-black` in spectrogram mode only.** The spectrogram canvas renders on a transparent background; without `bg-black` the silence pixels look mismatched. Do not apply to waveform mode.
+- **WaveSurfer wrapper uses Shadow DOM.** The wrapper div has a shadow root - `innerHTML` and `querySelector` on the wrapper return empty. Access internal elements (spectrogram wrapper, canvases) via `wrapper.shadowRoot.querySelector(...)`.
+- **Spectrogram resize targets the plugin's wrapper div, not just the canvas.** The plugin sets `wrapper.style.height` as a fixed inline style. Use `ResizeObserver` on the container: CSS-stretch `plugin.wrapper` + canvas immediately during drag, then pixel-resize + call `plugin.render(ws.getDecodedData())` after a ~300ms debounce. Access private properties via `as unknown as { wrapper: HTMLElement; canvasContainer: HTMLElement; height: number }`.
+- **WaveSurfer v7 decoded audio is `ws.getDecodedData()`** (not `getDecodedAudio`). Returns `AudioBuffer | null`.
+- **WaveSurfer spectrogram rendering gaps:** enable `progressiveLoading: true` to pre-compute full-file spectrogram segments in background. Reduce `fftSamples` to 512 (must be power of 2) for faster segment computation. See `wavesurfer-view.ts:57-64`.
+
+## Audio & Metronome
+
+- **Metronome seek safety:** In `syncToTimeline`, always run backward-seek reset before duplicate-beat guard (`reset lastScheduledBeatTime` first, then `nextBeat.at <= lastScheduledBeatTime` check), and keep regression test `reschedules immediately after a backward timeline jump` green.
+- **AudioTransport `getIsPlaying()` must read `!audioElement.paused` directly.** Chrome can cancel queued 'pause' event tasks when `src` changes immediately after `pause()` (e.g. replacing audio during playback), so event-driven `playing` flags become permanently stale. Never use event listeners to track play state for gate logic.
+- **`importAudioFile` must explicitly stop playback before loading.** Browser events (pause/emptied) are unreliable when changing `audioElement.src` during playback. Always call `_stopPlaybackLoop()`, `_audioTransport.value?.pause()`, and reset `_isPlaying`/`_currentTime` synchronously before `loadFile`. Otherwise `_rafId` may block `_startPlaybackLoop` and `getIsPlaying()` may stay true.
+- **Metronome pause vs disable semantics:** Pausing audio must not turn `_metronomeState` off; keep the user's metronome intent as `on`, schedule one latch at the next beat, and re-enable metronome hardware on playback resume. Only user toggling the metronome off should set state to `off`.
+- **Metronome scheduled clicks must be cancelable.** Store `AudioBufferSourceNode`s created by `source.start(at)` so future tick/downbeat clicks can be stopped/replaced by latch on pause/disable, and clear pending clicks on silent shutdown paths.
+- **`audioContext.resume()` only when suspended.** Check `audioContext.state === 'suspended'` before calling `resume()` in hot paths like `syncToTimeline` (fired every RAF frame). Calling `resume()` unconditionally allocates a Promise per frame at 60fps.
+- **No-audio actions should report status, not silently disable controls.** Keep UI controls available when feedback is useful (play/seek/jump/Tap BPM/lyrics timing), guard in store/composables, and call `showStatus()` with localized messages.
+- **Platform objects that own resources must expose a `destroy()` that fully cleans up.** Never rely on GC alone for Web Audio API resources (AudioContext, AudioBufferSourceNode), object URLs, or event listeners.
+- **`destroy()` must clean up pending async operations.** When a platform object manages async loads (e.g. `loadFile`), `destroy()` must call the pending cleanup function and revoke any blob URLs. Otherwise listeners dangle after the object is destroyed.
+
+## Lyrics Timing
+
+- **`snapToNearestGridPoint` finds nearest grid point (bidirectional).** Unlike `getNextSubdivisionTime` (forward-only) and `getPreviousSubdivisionTime` (backward-only), `snapToNearestGridPoint` returns whichever subdivision boundary is closest. Used by lyrics D-key snap logic.
+- **`ProjectSettings.snapEnabled` controls grid snap globally.** When `false`, D/Shift+D/Enter write raw `currentTime` without snap or anti-overlap. TransportBar magnet button toggles this setting.
+- **`splitBarMode` is a 3-state enum: `'cut' | 'timing' | 'edit'`.** Cut = split/merge words, timing = select words + set times (D/Enter auto-switch here), edit = inline word edit + whole-line rewrite. The old `'select'` mode was renamed to `'timing'`.
+- **`autoSplitText` preserves trailing whitespace on each token** (except the last). `"hello world"` -> `["hello ", "world"]`. Display code uses `word.text.trimEnd()` for visible text and `/\s$/.test(word.text)` to decide whether to show `␣` between words.
+- **Space characters render as `␣` symbol.** Use `splitBySpaces(text)` to split text into space/non-space segments. Space segments render as `<span class="text-[10px] text-base-content/30">␣</span>` (one `␣` per space char). In cut-mode per-character rendering, use `v-if="char === ' '"` to substitute. Never trim or use `whitespace-pre`.
+- **Lyrics line list word separators.** Always show `|` (`text-[8px] text-base-content/20`) between words regardless of trailing space. WordSplitBar timing/edit mode blocks have borders - no extra separators needed.
+- **Word timing edits use formatted timestamp text.** `WordSplitBar` time inputs display/accept `MM:SS.mmm` style strings via `formatTimestamp` / `parseTimestamp`, committing on Enter or blur; do not use `type="number"` seconds inputs.
