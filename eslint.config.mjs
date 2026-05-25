@@ -32,6 +32,7 @@ export default antfu(
       'perfectionist/sort-named-imports': 'off',
       'ts/no-redeclare': ['error', { ignoreDeclarationMerge: true }],
       'vue/v-on-event-hyphenation': 'off',
+      'jsonc/comma-dangle': 'off',
     },
   },
 )
