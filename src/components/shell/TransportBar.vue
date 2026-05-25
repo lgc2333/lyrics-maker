@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { inject, ref } from 'vue'
+import { inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { TIMELINE_VIEW_KEY } from '../../composables/useTimelineView'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
 import { useEditorStore } from '../../stores/editor-store'
-import VolumePopover from './VolumePopover.vue'
+import VerticalSliderPopover from './VerticalSliderPopover.vue'
 
 const { t } = useI18n()
 
@@ -16,18 +16,14 @@ const timeline = inject(TIMELINE_VIEW_KEY)
 
 const SUBDIVISION_OPTIONS = [1, 2, 4, 8, 16] as const
 
-const verticalZoomPopoverOpen = ref(false)
-
 function onSeek(event: Event): void {
   const input = event.target as HTMLInputElement
   store.seekPlayback(input.valueAsNumber)
 }
 
-function onVerticalZoomWheel(event: WheelEvent): void {
+function setVerticalZoom(value: number): void {
   if (!timeline || timeline.viewMode.value !== 'spectrogram') return
-  event.preventDefault()
-  const delta = event.deltaY < 0 ? 0.1 : -0.1
-  timeline.setVerticalZoom((timeline.verticalZoom.value ?? 1) + delta)
+  timeline.setVerticalZoom(value)
 }
 
 function stepSubdivision(direction: -1 | 1): void {
@@ -50,58 +46,34 @@ function toggleRhythmMode(): void {
 <template>
   <section class="flex items-center gap-2 border-b border-base-300 px-2 py-1.5">
     <!-- Waveform / Spectrogram toggle; hover shows vertical zoom popover in spectrogram mode -->
-    <div
+    <VerticalSliderPopover
       v-if="timeline"
-      class="relative"
-      @mouseenter="verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'"
-      @mouseleave="verticalZoomPopoverOpen = false"
-      @wheel="onVerticalZoomWheel"
+      data-testid="view-mode-control"
+      button-testid="view-mode-toggle"
+      panel-testid="vertical-zoom-slider"
+      :model-value="timeline.verticalZoom.value"
+      :label="t('transport.toggleViewMode')"
+      :min="0.5"
+      :max="10"
+      :slider-step="0.1"
+      :wheel-step="0.1"
+      :popover-enabled="timeline.viewMode.value === 'spectrogram'"
+      @click="
+        timeline.setViewMode(
+          timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
+        )
+      "
+      @update:model-value="setVerticalZoom"
     >
-      <button
-        data-testid="view-mode-toggle"
-        class="btn btn-ghost btn-sm btn-square"
-        :title="t('transport.toggleViewMode')"
-        @click="
-          timeline.setViewMode(
-            timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
-          )
-        "
-      >
+      <template #icon>
         <Icon
           v-if="timeline.viewMode.value === 'waveform'"
           icon="material-symbols:graphic-eq-rounded"
           class="h-5 w-5"
         />
         <Icon v-else icon="mynaui:chart-area-solid" class="h-5 w-5" />
-      </button>
-
-      <!-- Vertical zoom popover — spectrogram mode only, appears above the toggle button -->
-      <div
-        v-if="timeline.viewMode.value === 'spectrogram'"
-        v-show="verticalZoomPopoverOpen"
-        data-testid="vertical-zoom-slider"
-        class="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-2 shadow-lg"
-      >
-        <div class="mb-1 text-center text-[10px] tabular-nums">
-          {{ Math.round((timeline?.verticalZoom.value ?? 1) * 100) }}%
-        </div>
-        <div class="relative h-24 w-6">
-          <input
-            class="range range-xs absolute left-1/2 top-1/2 w-24 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-            type="range"
-            min="0.5"
-            max="10"
-            step="0.1"
-            :value="timeline?.verticalZoom.value ?? 1"
-            @input="
-              timeline?.setVerticalZoom(
-                ($event.target as HTMLInputElement).valueAsNumber,
-              )
-            "
-          />
-        </div>
-      </div>
-    </div>
+      </template>
+    </VerticalSliderPopover>
 
     <button
       data-testid="metronome-toggle"
@@ -221,20 +193,26 @@ function toggleRhythmMode(): void {
       @input="onSeek"
     />
 
-    <VolumePopover
+    <VerticalSliderPopover
       data-testid="music-volume"
-      :volume="store.project.audio.musicVolume"
-      icon="material-symbols:music-note-rounded"
+      :model-value="store.project.audio.musicVolume"
       :label="t('transport.musicVolume')"
-      @update:volume="store.setMusicVolume"
-    />
+      @update:model-value="store.setMusicVolume"
+    >
+      <template #icon>
+        <Icon icon="material-symbols:music-note-rounded" class="h-5 w-5" />
+      </template>
+    </VerticalSliderPopover>
 
-    <VolumePopover
+    <VerticalSliderPopover
       data-testid="sfx-volume"
-      :volume="store.project.audio.sfxVolume"
-      icon="material-symbols:graphic-eq-rounded"
+      :model-value="store.project.audio.sfxVolume"
       :label="t('transport.sfxVolume')"
-      @update:volume="store.setSfxVolume"
-    />
+      @update:model-value="store.setSfxVolume"
+    >
+      <template #icon>
+        <Icon icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
+      </template>
+    </VerticalSliderPopover>
   </section>
 </template>

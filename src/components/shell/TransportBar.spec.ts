@@ -624,4 +624,18 @@ describe('transportBar vertical zoom slider', () => {
     const wrapper = mountWithTimeline(timeline)
     expect(wrapper.find('[data-testid="vertical-zoom-slider"]').exists()).toBe(true)
   })
+
+  it('vertical zoom wheel is clamped to the supported range', async () => {
+    const timeline = makeTimeline({
+      viewMode: ref('spectrogram') as TimelineViewContext['viewMode'],
+      verticalZoom: ref(10),
+    })
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="view-mode-control"]').trigger('wheel', {
+      deltaY: -100,
+    })
+
+    expect(timeline.setVerticalZoom).toHaveBeenCalledWith(10)
+  })
 })
