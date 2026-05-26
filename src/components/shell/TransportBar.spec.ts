@@ -424,8 +424,10 @@ function makeTimeline(
     altTripletActive: ref(false) as TimelineViewContext['altTripletActive'],
     isLoading: ref(false),
     loadError: ref(null),
+    autoFollowPlayback: ref(true),
     setViewMode: vi.fn(),
     setVerticalZoom: vi.fn(),
+    setAutoFollowPlayback: vi.fn(),
     onWheel: vi.fn(),
     ...overrides,
   }
@@ -599,6 +601,39 @@ describe('transportBar subdivision stepper', () => {
     await wrapper.vm.$nextTick()
     await wrapper.get('[data-testid="subdivision-increase"]').trigger('click')
     expect(timeline.divisor.value).toBe(16)
+  })
+})
+
+describe('transportBar playback follow toggle', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('renders playback follow toggle when timeline is provided', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+
+    expect(wrapper.find('[data-testid="auto-follow-toggle"]').exists()).toBe(true)
+  })
+
+  it('marks playback follow toggle active when enabled', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+    const button = wrapper.get('[data-testid="auto-follow-toggle"]')
+
+    expect(button.classes()).toContain('btn-active')
+    expect(button.findComponent({ name: 'Icon' }).props('icon')).toBe(
+      'material-symbols:filter-center-focus-rounded',
+    )
+  })
+
+  it('clicking playback follow toggle disables follow through timeline API', async () => {
+    const timeline = makeTimeline()
+    const wrapper = mountWithTimeline(timeline)
+
+    await wrapper.get('[data-testid="auto-follow-toggle"]').trigger('click')
+
+    expect(timeline.setAutoFollowPlayback).toHaveBeenCalledWith(false)
   })
 })
 

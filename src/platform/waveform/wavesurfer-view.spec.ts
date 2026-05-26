@@ -21,10 +21,34 @@ function createMockWs(): Record<string, unknown> & {
 } {
   const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
   const wrapper = document.createElement('div')
-  wrapper.style.width = '1600px'
   const scrollParent = document.createElement('div')
-  scrollParent.style.width = '800px'
   scrollParent.appendChild(wrapper)
+  Object.defineProperty(wrapper, 'scrollWidth', {
+    value: 1600,
+    configurable: true,
+  })
+  Object.defineProperty(scrollParent, 'clientWidth', {
+    value: 800,
+    configurable: true,
+  })
+  Object.defineProperty(scrollParent, 'scrollWidth', {
+    value: 1600,
+    configurable: true,
+  })
+  Object.defineProperty(scrollParent, 'getBoundingClientRect', {
+    value: () => ({
+      left: 100,
+      right: 900,
+      width: 800,
+      top: 0,
+      bottom: 300,
+      height: 300,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+    configurable: true,
+  })
   Object.defineProperty(wrapper, 'getRootNode', {
     value: () => ({ host: scrollParent }),
     configurable: true,
@@ -162,6 +186,18 @@ describe('waveSurferView', () => {
       view.zoom(200)
       expect(latestWs().zoom).toHaveBeenCalledWith(200)
     })
+
+    it('keeps the time under the pointer stable when zooming with an anchor', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+      scrollEl.scrollLeft = 200
+
+      view.zoom(200, 500)
+
+      expect(latestWs().zoom).toHaveBeenCalledWith(200)
+      expect(scrollEl.scrollLeft).toBe(8600)
+    })
   })
 
   describe('destroy', () => {
@@ -180,6 +216,86 @@ describe('waveSurferView', () => {
       const view = createWaveSurferView(container, defaultOptions)
 
       expect(() => view.scrollTo(30)).not.toThrow()
+    })
+
+    it('centers the requested time when possible', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollTo(60)
+
+      expect(scrollEl.scrollLeft).toBe(400)
+    })
+
+    it('does not scroll seek targets inside the 10 percent margins', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollSeekTo(30, 0.1)
+
+      expect(scrollEl.scrollLeft).toBe(0)
+    })
+
+    it('scrolls seek targets before the left margin to the 10 percent position', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+      scrollEl.scrollLeft = 1000
+
+      view.scrollSeekTo(60, 0.1)
+
+      expect(scrollEl.scrollLeft).toBe(720)
+    })
+
+    it('scrolls seek targets after the right margin to the 90 percent position', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollSeekTo(90, 0.1)
+
+      expect(scrollEl.scrollLeft).toBe(480)
+    })
+
+    it('does not scroll playback while the visible playhead has not passed the midpoint', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollPlaybackTo(30, 0.5)
+      expect(scrollEl.scrollLeft).toBe(0)
+    })
+
+    it('centers playback when the visible playhead passes the midpoint', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollPlaybackTo(31, 0.5)
+      expect(scrollEl.scrollLeft).toBeCloseTo(13.333, 3)
+    })
+
+    it('pulls playback back into view when the playhead is left of the viewport', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+      scrollEl.scrollLeft = 1000
+
+      view.scrollPlaybackTo(60, 0.5)
+
+      expect(scrollEl.scrollLeft).toBe(400)
+    })
+
+    it('pulls playback back into view when the playhead is right of the viewport', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+
+      view.scrollPlaybackTo(90, 0.5)
+
+      expect(scrollEl.scrollLeft).toBe(800)
     })
   })
 

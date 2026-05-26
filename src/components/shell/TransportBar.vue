@@ -95,6 +95,17 @@ function toggleRhythmMode(): void {
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
 
+    <button
+      v-if="timeline"
+      data-testid="auto-follow-toggle"
+      class="btn btn-ghost btn-sm btn-square"
+      :class="{ 'btn-active text-primary': timeline.autoFollowPlayback.value }"
+      :title="t('transport.autoFollowPlayback')"
+      @click="timeline.setAutoFollowPlayback(!timeline.autoFollowPlayback.value)"
+    >
+      <Icon icon="material-symbols:filter-center-focus-rounded" class="h-5 w-5" />
+    </button>
+
     <!-- Rhythm mode toggle -->
     <button
       v-if="timeline"

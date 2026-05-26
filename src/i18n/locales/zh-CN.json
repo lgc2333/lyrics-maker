@@ -35,6 +35,7 @@
     "nextBar": "下一小节",
     "musicVolume": "音乐音量",
     "sfxVolume": "音效音量",
+    "autoFollowPlayback": "播放时自动跟随",
     "waveformMode": "波形",
     "spectrogramMode": "频谱",
     "toggleViewMode": "切换波形/频谱",

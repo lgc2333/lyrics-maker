@@ -10,39 +10,40 @@ import {
 } from '../stores/editor-store'
 import { useTimelineView } from './useTimelineView'
 
-// Mock WaveSurfer to avoid DOM/canvas errors in happy-dom
-vi.mock('wavesurfer.js', () => {
-  const mockWs = {
-    getWrapper: vi.fn(() => {
-      const wrapper = document.createElement('div')
-      const parent = document.createElement('div')
-      parent.appendChild(wrapper)
-      return wrapper
-    }),
-    getDuration: vi.fn(() => 0),
-    on: vi.fn(() => () => {}),
-    zoom: vi.fn(),
-    loadBlob: vi.fn(async () => {}),
-    registerPlugin: vi.fn((p: unknown) => p),
-    destroy: vi.fn(),
-  }
-  return {
-    default: { create: vi.fn(() => mockWs) },
-    BasePlugin: class {
-      protected wavesurfer: unknown = null
-      protected subscriptions: Array<() => void> = []
-      destroy() {
-        this.subscriptions.forEach((fn) => fn())
-      }
-    },
-  }
-})
+const mockViews: Array<{
+  registerPlugin: ReturnType<typeof vi.fn>
+  loadBlob: ReturnType<typeof vi.fn>
+  zoom: ReturnType<typeof vi.fn>
+  scrollTo: ReturnType<typeof vi.fn>
+  scrollSeekTo: ReturnType<typeof vi.fn>
+  scrollPlaybackTo: ReturnType<typeof vi.fn>
+  scrollByDelta: ReturnType<typeof vi.fn>
+  getScrollTime: ReturnType<typeof vi.fn>
+  setContainerHeight: ReturnType<typeof vi.fn>
+  syncContainerHeight: ReturnType<typeof vi.fn>
+  on: ReturnType<typeof vi.fn>
+  destroy: ReturnType<typeof vi.fn>
+}> = []
 
-// Mock the spectrogram submodule to prevent Vite import-analysis errors
-vi.mock('wavesurfer.js/dist/plugins/spectrogram-windowed.esm.js', () => ({
-  default: {
-    create: vi.fn(() => ({})),
-  },
+vi.mock('../platform/waveform/wavesurfer-view', () => ({
+  createWaveSurferView: vi.fn(() => {
+    const view = {
+      registerPlugin: vi.fn((plugin: unknown) => plugin),
+      loadBlob: vi.fn(async () => {}),
+      zoom: vi.fn(),
+      scrollTo: vi.fn(),
+      scrollSeekTo: vi.fn(),
+      scrollPlaybackTo: vi.fn(),
+      scrollByDelta: vi.fn(),
+      getScrollTime: vi.fn(() => 0),
+      setContainerHeight: vi.fn(),
+      syncContainerHeight: vi.fn(async () => {}),
+      on: vi.fn(() => () => {}),
+      destroy: vi.fn(),
+    }
+    mockViews.push(view)
+    return view
+  }),
 }))
 
 function mountHarness(setup: () => void): ReturnType<typeof mount> {
@@ -58,13 +59,14 @@ function mountHarness(setup: () => void): ReturnType<typeof mount> {
 
 describe('useTimelineView', () => {
   beforeEach(() => {
+    mockViews.length = 0
     __overrideAudioTransportFactory(() => ({
       loadFile: vi.fn(async () => {}),
       play: vi.fn(async () => {}),
       pause: vi.fn(),
       seek: vi.fn(),
       getCurrentTime: vi.fn(() => 0),
-      getDuration: vi.fn(() => 0),
+      getDuration: vi.fn(() => 120),
       setVolume: vi.fn(),
       getVolume: vi.fn(() => 1),
       getIsPlaying: vi.fn(() => false),
@@ -198,6 +200,86 @@ describe('useTimelineView', () => {
     Object.defineProperty(event, 'deltaY', { value: -100 })
     timeline!.onWheel(event)
     expect(timeline!.pxPerSec.value).toBeGreaterThan(initialPps)
+
+    wrapper.unmount()
+  })
+
+  it('passes the wheel cursor position to WaveSurfer when ctrl-zooming', () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+
+    const event = new WheelEvent('wheel', { deltaY: -100, clientX: 321 })
+    Object.defineProperty(event, 'ctrlKey', { value: true })
+    Object.defineProperty(event, 'deltaY', { value: -100 })
+    Object.defineProperty(event, 'clientX', { value: 321 })
+
+    timeline!.onWheel(event)
+
+    expect(mockViews[0].zoom).toHaveBeenCalledWith(timeline!.pxPerSec.value, 321)
+
+    wrapper.unmount()
+  })
+
+  it('scrolls to explicit seek requests even during user-scroll cooldown', async () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    timeline!.onWheel(new WheelEvent('wheel', { deltaY: 100 }))
+    store.seekPlayback(5)
+    await wrapper.vm.$nextTick()
+
+    expect(mockViews[0].scrollSeekTo).toHaveBeenCalledWith(5, 0.1)
+
+    wrapper.unmount()
+  })
+
+  it('uses threshold playback follow while playing', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+
+    store.seekPlayback(8)
+    await wrapper.vm.$nextTick()
+
+    expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(8, 0.5)
+    expect(mockViews[0].scrollSeekTo).toHaveBeenCalledWith(8, 0.1)
+
+    wrapper.unmount()
+  })
+
+  it('can disable playback auto-follow without disabling explicit seek scroll', async () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    timeline!.setAutoFollowPlayback(false)
+    await store.togglePlayback()
+    store.seekPlayback(6)
+    await wrapper.vm.$nextTick()
+
+    expect(timeline!.autoFollowPlayback.value).toBe(false)
+    expect(mockViews[0].scrollPlaybackTo).not.toHaveBeenCalled()
+    expect(mockViews[0].scrollSeekTo).toHaveBeenCalledWith(6, 0.1)
 
     wrapper.unmount()
   })

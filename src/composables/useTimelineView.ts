@@ -13,6 +13,8 @@ export const TIMELINE_VIEW_KEY: InjectionKey<TimelineViewContext> =
   Symbol('timelineView')
 
 const DEFAULT_PX_PER_SEC = 100
+const PLAYBACK_FOLLOW_THRESHOLD_RATIO = 0.5
+const SEEK_SCROLL_MARGIN_RATIO = 0.1
 
 export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   const store = useEditorStore()
@@ -21,6 +23,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   const viewMode = ref<'waveform' | 'spectrogram'>('waveform')
   const pxPerSec = ref(DEFAULT_PX_PER_SEC)
   const verticalZoom = ref(1)
+  const autoFollowPlayback = ref(true)
   const altTripletActive = ref(false)
   const isLoading = ref(false)
   const loadError = ref<string | null>(null)
@@ -155,9 +158,21 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     (t) => {
       gridPlugin?.update(_buildOverlayParams())
       lineOverlayPlugin?.update(_buildLineOverlayParams())
-      if (store.isPlaying && Date.now() - lastUserScrollAt > USER_SCROLL_COOLDOWN_MS) {
-        wavesurferView?.scrollTo(t)
+      if (
+        autoFollowPlayback.value &&
+        store.isPlaying &&
+        Date.now() - lastUserScrollAt > USER_SCROLL_COOLDOWN_MS
+      ) {
+        wavesurferView?.scrollPlaybackTo(t, PLAYBACK_FOLLOW_THRESHOLD_RATIO)
       }
+    },
+  )
+
+  watch(
+    () => store.seekRequest.version,
+    (version) => {
+      if (version === 0) return
+      wavesurferView?.scrollSeekTo(store.seekRequest.time, SEEK_SCROLL_MARGIN_RATIO)
     },
   )
 
@@ -254,6 +269,10 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     verticalZoom.value = Math.max(0.5, Math.min(10, v))
   }
 
+  function setAutoFollowPlayback(enabled: boolean): void {
+    autoFollowPlayback.value = enabled
+  }
+
   /**
    * Wheel event handler for the waveform container.
    * Ctrl+wheel → horizontal zoom; Shift+wheel → subdivision divisor change;
@@ -264,7 +283,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       const factor = e.deltaY < 0 ? 1.25 : 0.8
       const newPps = Math.max(10, Math.min(2000, pxPerSec.value * factor))
       pxPerSec.value = newPps
-      wavesurferView?.zoom(newPps)
+      wavesurferView?.zoom(newPps, e.clientX)
     } else if (e.shiftKey) {
       if (!store.hasAudio) {
         store.showStatus('status.audioRequired', {
@@ -290,6 +309,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     viewMode,
     pxPerSec,
     verticalZoom,
+    autoFollowPlayback,
     divisor,
     rhythmMode,
     effectiveTriplets,
@@ -298,6 +318,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     loadError,
     setViewMode,
     setVerticalZoom,
+    setAutoFollowPlayback,
     onWheel,
   }
 }

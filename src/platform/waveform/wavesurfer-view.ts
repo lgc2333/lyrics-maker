@@ -18,8 +18,10 @@ export interface WaveSurferViewOptions {
 export interface WaveSurferView {
   registerPlugin: <T extends GenericPlugin>(plugin: T) => T
   loadBlob: (blob: Blob) => Promise<void>
-  zoom: (pxPerSec: number) => void
+  zoom: (pxPerSec: number, anchorClientX?: number) => void
   scrollTo: (time: number) => void
+  scrollSeekTo: (time: number, marginRatio: number) => void
+  scrollPlaybackTo: (time: number, thresholdRatio: number) => void
   scrollByDelta: (delta: number) => void
   getScrollTime: () => number
   /** CSS-only resize for smooth visual updates during drag. */
@@ -86,8 +88,25 @@ export function createWaveSurferView(
       }
     },
 
-    zoom(pxPerSec: number): void {
+    zoom(pxPerSec: number, anchorClientX?: number): void {
+      const scrollEl = _getScrollContainer()
+      const duration = ws.getDuration()
+      const wrapper = ws.getWrapper()
+      const oldPxPerSec = duration > 0 ? wrapper.scrollWidth / duration : 0
+      const anchorOffset =
+        scrollEl && anchorClientX !== undefined
+          ? anchorClientX - scrollEl.getBoundingClientRect().left
+          : null
+      const anchorTime =
+        scrollEl && anchorOffset !== null && oldPxPerSec > 0
+          ? (scrollEl.scrollLeft + anchorOffset) / oldPxPerSec
+          : null
+
       ws.zoom(pxPerSec)
+
+      if (scrollEl && anchorOffset !== null && anchorTime !== null) {
+        scrollEl.scrollLeft = Math.max(0, anchorTime * pxPerSec - anchorOffset)
+      }
     },
 
     scrollTo(time: number): void {
@@ -97,6 +116,41 @@ export function createWaveSurferView(
       if (duration <= 0) return
       const wrapper = ws.getWrapper()
       const pxPerSec = wrapper.scrollWidth / duration
+      const center = scrollEl.clientWidth / 2
+      scrollEl.scrollLeft = Math.max(0, time * pxPerSec - center)
+    },
+
+    scrollSeekTo(time: number, marginRatio: number): void {
+      const scrollEl = _getScrollContainer()
+      if (!scrollEl) return
+      const duration = ws.getDuration()
+      if (duration <= 0) return
+      const wrapper = ws.getWrapper()
+      const pxPerSec = wrapper.scrollWidth / duration
+      const margin = scrollEl.clientWidth * marginRatio
+      const targetX = time * pxPerSec
+      const visibleX = targetX - scrollEl.scrollLeft
+      const rightMargin = scrollEl.clientWidth - margin
+
+      if (visibleX < margin) {
+        scrollEl.scrollLeft = Math.max(0, targetX - margin)
+      } else if (visibleX > rightMargin) {
+        scrollEl.scrollLeft = Math.max(0, targetX - rightMargin)
+      }
+    },
+
+    scrollPlaybackTo(time: number, thresholdRatio: number): void {
+      const scrollEl = _getScrollContainer()
+      if (!scrollEl) return
+      const duration = ws.getDuration()
+      if (duration <= 0) return
+      const wrapper = ws.getWrapper()
+      const pxPerSec = wrapper.scrollWidth / duration
+      const threshold = scrollEl.clientWidth * thresholdRatio
+      const playheadX = time * pxPerSec - scrollEl.scrollLeft
+      const isBeforeViewport = playheadX < 0
+      const isAfterViewport = playheadX > scrollEl.clientWidth
+      if (!isBeforeViewport && !isAfterViewport && playheadX < threshold) return
       const center = scrollEl.clientWidth / 2
       scrollEl.scrollLeft = Math.max(0, time * pxPerSec - center)
     },

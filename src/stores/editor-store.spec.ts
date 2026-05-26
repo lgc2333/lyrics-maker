@@ -589,6 +589,20 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.isPlaying).toBe(false)
   })
 
+  it('records explicit seek requests after a loaded-audio seek', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    expect(store.seekRequest.version).toBe(0)
+    expect(store.seekRequest.time).toBe(0)
+
+    store.seekPlayback(999)
+
+    expect(store.currentTime).toBe(120)
+    expect(store.seekRequest.version).toBe(1)
+    expect(store.seekRequest.time).toBe(120)
+  })
+
   it('updates currentTime while playback loop is running', async () => {
     vi.useFakeTimers()
 

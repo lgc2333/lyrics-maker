@@ -110,6 +110,8 @@ export const useEditorStore = defineStore('editor', () => {
 
   const _audioFile = shallowRef<File | null>(null)
   const _currentTime = shallowRef(0)
+  const _seekRequestVersion = shallowRef(0)
+  const _seekRequestTime = shallowRef(0)
   const _isPlaying = shallowRef(false)
   const _metronomeState = shallowRef<'off' | 'on' | 'latch_pending'>('off')
   const _tapCount = shallowRef(0) // incremented on every tap call, reset after idle timeout
@@ -126,6 +128,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   const isPlaying = computed(() => _isPlaying.value)
   const currentTime = computed(() => _currentTime.value)
+  const seekRequest = computed(() => ({
+    version: _seekRequestVersion.value,
+    time: _seekRequestTime.value,
+  }))
   const activeTimingPointId = computed(() => {
     const points = project.value.timingPoints
     if (points.length === 0) return null
@@ -555,6 +561,8 @@ export const useEditorStore = defineStore('editor', () => {
     const target = Math.max(0, Math.min(d || 0, time))
     transport.seek(target)
     _currentTime.value = target
+    _seekRequestTime.value = target
+    _seekRequestVersion.value += 1
 
     // Restart RAF loop to re-sync metronome after timeline jump
     if (transport.getIsPlaying()) {
@@ -734,6 +742,7 @@ export const useEditorStore = defineStore('editor', () => {
     // Phase 2: reactive state
     isPlaying,
     currentTime,
+    seekRequest,
     activeTimingPointId,
     isMetronomeEnabled,
     metronomeState,
