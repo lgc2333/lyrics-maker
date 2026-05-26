@@ -4,6 +4,7 @@ import type { InjectionKey, ShallowRef } from 'vue'
 
 import { GridOverlayPlugin } from '../platform/waveform/grid-overlay-plugin'
 import { LineOverlayPlugin } from '../platform/waveform/line-overlay-plugin'
+import { PlayheadOverlayPlugin } from '../platform/waveform/playhead-overlay-plugin'
 import { createWaveSurferView } from '../platform/waveform/wavesurfer-view'
 import type { WaveSurferView } from '../platform/waveform/wavesurfer-view'
 import { useEditorStore } from '../stores/editor-store'
@@ -47,6 +48,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   let wavesurferView: WaveSurferView | null = null
   let gridPlugin: GridOverlayPlugin | null = null
   let lineOverlayPlugin: LineOverlayPlugin | null = null
+  let playheadPlugin: PlayheadOverlayPlugin | null = null
   let lastUserScrollAt = 0
   let resizeObserver: ResizeObserver | null = null
   const USER_SCROLL_COOLDOWN_MS = 500
@@ -68,6 +70,12 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     }
   }
 
+  function _buildPlayheadParams() {
+    return {
+      currentTime: store.currentTime,
+    }
+  }
+
   function _initWaveSurfer(container: HTMLElement): WaveSurferView {
     const view = createWaveSurferView(container, {
       mode: viewMode.value,
@@ -82,6 +90,9 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     lineOverlayPlugin = view.registerPlugin(
       LineOverlayPlugin.create({ outerContainer: container }),
     )
+    playheadPlugin = view.registerPlugin(
+      PlayheadOverlayPlugin.create({ outerContainer: container }),
+    )
 
     // Click-to-seek: WaveSurfer fires 'interaction' with newTime when interact: true
     view.on('interaction', (time: unknown) => {
@@ -93,6 +104,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       isLoading.value = false
       gridPlugin?.update(_buildOverlayParams())
       lineOverlayPlugin?.update(_buildLineOverlayParams())
+      playheadPlugin?.update(_buildPlayheadParams())
     })
 
     // Observe container height changes so spectrogram/waveform canvases
@@ -152,12 +164,12 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     },
   )
 
-  // Sync grid + line overlay + auto-scroll on every currentTime tick
+  // Sync playhead + auto-scroll on every currentTime tick.
+  // Grid and lyric overlays are static relative to timeline content.
   watch(
     () => store.currentTime,
     (t) => {
-      gridPlugin?.update(_buildOverlayParams())
-      lineOverlayPlugin?.update(_buildLineOverlayParams())
+      playheadPlugin?.update(_buildPlayheadParams())
       if (
         autoFollowPlayback.value &&
         store.isPlaying &&
@@ -233,6 +245,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     wavesurferView = null
     gridPlugin = null
     lineOverlayPlugin = null
+    playheadPlugin = null
   })
 
   // ---- Public API ----
@@ -246,6 +259,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     wavesurferView = null
     gridPlugin = null
     lineOverlayPlugin = null
+    playheadPlugin = null
 
     viewMode.value = mode
 

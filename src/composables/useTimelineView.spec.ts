@@ -25,6 +25,40 @@ const mockViews: Array<{
   destroy: ReturnType<typeof vi.fn>
 }> = []
 
+const mockGridPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
+const mockLinePlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
+const mockPlayheadPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
+
+vi.mock('../platform/waveform/grid-overlay-plugin', () => ({
+  GridOverlayPlugin: {
+    create: vi.fn(() => {
+      const plugin = { update: vi.fn() }
+      mockGridPlugins.push(plugin)
+      return plugin
+    }),
+  },
+}))
+
+vi.mock('../platform/waveform/line-overlay-plugin', () => ({
+  LineOverlayPlugin: {
+    create: vi.fn(() => {
+      const plugin = { update: vi.fn() }
+      mockLinePlugins.push(plugin)
+      return plugin
+    }),
+  },
+}))
+
+vi.mock('../platform/waveform/playhead-overlay-plugin', () => ({
+  PlayheadOverlayPlugin: {
+    create: vi.fn(() => {
+      const plugin = { update: vi.fn() }
+      mockPlayheadPlugins.push(plugin)
+      return plugin
+    }),
+  },
+}))
+
 vi.mock('../platform/waveform/wavesurfer-view', () => ({
   createWaveSurferView: vi.fn(() => {
     const view = {
@@ -60,6 +94,9 @@ function mountHarness(setup: () => void): ReturnType<typeof mount> {
 describe('useTimelineView', () => {
   beforeEach(() => {
     mockViews.length = 0
+    mockGridPlugins.length = 0
+    mockLinePlugins.length = 0
+    mockPlayheadPlugins.length = 0
     __overrideAudioTransportFactory(() => ({
       loadFile: vi.fn(async () => {}),
       play: vi.fn(async () => {}),
@@ -258,6 +295,32 @@ describe('useTimelineView', () => {
 
     expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(8, 0.5)
     expect(mockViews[0].scrollSeekTo).toHaveBeenCalledWith(8, 0.1)
+
+    wrapper.unmount()
+  })
+
+  it('currentTime updates only move the playhead and playback follow', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+
+    mockGridPlugins[0].update.mockClear()
+    mockLinePlugins[0].update.mockClear()
+    mockPlayheadPlugins[0].update.mockClear()
+    mockViews[0].scrollPlaybackTo.mockClear()
+
+    store.seekPlayback(7)
+    await wrapper.vm.$nextTick()
+
+    expect(mockPlayheadPlugins[0].update).toHaveBeenCalledWith({ currentTime: 7 })
+    expect(mockGridPlugins[0].update).not.toHaveBeenCalled()
+    expect(mockLinePlugins[0].update).not.toHaveBeenCalled()
+    expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(7, 0.5)
 
     wrapper.unmount()
   })
