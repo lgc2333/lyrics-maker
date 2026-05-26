@@ -106,7 +106,7 @@ describe('gridOverlayPlugin', () => {
       ).not.toThrow()
     })
 
-    it('clears previously drawn grid lines when timing points become empty', () => {
+    it('clears previous grid lines but keeps drawing the playhead when timing points become empty', () => {
       const plugin = GridOverlayPlugin.create()
       const parentDiv = document.createElement('div')
       Object.defineProperty(parentDiv, 'clientWidth', { value: 800 })
@@ -153,6 +153,9 @@ describe('gridOverlayPlugin', () => {
         triplets: false,
       })
       clearRect.mockClear()
+      ctx.beginPath.mockClear()
+      ctx.moveTo.mockClear()
+      ctx.lineTo.mockClear()
       ctx.stroke.mockClear()
 
       plugin.update({
@@ -163,7 +166,9 @@ describe('gridOverlayPlugin', () => {
       })
 
       expect(clearRect).toHaveBeenCalledWith(0, 0, 800, 200)
-      expect(ctx.stroke).not.toHaveBeenCalled()
+      expect(ctx.moveTo).toHaveBeenCalledWith(80.5, 0)
+      expect(ctx.lineTo).toHaveBeenCalledWith(80.5, 200)
+      expect(ctx.stroke).toHaveBeenCalledOnce()
     })
   })
 

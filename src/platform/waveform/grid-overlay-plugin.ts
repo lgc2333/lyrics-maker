@@ -138,35 +138,35 @@ export class GridOverlayPlugin extends BasePlugin<
 
     ctx.clearRect(0, 0, w, h)
 
-    if (this.params.timingPoints.length === 0) return
+    if (this.params.timingPoints.length > 0) {
+      const lines = getBeatGridLines(
+        this.params.timingPoints,
+        this.params.divisor,
+        this.params.triplets,
+        Math.max(0, this.visibleStart - 0.5),
+        Math.min(duration, this.visibleEnd + 0.5),
+      )
 
-    const lines = getBeatGridLines(
-      this.params.timingPoints,
-      this.params.divisor,
-      this.params.triplets,
-      Math.max(0, this.visibleStart - 0.5),
-      Math.min(duration, this.visibleEnd + 0.5),
-    )
+      for (const line of lines) {
+        const x = Math.round((line.time - this.visibleStart) * pxPerSec) + 0.5
+        if (x < -2 || x > w + 2) continue
 
-    for (const line of lines) {
-      const x = Math.round((line.time - this.visibleStart) * pxPerSec) + 0.5
-      if (x < -2 || x > w + 2) continue
+        if (line.type === 'bar') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+          ctx.lineWidth = 2
+        } else if (line.type === 'beat') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+          ctx.lineWidth = 1
+        } else {
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+          ctx.lineWidth = 1
+        }
 
-      if (line.type === 'bar') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-        ctx.lineWidth = 2
-      } else if (line.type === 'beat') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-        ctx.lineWidth = 1
-      } else {
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, h)
+        ctx.stroke()
       }
-
-      ctx.beginPath()
-      ctx.moveTo(x, 0)
-      ctx.lineTo(x, h)
-      ctx.stroke()
     }
 
     // Draw playhead
