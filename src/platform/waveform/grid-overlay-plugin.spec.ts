@@ -8,7 +8,10 @@ function createFakeWs(duration = 10) {
   const wrapper = document.createElement('div')
   Object.defineProperty(wrapper, 'scrollWidth', { value: 1000, configurable: true })
   const scrollContainer = document.createElement('div')
-  Object.defineProperty(scrollContainer, 'clientWidth', { value: 500, configurable: true })
+  Object.defineProperty(scrollContainer, 'clientWidth', {
+    value: 500,
+    configurable: true,
+  })
   Object.defineProperty(scrollContainer, 'scrollWidth', {
     value: 1000,
     configurable: true,
@@ -136,9 +139,9 @@ describe('gridOverlayPlugin', () => {
         triplets: false,
       })
 
-      expect(wrapper.querySelectorAll('[data-testid="timeline-grid"] line')).toHaveLength(
-        0,
-      )
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line'),
+      ).toHaveLength(0)
     })
 
     it('does not throw before initialization', () => {

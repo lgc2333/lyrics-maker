@@ -66,7 +66,9 @@ describe('playheadOverlayPlugin', () => {
     Reflect.get(plugin, 'onInit').call(plugin)
 
     expect(() => plugin.update({ currentTime: 1 })).not.toThrow()
-    expect(outerContainer.querySelector('[data-testid="timeline-playhead"]')).not.toBeNull()
+    expect(
+      outerContainer.querySelector('[data-testid="timeline-playhead"]'),
+    ).not.toBeNull()
   })
 
   it('hides when duration is invalid', () => {

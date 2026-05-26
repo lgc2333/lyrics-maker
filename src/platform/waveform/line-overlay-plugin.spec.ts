@@ -7,7 +7,10 @@ function createFakeWs(duration = 10) {
   const wrapper = document.createElement('div')
   Object.defineProperty(wrapper, 'scrollWidth', { value: 1000, configurable: true })
   const scrollContainer = document.createElement('div')
-  Object.defineProperty(scrollContainer, 'clientWidth', { value: 500, configurable: true })
+  Object.defineProperty(scrollContainer, 'clientWidth', {
+    value: 500,
+    configurable: true,
+  })
   Object.defineProperty(scrollContainer, 'scrollWidth', {
     value: 1000,
     configurable: true,

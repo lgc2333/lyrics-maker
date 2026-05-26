@@ -28,8 +28,7 @@ const mockViews: Array<{
 const mockGridPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
 const mockLinePlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
 const mockPlayheadPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
-const mockViewListeners: Array<Record<string, Array<(...args: unknown[]) => void>>> =
-  []
+const mockViewListeners: Array<Record<string, Array<(...args: unknown[]) => void>>> = []
 
 function emitViewEvent(index: number, event: string, ...args: unknown[]) {
   for (const fn of mockViewListeners[index]?.[event] ?? []) fn(...args)

@@ -2,9 +2,11 @@
 
 ## WaveSurfer & Timeline
 
-- **WaveSurfer `ready` event must trigger grid update.** `GridOverlayPlugin._draw()` exits early when `duration <= 0`. After a view-mode switch the `scroll` event hasn't fired, so call `gridPlugin.update(params)` inside the `ready` handler to show lines immediately.
-- **Grid overlay `zoom` handler must recompute `visibleStart`/`visibleEnd` before `_draw()`.** WaveSurfer's `zoom` event fires before the `scroll` event, so stale visible-range values produce grid lines at wrong positions. Recompute from `wrapper.scrollWidth`, `scrollContainer.scrollLeft`, and `duration` - same pattern as the `ready` handler.
-- **Grid overlay playhead must not depend on timing points.** In `GridOverlayPlugin._draw()`, always `ctx.clearRect(...)`, draw beat-grid lines only when `timingPoints.length > 0`, then draw the playhead independently; otherwise deleting the last timing point can either leave stale grid lines or hide the current-time line. Keep the regression test in `grid-overlay-plugin.spec.ts` green.
+- **Timeline content overlays attach to `wavesurfer.getWrapper()`.** Grid and lyrics overlay content must live in WaveSurfer's wrapper coordinate system so browser scrolling carries it with the waveform/spectrogram. Keep viewport-fixed UI such as the playhead on the outer container.
+- **Grid overlay is SVG and virtualized.** Generate beat/bar/subdivision lines only for the visible range plus a small buffer. Grid rendering must respond to timing point, divisor/triplet, ready, zoom, resize/redraw, and scroll changes, but not to playback `currentTime`.
+- **Lyrics overlay is DOM and virtualized.** Render only timed lyric segments intersecting the visible range plus a small buffer. Preserve red line start, blue completed-line end, yellow dashed word separators, timed range fill, and trimmed word labels.
+- **Playhead overlay is independent from timing points.** The playhead is a single outer-container DOM line updated with `transform: translateX(...)` from `currentTime`, `scrollLeft`, and pixels-per-second. Deleting the last timing point clears grid lines but must not hide the playhead.
+- **WaveSurfer wrapper uses Shadow DOM.** `wavesurfer.getWrapper()` returns the internal wrapper element and its parent is the scroll container. Centralize repeated wrapper/scroll geometry in `WaveSurferView` helpers where possible.
 - **WaveSurfer spectrogram vertical zoom via `frequencyMax`.** Set `frequencyMax = Math.round(22050 / zoom)` in `WindowedSpectrogramPlugin.create()` - not a post-init method. Requires recreating the WaveSurfer instance to take effect.
 - **WaveSurfer waveform hidden in spectrogram mode:** set both `height: 0` and `waveColor: 'transparent'`. `height: 0` collapses the canvas; `waveColor: 'transparent'` prevents pixel bleed if height rounds up.
 - **WaveSurfer `progressColor: 'transparent'` + `hideScrollbar: true`** when drawing a custom playhead overlay and managing scrolling manually.
