@@ -1,6 +1,8 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this repository.
+
+CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Edit tool refuses to write through symlinks.
 
 ## Commands
 
@@ -21,8 +23,6 @@ Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its
 
 Use plain `pnpm` first, if not found, fall back to: `fnm exec --using default pnpm.cmd`
 
-CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Edit tool refuses to write through symlinks.
-
 ## Tooling
 
 **Always**: Use **Context7** MCP to get up-to-date documentation of Vue, Pinia, Vite, Tailwind CSS, DaisyUI, and other dependencies. Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
@@ -35,6 +35,8 @@ CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Ed
 - **Vue composable work**: Before touching composables, invoke `vue-best-practices` and `create-adaptable-composable`.
 - **Pinia store work**: Before touching Pinia stores, invoke `vue-best-practices` and `vue-pinia-best-practices`.
 - **Vue test work**: Before touching Vue-related tests, invoke `vue-testing-best-practices`.
+
+If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
 
 ## Architecture: Three-Layer Design
 
