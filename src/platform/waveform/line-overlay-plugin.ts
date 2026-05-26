@@ -120,6 +120,28 @@ export class LineOverlayPlugin extends BasePlugin<
     )
   }
 
+  private _getLineRenderState(line: LyricLine): {
+    endTime: number
+    finalWordIsTimed: boolean
+  } | null {
+    if (line.startTime === undefined) return null
+
+    let endTime: number | undefined
+
+    for (const word of line.words) {
+      if (word.endTime === undefined) {
+        continue
+      }
+      endTime = word.endTime
+    }
+
+    if (endTime === undefined) return null
+    return {
+      endTime,
+      finalWordIsTimed: line.words.at(-1)?.endTime !== undefined,
+    }
+  }
+
   private _draw(): void {
     if (!this.layer || !this.wavesurfer) return
     this.layer.replaceChildren()
@@ -141,14 +163,13 @@ export class LineOverlayPlugin extends BasePlugin<
 
     for (const line of this.params.lyrics) {
       if (line.startTime === undefined) continue
-      const lastWord = line.words[line.words.length - 1]
-      const lineEnd = lastWord?.endTime
-      if (lineEnd === undefined) continue
-      if (!this._intersects(line.startTime, lineEnd)) continue
+      const lineState = this._getLineRenderState(line)
+      if (!lineState) continue
+      if (!this._intersects(line.startTime, lineState.endTime)) continue
 
       const isActive = line.id === this.params.activeLineId
       const x1 = line.startTime * pxPerSec
-      const x2 = lineEnd * pxPerSec
+      const x2 = lineState.endTime * pxPerSec
       const range = document.createElement('div')
       range.dataset.testid = `lyric-range-${line.id}`
       Object.assign(range.style, {
@@ -166,20 +187,31 @@ export class LineOverlayPlugin extends BasePlugin<
       range.appendChild(
         this._createBoundary(`line-start-${line.id}`, 0, 'rgba(255, 80, 80, 0.8)'),
       )
-      range.appendChild(
-        this._createBoundary(
-          `line-end-${line.id}`,
-          Math.max(0, x2 - x1),
-          'rgba(100, 180, 255, 0.8)',
-        ),
-      )
+      if (lineState.finalWordIsTimed) {
+        range.appendChild(
+          this._createBoundary(
+            `line-end-${line.id}`,
+            Math.max(0, x2 - x1),
+            'rgba(100, 180, 255, 0.8)',
+          ),
+        )
+      } else {
+        range.appendChild(
+          this._createBoundary(
+            `partial-line-end-${line.id}`,
+            Math.max(0, x2 - x1),
+            isActive ? 'rgba(255, 214, 80, 0.85)' : 'rgba(255, 214, 80, 0.45)',
+            true,
+          ),
+        )
+      }
 
       let prevWordEnd = line.startTime
       for (let i = 0; i < line.words.length; i++) {
         const word = line.words[i]
         const wordStart = prevWordEnd
         const wordEnd = word.endTime
-        if (wordEnd === undefined) break
+        if (wordEnd === undefined) continue
 
         const wordX1 = wordStart * pxPerSec - x1
         const wordX2 = wordEnd * pxPerSec - x1

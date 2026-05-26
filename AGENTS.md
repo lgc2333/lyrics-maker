@@ -98,10 +98,10 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus Part 1 (status bar + no-audio editing boundaries) and Part 2 (timing menu/WordSplitBar UI fixes) are complete. Remaining:
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus Part 1 (status bar + no-audio editing boundaries), Part 2 (timing menu/WordSplitBar UI fixes), Part 3 (timeline scrolling, seek-follow, and zoom behavior), Part 3.5 (timeline overlay coordinate system and playback performance), and Part 4 (overlay partial timing display and pointer preview) are complete. Remaining:
 
 - Phase 5: Import/export plugins + shortcut rebinding UI.
-- Phase 5 Plus: Part 3+ timeline scrolling, seek-follow, and zoom behavior.
+- Phase 5 Plus: Part 5+ project saving, local settings, import/export, shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
 
 Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
 

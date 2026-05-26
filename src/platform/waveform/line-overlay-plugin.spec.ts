@@ -111,6 +111,75 @@ describe('lineOverlayPlugin', () => {
       expect(wrapper.querySelector('[data-testid^="lyric-range-"]')).toBeNull()
     })
 
+    it('renders a line by skipping untimed middle words and drawing the end line when the final word is timed', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'first ', endTime: 2 },
+              { id: 'w2', text: 'missing ' },
+              { id: 'w3', text: 'later', endTime: 4 },
+            ],
+          },
+        ],
+        activeLineId: null,
+      })
+
+      const range = wrapper.querySelector<HTMLElement>(
+        '[data-testid="lyric-range-line-1"]',
+      )
+
+      expect(range).not.toBeNull()
+      expect(range?.style.left).toBe('100px')
+      expect(range?.style.width).toBe('300px')
+      expect(wrapper.querySelector('[data-testid="line-start-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="line-end-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="word-label-w2"]')).toBeNull()
+      expect(wrapper.querySelector('[data-testid="word-label-w3"]')?.textContent).toBe(
+        'later',
+      )
+      expect(
+        wrapper.querySelector('[data-testid="partial-line-end-line-1"]'),
+      ).toBeNull()
+    })
+
+    it('uses a dashed partial boundary when the final word is still untimed', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'first ', endTime: 2 },
+              { id: 'w2', text: 'missing ' },
+              { id: 'w3', text: 'later' },
+            ],
+          },
+        ],
+        activeLineId: null,
+      })
+
+      expect(wrapper.querySelector('[data-testid="lyric-range-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="line-end-line-1"]')).toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="partial-line-end-line-1"]'),
+      ).not.toBeNull()
+    })
+
     it('virtualizes lines outside the buffered visible range', () => {
       const { wrapper, ws, emit } = createFakeWs()
       const plugin = LineOverlayPlugin.create()

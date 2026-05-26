@@ -77,6 +77,20 @@ describe('gridOverlayPlugin', () => {
       )
     })
 
+    it('appends a hidden pointer time preview to the WaveSurfer wrapper', () => {
+      const { wrapper, ws } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      const preview = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview"]',
+      )
+
+      expect(preview).toBeInstanceOf(HTMLDivElement)
+      expect(preview?.style.display).toBe('none')
+    })
+
     it('renders beat lines using absolute wrapper coordinates', () => {
       const { wrapper, ws, emit } = createFakeWs()
       const plugin = GridOverlayPlugin.create()
@@ -202,6 +216,86 @@ describe('gridOverlayPlugin', () => {
       expect(
         wrapper.querySelectorAll('[data-testid="timeline-grid"] line'),
       ).toHaveLength(0)
+    })
+
+    it('shows a formatted pointer time preview in wrapper coordinates', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 10 }),
+        configurable: true,
+      })
+      scrollContainer.scrollLeft = 100
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 260,
+          bubbles: true,
+        }),
+      )
+
+      const preview = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview"]',
+      )
+      const line = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-line"]',
+      )
+      const label = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-label"]',
+      )
+
+      expect(preview?.style.display).toBe('block')
+      expect(line?.style.left).toBe('350px')
+      expect(label?.style.left).toBe('350px')
+      expect(label?.textContent).toBe('00:03.500')
+    })
+
+    it('clamps pointer preview time to the audio duration', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 2000,
+          bubbles: true,
+        }),
+      )
+
+      expect(
+        wrapper.querySelector('[data-testid="grid-time-preview-label"]')?.textContent,
+      ).toBe('00:10.000')
+    })
+
+    it('hides pointer time preview on pointer leave', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 200,
+          bubbles: true,
+        }),
+      )
+      wrapper.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }))
+
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="grid-time-preview"]')?.style
+          .display,
+      ).toBe('none')
     })
 
     it('does not throw before initialization', () => {
