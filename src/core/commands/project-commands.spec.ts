@@ -6,6 +6,7 @@ import {
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
   createSetAudioVolumeCommand,
+  createSetProjectTitleCommand,
   createSetRhythmModeCommand,
   createSetSnapDivisorCommand,
   createSetSnapEnabledCommand,
@@ -320,5 +321,24 @@ describe('settings commands', () => {
 
     const undone = cmd.undo(afterTwo)
     expect(undone.settings.snapEnabled).toBe(true)
+  })
+})
+
+describe('project title command', () => {
+  it('sets project title and is undoable', () => {
+    const command = createSetProjectTitleCommand('New Title')
+    const afterSet = command.do(createEmptyProject())
+
+    expect(afterSet.title).toBe('New Title')
+
+    const afterUndo = command.undo(afterSet)
+    expect(afterUndo.title).toBe('Untitled Project')
+  })
+
+  it('trims blank titles back to the default title', () => {
+    const command = createSetProjectTitleCommand('   ')
+    const afterSet = command.do({ ...createEmptyProject(), title: 'Old Title' })
+
+    expect(afterSet.title).toBe('Untitled Project')
   })
 })

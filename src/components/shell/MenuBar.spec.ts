@@ -135,11 +135,69 @@ describe('menuBar', () => {
     expect(
       (wrapper.get('[data-testid="menu-open-project"]').element as HTMLButtonElement)
         .disabled,
-    ).toBe(true)
+    ).toBe(false)
     expect(
       (wrapper.get('[data-testid="menu-preferences"]').element as HTMLButtonElement)
         .disabled,
     ).toBe(true)
+  })
+
+  it('emits project file actions from the file menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    expect(wrapper.emitted('openProject')).toHaveLength(1)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-save-project"]').trigger('click')
+    expect(wrapper.emitted('saveProject')).toHaveLength(1)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-save-as"]').trigger('click')
+    expect(wrapper.emitted('saveProjectAs')).toHaveLength(1)
+  })
+
+  it('shows dirty project title with leading star', () => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        projectTitle: 'Song A',
+        dirty: true,
+      },
+    })
+
+    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe('*Song A')
+  })
+
+  it('edits project title inline on enter and cancels with escape', async () => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        projectTitle: 'Song A',
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.get('[data-testid="menu-title-button"]').trigger('click')
+    const input = wrapper.get('[data-testid="menu-title-input"]')
+    expect(document.activeElement).toBe(input.element)
+
+    await input.setValue('Song B')
+    await input.trigger('keydown.enter')
+    expect(wrapper.emitted('updateProjectTitle')?.[0]).toEqual(['Song B'])
+
+    await wrapper.get('[data-testid="menu-title-button"]').trigger('click')
+    await wrapper.get('[data-testid="menu-title-input"]').setValue('Discard')
+    await wrapper.get('[data-testid="menu-title-input"]').trigger('keydown.escape')
+
+    expect(wrapper.emitted('updateProjectTitle')).toHaveLength(1)
   })
 
   it('emits undo with translated command label from edit menu', async () => {

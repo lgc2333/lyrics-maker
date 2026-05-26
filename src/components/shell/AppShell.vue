@@ -192,12 +192,18 @@ useEditorShortcuts({
       :can-redo="store.canRedo"
       :next-undo-label="store.nextUndoLabel"
       :next-redo-label="store.nextRedoLabel"
+      :project-title="store.project.title"
+      :dirty="store.dirty"
       @switchMode="
         (mode) => {
           editorMode = mode
         }
       "
       @toggleTheme="toggleTheme"
+      @openProject="persistence.openProject"
+      @saveProject="persistence.saveByShortcut"
+      @saveProjectAs="persistence.saveAs"
+      @updateProjectTitle="store.setProjectTitle"
       @undo="store.undo"
       @redo="store.redo"
       @openAudioFile="openAudioPicker"

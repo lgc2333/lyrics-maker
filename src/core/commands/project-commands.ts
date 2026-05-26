@@ -1,4 +1,5 @@
 import type { LyricWord, ProjectDocument, TimingPoint } from '../domain/project'
+import { createEmptyProject } from '../domain/project'
 import { validateTimingPoint } from '../timing/timing-point'
 import type { Command } from './command'
 
@@ -175,6 +176,22 @@ export function createSetAudioVolumeCommand(
         ...state,
         audio: { ...state.audio, [key]: previousValue },
       }
+    },
+  }
+}
+
+export function createSetProjectTitleCommand(title: string): Command<ProjectDocument> {
+  let previousTitle: string | null = null
+  return {
+    label: 'project.setTitle',
+    do: (state) => {
+      previousTitle = state.title
+      const nextTitle = title.trim() || createEmptyProject().title
+      return { ...state, title: nextTitle }
+    },
+    undo: (state) => {
+      if (previousTitle === null) return state
+      return { ...state, title: previousTitle }
     },
   }
 }

@@ -24,7 +24,7 @@
       "shortcuts": "快捷键列表",
       "about": "关于"
     },
-    "appTitle": "歌词打轴软件",
+    "appTitle": "Lyrics Maker",
     "mode": { "timing": "时轴", "lyrics": "歌词" }
   },
   "transport": {
@@ -120,7 +120,15 @@
     "project": {
       "saveSuccess": "保存成功",
       "saveFailed": "保存失败：{reason}",
-      "saveCancelled": "已取消保存"
+      "saveCancelled": "已取消保存",
+      "autoSaveSuccess": "已自动保存",
+      "autoSaveFailed": "自动保存失败：{reason}",
+      "openSuccess": "已打开工程",
+      "openFailed": "打开工程失败：{reason}",
+      "openCancelled": "已取消打开工程",
+      "draftRestored": "已从浏览器草稿恢复",
+      "titleUpdated": "已更新工程名",
+      "unsupportedFileApi": "当前浏览器不支持工程文件读写"
     },
     "audio": {
       "importSuccess": "已导入音乐：{fileName}",
@@ -201,6 +209,7 @@
         "setSnapDivisor": "调整细分倍数",
         "setSnapEnabled": "切换吸附"
       },
+      "project": { "setTitle": "修改工程名" },
       "timing": {
         "addPoint": "新增 Timing Point",
         "updatePoint": "更新 Timing Point",

@@ -1,6 +1,10 @@
 import zhCN from '../../i18n/locales/zh-CN.json'
-import type { SaveFileHandleLike, SaveFilePickerApi } from './file-system-access'
-import { hasSaveFilePicker } from './file-system-access'
+import type {
+  OpenFileHandleLike,
+  ProjectFilePickerApi,
+  SaveFileHandleLike,
+} from './file-system-access'
+import { hasOpenFilePicker, hasSaveFilePicker } from './file-system-access'
 
 export interface SaveResult {
   ok: boolean
@@ -8,7 +12,33 @@ export interface SaveResult {
   errorMessage?: string
 }
 
-export function createProjectFileService(api: SaveFilePickerApi) {
+export interface OpenProjectResult {
+  ok: boolean
+  reason?: 'unsupported' | 'failed' | 'cancelled'
+  content?: string
+  fileName?: string
+  errorMessage?: string
+}
+
+function projectPickerOptions(suggestedName?: string) {
+  return {
+    suggestedName,
+    types: [
+      {
+        description: zhCN.project.fileTypeDescription,
+        accept: { 'application/json': ['.json'] },
+      },
+    ],
+  }
+}
+
+function projectFileName(title?: string): string {
+  const trimmed = title?.trim()
+  if (!trimmed) return zhCN.project.suggestedFileName
+  return trimmed.toLowerCase().endsWith('.json') ? trimmed : `${trimmed}.json`
+}
+
+export function createProjectFileService(api: ProjectFilePickerApi) {
   let cachedHandle: SaveFileHandleLike | null = null
 
   async function writeToHandle(
@@ -32,19 +62,13 @@ export function createProjectFileService(api: SaveFilePickerApi) {
     }
   }
 
-  async function saveAs(content: string): Promise<SaveResult> {
+  async function saveAs(content: string, title?: string): Promise<SaveResult> {
     if (!hasSaveFilePicker(api)) return { ok: false, reason: 'unsupported' }
 
     let handle: SaveFileHandleLike
     try {
       handle = await api.showSaveFilePicker({
-        suggestedName: zhCN.project.suggestedFileName,
-        types: [
-          {
-            description: zhCN.project.fileTypeDescription,
-            accept: { 'application/json': ['.json'] },
-          },
-        ],
+        ...projectPickerOptions(projectFileName(title)),
       })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -64,10 +88,51 @@ export function createProjectFileService(api: SaveFilePickerApi) {
     return writeResult
   }
 
+  async function openProject(): Promise<OpenProjectResult> {
+    if (!hasOpenFilePicker(api)) return { ok: false, reason: 'unsupported' }
+
+    let handles: OpenFileHandleLike[]
+    try {
+      handles = await api.showOpenFilePicker({
+        ...projectPickerOptions(),
+        multiple: false,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return { ok: false, reason: 'cancelled' }
+      }
+      return {
+        ok: false,
+        reason: 'failed',
+        errorMessage: error instanceof Error ? error.message : zhCN.errors.unknownError,
+      }
+    }
+
+    const handle = handles[0]
+    if (!handle) return { ok: false, reason: 'cancelled' }
+
+    try {
+      const file = await handle.getFile()
+      const content = await file.text()
+      cachedHandle = handle
+      return { ok: true, content, fileName: file.name }
+    } catch (error) {
+      return {
+        ok: false,
+        reason: 'failed',
+        errorMessage: error instanceof Error ? error.message : zhCN.errors.unknownError,
+      }
+    }
+  }
+
   async function save(content: string): Promise<SaveResult> {
     if (!cachedHandle) return { ok: false, reason: 'no_cached_handle' }
     return writeToHandle(cachedHandle, content)
   }
 
-  return { saveAs, save }
+  function hasCachedHandle(): boolean {
+    return cachedHandle !== null
+  }
+
+  return { openProject, saveAs, save, hasCachedHandle }
 }

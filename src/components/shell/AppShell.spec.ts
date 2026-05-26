@@ -11,6 +11,21 @@ import {
 } from '../../stores/editor-store'
 import AppShell from './AppShell.vue'
 
+const { mockSaveByShortcut, mockSaveAs, mockOpenProject } = vi.hoisted(() => ({
+  mockSaveByShortcut: vi.fn(),
+  mockSaveAs: vi.fn(),
+  mockOpenProject: vi.fn(),
+}))
+
+vi.mock('../../composables/useProjectPersistence', () => ({
+  useProjectPersistence: vi.fn(() => ({
+    hasFileApi: () => true,
+    saveByShortcut: mockSaveByShortcut,
+    saveAs: mockSaveAs,
+    openProject: mockOpenProject,
+  })),
+}))
+
 function createMockAudioTransport(): AudioTransport {
   let _playing = false
   let _currentTime = 0
@@ -79,6 +94,9 @@ describe('appShell', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     document.documentElement.removeAttribute('data-theme')
+    mockSaveByShortcut.mockReset()
+    mockSaveAs.mockReset()
+    mockOpenProject.mockReset()
   })
 
   it('renders all phase-1 shell sections', () => {
@@ -282,6 +300,34 @@ describe('appShell', () => {
     await wrapper.get('[data-testid="menu-open-audio"]').trigger('click')
 
     expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('wires project menu actions to persistence composable', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-save-project"]').trigger('click')
+    expect(mockSaveByShortcut).toHaveBeenCalledOnce()
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-save-as"]').trigger('click')
+    expect(mockSaveAs).toHaveBeenCalledOnce()
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    expect(mockOpenProject).toHaveBeenCalledOnce()
+  })
+
+  it('updates project title from menu title editor', async () => {
+    const wrapper = mount(AppShell, { attachTo: document.body })
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="menu-title-button"]').trigger('click')
+    await wrapper.get('[data-testid="menu-title-input"]').setValue('Renamed')
+    await wrapper.get('[data-testid="menu-title-input"]').trigger('keydown.enter')
+
+    expect(store.project.title).toBe('Renamed')
+    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe('*Renamed')
   })
 
   it('defaults theme based on system preference', async () => {

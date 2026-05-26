@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(
@@ -12,6 +12,8 @@ const props = withDefaults(
     canRedo?: boolean
     nextUndoLabel?: string | null
     nextRedoLabel?: string | null
+    projectTitle?: string
+    dirty?: boolean
   }>(),
   {
     audioLoaded: false,
@@ -19,23 +21,36 @@ const props = withDefaults(
     canRedo: false,
     nextUndoLabel: null,
     nextRedoLabel: null,
+    projectTitle: 'Untitled Project',
+    dirty: false,
   },
 )
 const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
   toggleTheme: []
+  openProject: []
   openAudioFile: []
+  saveProject: []
+  saveProjectAs: []
   pasteLyrics: []
   importLyricsFile: []
   addLyricLine: []
   undo: []
   redo: []
+  updateProjectTitle: [title: string]
 }>()
 
 const { t, te } = useI18n()
 
 type MenuName = 'file' | 'edit' | 'help' | 'lyrics'
 const openMenu = ref<MenuName | null>(null)
+const editingTitle = ref(false)
+const titleDraft = ref('')
+const titleInput = ref<HTMLInputElement | null>(null)
+
+const displayedProjectTitle = computed(
+  () => `${props.dirty ? '*' : ''}${props.projectTitle} - ${t('shell.appTitle')}`,
+)
 
 const COMMAND_LABEL_KEYS: Record<string, string> = {
   'audio.setMusicVolume': 'status.command.audio.setMusicVolume',
@@ -72,6 +87,25 @@ function onMenuHover(name: MenuName): void {
 
 function closeMenu(): void {
   openMenu.value = null
+}
+
+async function startTitleEdit(): Promise<void> {
+  titleDraft.value = props.projectTitle
+  editingTitle.value = true
+  await nextTick()
+  titleInput.value?.focus()
+  titleInput.value?.select()
+}
+
+function commitTitleEdit(): void {
+  if (!editingTitle.value) return
+  editingTitle.value = false
+  emit('updateProjectTitle', titleDraft.value)
+}
+
+function cancelTitleEdit(): void {
+  editingTitle.value = false
+  titleDraft.value = props.projectTitle
 }
 
 function translateCommandLabel(label: string | null | undefined): string {
@@ -128,8 +162,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-open-project"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="(emit('openProject'), closeMenu())"
           >
             {{ t('shell.menu.openProject') }}
           </button>
@@ -145,16 +179,16 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-save-project"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="(emit('saveProject'), closeMenu())"
           >
             {{ t('shell.menu.saveProject') }}
           </button>
           <button
             data-testid="menu-save-as"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="(emit('saveProjectAs'), closeMenu())"
           >
             {{ t('shell.menu.saveAs') }}
           </button>
@@ -297,8 +331,25 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
       </div>
     </nav>
 
-    <div data-testid="menu-title" class="justify-self-center text-sm font-semibold">
-      {{ t('shell.appTitle') }}
+    <div data-testid="menu-title" class="justify-self-center text-sm">
+      <input
+        v-if="editingTitle"
+        ref="titleInput"
+        v-model="titleDraft"
+        data-testid="menu-title-input"
+        class="input input-xs h-6 w-48 text-center text-sm"
+        @blur="commitTitleEdit"
+        @keydown.enter.prevent="commitTitleEdit"
+        @keydown.escape.prevent="cancelTitleEdit"
+      />
+      <button
+        v-else
+        data-testid="menu-title-button"
+        class="rounded px-2 py-0.5 hover:bg-base-300"
+        @click="startTitleEdit"
+      >
+        {{ displayedProjectTitle }}
+      </button>
     </div>
 
     <div

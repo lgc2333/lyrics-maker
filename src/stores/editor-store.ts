@@ -20,6 +20,7 @@ import {
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
   createSetAudioVolumeCommand,
+  createSetProjectTitleCommand,
   createSetRhythmModeCommand,
   createSetSnapDivisorCommand,
   createSetSnapEnabledCommand,
@@ -55,8 +56,9 @@ export interface StatusMessage {
 }
 
 export interface ProjectFileService {
-  saveAs: (content: string) => Promise<SaveResult>
+  saveAs: (content: string, title?: string) => Promise<SaveResult>
   save: (content: string) => Promise<SaveResult>
+  hasCachedHandle?: () => boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -313,13 +315,34 @@ export const useEditorStore = defineStore('editor', () => {
     dirty.value = false
   }
 
+  function _serializedProject(): string {
+    return JSON.stringify(project.value, null, 2)
+  }
+
+  function loadProject(
+    nextProject: ProjectDocument,
+    options: { dirty?: boolean; statusKey?: string } = {},
+  ): void {
+    history.value = createCommandHistory<ProjectDocument>(structuredClone(nextProject))
+    dirty.value = options.dirty ?? false
+    triggerRef(history)
+    showStatus(
+      options.statusKey ??
+        (options.dirty ? 'status.project.draftRestored' : 'status.project.openSuccess'),
+    )
+  }
+
+  function setProjectTitle(title: string): void {
+    execute(createSetProjectTitleCommand(title), 'status.project.titleUpdated')
+  }
+
   async function saveProject(service: ProjectFileService) {
-    const json = JSON.stringify(project.value, null, 2)
+    const json = _serializedProject()
     const result = await service.save(json)
 
     // Fall back to saveAs if no cached handle exists
-    if (!result.ok && result.reason === 'unsupported') {
-      const saveAsResult = await service.saveAs(json)
+    if (!result.ok && result.reason === 'no_cached_handle') {
+      const saveAsResult = await service.saveAs(json, project.value.title)
       if (saveAsResult.ok) {
         markClean()
         lastError.value = null
@@ -336,6 +359,12 @@ export const useEditorStore = defineStore('editor', () => {
       return saveAsResult
     }
 
+    if (!result.ok && result.reason === 'unsupported') {
+      lastError.value = result.reason
+      showStatus('status.project.unsupportedFileApi')
+      return result
+    }
+
     if (result.ok) {
       markClean()
       lastError.value = null
@@ -345,6 +374,43 @@ export const useEditorStore = defineStore('editor', () => {
       showStatus('status.project.saveFailed', { reason: result.reason ?? 'unknown' })
     }
 
+    return result
+  }
+
+  async function saveProjectAs(service: ProjectFileService) {
+    const result = await service.saveAs(_serializedProject(), project.value.title)
+    if (result.ok) {
+      markClean()
+      lastError.value = null
+      showStatus('status.project.saveSuccess')
+    } else if (result.reason === 'cancelled') {
+      showStatus('status.project.saveCancelled')
+    } else if (result.reason === 'unsupported') {
+      lastError.value = result.reason
+      showStatus('status.project.unsupportedFileApi')
+    } else {
+      lastError.value = result.reason ?? 'unknown'
+      showStatus('status.project.saveFailed', { reason: result.reason ?? 'unknown' })
+    }
+    return result
+  }
+
+  async function autoSaveProject(service: ProjectFileService): Promise<SaveResult> {
+    if (!service.hasCachedHandle?.()) {
+      return { ok: false, reason: 'no_cached_handle' }
+    }
+
+    const result = await service.save(_serializedProject())
+    if (result.ok) {
+      markClean()
+      lastError.value = null
+      showStatus('status.project.autoSaveSuccess')
+    } else {
+      lastError.value = result.reason ?? 'unknown'
+      showStatus('status.project.autoSaveFailed', {
+        reason: result.reason ?? 'unknown',
+      })
+    }
     return result
   }
 
@@ -737,7 +803,11 @@ export const useEditorStore = defineStore('editor', () => {
     undo,
     redo,
     markClean,
+    loadProject,
+    setProjectTitle,
     saveProject,
+    saveProjectAs,
+    autoSaveProject,
 
     // Phase 2: reactive state
     isPlaying,

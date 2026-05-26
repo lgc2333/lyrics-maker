@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { getPlatformSavePickerApi, hasSaveFilePicker } from './file-system-access'
+import {
+  getPlatformFilePickerApi,
+  getPlatformSavePickerApi,
+  hasOpenFilePicker,
+  hasSaveFilePicker,
+} from './file-system-access'
 
 describe('getPlatformSavePickerApi', () => {
   it('returns window as the platform save picker api', () => {
@@ -9,9 +14,23 @@ describe('getPlatformSavePickerApi', () => {
   })
 })
 
+describe('getPlatformFilePickerApi', () => {
+  it('returns window as the platform file picker api', () => {
+    const api = getPlatformFilePickerApi()
+    expect(api).toBe(window)
+  })
+})
+
 describe('hasSaveFilePicker', () => {
   it('returns false in test environment (no showSaveFilePicker)', () => {
     const api = getPlatformSavePickerApi()
     expect(hasSaveFilePicker(api)).toBe(false)
+  })
+})
+
+describe('hasOpenFilePicker', () => {
+  it('returns false in test environment (no showOpenFilePicker)', () => {
+    const api = getPlatformFilePickerApi()
+    expect(hasOpenFilePicker(api)).toBe(false)
   })
 })

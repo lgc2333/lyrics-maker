@@ -232,7 +232,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
           <div
             v-if="lyricsEditor.splitBarMode.value === 'timing'"
             data-testid="start-block"
-            class="flex min-h-7 cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
+            class="flex cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
             :class="
               isStartBlockActive()
                 ? 'bg-error/30 border-error'
@@ -251,7 +251,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
               <!-- Word block (click to activate) -->
               <div
                 data-testid="word-block"
-                class="flex min-h-7 cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
+                class="flex cursor-pointer items-center rounded border px-1.5 py-0.5 text-xs transition-colors"
                 :class="wordColor(wIdx)"
                 @click="onWordClick(wIdx)"
               >
@@ -391,7 +391,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             (isStartBlockActive() || selectedWord)
           "
           data-testid="selected-time-editor"
-          class="ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded border border-base-300 bg-base-200/60 px-1.5 text-[10px] text-base-content/60"
+          class="ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded border border-base-300 bg-base-200/60 px-0.5 text-[10px] text-base-content/60"
         >
           <template v-if="isStartBlockActive()">
             <span class="whitespace-nowrap">

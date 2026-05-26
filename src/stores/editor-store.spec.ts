@@ -288,7 +288,7 @@ describe('editor store (phase 1)', () => {
   it('saveProject serializes project and calls saveAs', async () => {
     const save = vi.fn(async (_content: string) => ({
       ok: false as const,
-      reason: 'unsupported' as const,
+      reason: 'no_cached_handle' as const,
     }))
     const saveAs = vi.fn(async (_content: string) => ({ ok: true as const }))
     const service = { save, saveAs }
@@ -324,7 +324,124 @@ describe('editor store (phase 1)', () => {
 
     expect(result.ok).toBe(false)
     expect(store.lastError).toBe('unsupported')
-    expect(store.statusMessage?.key).toBe('status.project.saveFailed')
+    expect(store.statusMessage?.key).toBe('status.project.unsupportedFileApi')
+  })
+
+  it('updates project title through command history', () => {
+    const store = useEditorStore()
+
+    store.setProjectTitle('Song A')
+
+    expect(store.project.title).toBe('Song A')
+    expect(store.dirty).toBe(true)
+    expect(store.statusMessage?.key).toBe('status.project.titleUpdated')
+
+    store.undo()
+    expect(store.project.title).toBe('Untitled Project')
+  })
+
+  it('loads an opened project as clean and clears undo history', () => {
+    const store = useEditorStore()
+    store.addLyricLine('before')
+
+    store.loadProject({ ...store.project, title: 'Opened Project', lyrics: [] })
+
+    expect(store.project.title).toBe('Opened Project')
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.project.openSuccess')
+  })
+
+  it('loads a restored draft as dirty', () => {
+    const store = useEditorStore()
+
+    store.loadProject({ ...store.project, title: 'Draft Project' }, { dirty: true })
+
+    expect(store.project.title).toBe('Draft Project')
+    expect(store.dirty).toBe(true)
+    expect(store.statusMessage?.key).toBe('status.project.draftRestored')
+  })
+
+  it('saveProject falls back to saveAs only when no cached handle exists', async () => {
+    const save = vi.fn(async (_content: string) => ({
+      ok: false as const,
+      reason: 'no_cached_handle' as const,
+    }))
+    const saveAs = vi.fn(async (_content: string, _title?: string) => ({
+      ok: true as const,
+    }))
+    const service = { save, saveAs, hasCachedHandle: () => false }
+    const store = useEditorStore()
+
+    const result = await store.saveProject(service)
+
+    expect(result.ok).toBe(true)
+    expect(saveAs).toHaveBeenCalledWith(expect.any(String), 'Untitled Project')
+    expect(store.statusMessage?.key).toBe('status.project.saveSuccess')
+  })
+
+  it('saveProject reports unsupported browsers without retrying saveAs forever', async () => {
+    const save = vi.fn(async (_content: string) => ({
+      ok: false as const,
+      reason: 'unsupported' as const,
+    }))
+    const saveAs = vi.fn()
+    const service = { save, saveAs, hasCachedHandle: () => false }
+    const store = useEditorStore()
+
+    const result = await store.saveProject(service)
+
+    expect(result.ok).toBe(false)
+    expect(saveAs).not.toHaveBeenCalled()
+    expect(store.statusMessage?.key).toBe('status.project.unsupportedFileApi')
+  })
+
+  it('saveProjectAs always calls saveAs with the project title', async () => {
+    const save = vi.fn()
+    const saveAs = vi.fn(async (_content: string, _title?: string) => ({
+      ok: true as const,
+    }))
+    const service = { save, saveAs, hasCachedHandle: () => false }
+    const store = useEditorStore()
+    store.setProjectTitle('Named Project')
+
+    const result = await store.saveProjectAs(service)
+
+    expect(result.ok).toBe(true)
+    expect(save).not.toHaveBeenCalled()
+    expect(saveAs).toHaveBeenCalledWith(expect.any(String), 'Named Project')
+    expect(store.dirty).toBe(false)
+  })
+
+  it('autoSaveProject writes only to an existing cached handle', async () => {
+    const save = vi.fn(async (_content: string) => ({ ok: true as const }))
+    const saveAs = vi.fn()
+    const service = { save, saveAs, hasCachedHandle: () => true }
+    const store = useEditorStore()
+    store.addLyricLine('dirty')
+
+    const result = await store.autoSaveProject(service)
+
+    expect(result.ok).toBe(true)
+    expect(save).toHaveBeenCalledOnce()
+    expect(saveAs).not.toHaveBeenCalled()
+    expect(store.dirty).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.project.autoSaveSuccess')
+  })
+
+  it('autoSaveProject does not open picker when no cached handle exists', async () => {
+    const save = vi.fn()
+    const saveAs = vi.fn()
+    const service = { save, saveAs, hasCachedHandle: () => false }
+    const store = useEditorStore()
+
+    const result = await store.autoSaveProject(service)
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toBe('no_cached_handle')
+    expect(save).not.toHaveBeenCalled()
+    expect(saveAs).not.toHaveBeenCalled()
   })
 })
 

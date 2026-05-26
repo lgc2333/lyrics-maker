@@ -29,6 +29,60 @@ describe('project file service', () => {
     expect(close).toHaveBeenCalled()
   })
 
+  it('opens a project JSON file and caches the opened file handle', async () => {
+    const getFile = vi.fn(async () => new File(['{"version":1}'], 'demo.json'))
+    const write = vi.fn()
+    const close = vi.fn()
+    const createWritable = vi.fn(async () => ({ write, close }))
+    const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
+    const service = createProjectFileService({ showOpenFilePicker })
+
+    const openResult = await service.openProject()
+
+    expect(openResult.ok).toBe(true)
+    expect(openResult.content).toBe('{"version":1}')
+    expect(openResult.fileName).toBe('demo.json')
+    expect(service.hasCachedHandle()).toBe(true)
+
+    await service.save('changed')
+    expect(createWritable).toHaveBeenCalled()
+    expect(write).toHaveBeenCalledWith('changed')
+  })
+
+  it('returns unsupported when opening is unavailable', async () => {
+    const service = createProjectFileService({})
+
+    const result = await service.openProject()
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toBe('unsupported')
+  })
+
+  it('saveAs accepts a project title for suggested file name', async () => {
+    const write = vi.fn()
+    const close = vi.fn()
+    const createWritable = vi.fn(async () => ({ write, close }))
+    const showSaveFilePicker = vi.fn(async () => ({ createWritable }))
+    const service = createProjectFileService({ showSaveFilePicker })
+
+    await service.saveAs('{"version":1}', 'My Song')
+
+    expect(showSaveFilePicker).toHaveBeenCalledWith(
+      expect.objectContaining({ suggestedName: 'My Song.json' }),
+    )
+  })
+
+  it('auto save does not open a picker when no cached handle exists', async () => {
+    const showSaveFilePicker = vi.fn()
+    const service = createProjectFileService({ showSaveFilePicker })
+
+    const result = await service.save('auto content')
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toBe('no_cached_handle')
+    expect(showSaveFilePicker).not.toHaveBeenCalled()
+  })
+
   it('returns ok:false with reason failed when save throws', async () => {
     const createWritable = vi.fn(async () => {
       throw new Error('disk full')
