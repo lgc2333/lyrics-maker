@@ -50,11 +50,16 @@ function getDerivedStartTime(index: number): number | undefined {
 function onWordClick(index: number): void {
   if (lyricsEditor.splitBarMode.value !== 'timing') return
   lyricsEditor.activeWordIndex.value = index + 1
+  const startTime = getDerivedStartTime(index)
+  if (startTime !== undefined) store.seekPlayback(startTime)
 }
 
 function onStartBlockClick(): void {
   if (lyricsEditor.splitBarMode.value !== 'timing') return
   lyricsEditor.activeWordIndex.value = 0
+  if (activeLine.value?.startTime !== undefined) {
+    store.seekPlayback(activeLine.value.startTime)
+  }
 }
 
 function onCharGapClick(wordIndex: number, charIndex: number): void {

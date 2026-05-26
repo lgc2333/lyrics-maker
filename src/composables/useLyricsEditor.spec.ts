@@ -79,15 +79,38 @@ describe('useLyricsEditor', () => {
     expect(editor.splitBarMode.value).toBe('timing')
   })
 
-  it('activateLine sets activeLineId and resets activeWordIndex', () => {
+  it('activateLine sets activeLineId and resets activeWordIndex when selecting another line', () => {
     const store = useEditorStore()
     store.insertLyricLines([
       { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 1.0 },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }], startTime: 2.0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+    editor.activeWordIndex.value = 1
+    editor.activateLine('l2')
+    expect(editor.activeLineId.value).toBe('l2')
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
+  it('activateLine keeps activeWordIndex when selecting the active line again', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello' },
+          { id: 'w2', text: 'world' },
+        ],
+        startTime: 1.0,
+      },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
+    editor.activeWordIndex.value = 2
+    editor.activateLine('l1')
     expect(editor.activeLineId.value).toBe('l1')
-    expect(editor.activeWordIndex.value).toBe(0)
+    expect(editor.activeWordIndex.value).toBe(2)
   })
 
   it('activateLine seeks to line startTime when available', () => {
@@ -677,15 +700,16 @@ describe('handlePlayLineInterval (C)', () => {
     editor.handlePlayLineInterval()
   })
 
-  it('seeks to line startTime when line has time range', () => {
+  it('plays the line interval when line has a complete time range', () => {
     const store = useEditorStore()
+    const playIntervalSpy = vi.spyOn(store, 'playInterval')
     store.insertLyricLines([
       { id: 'l1', words: [{ id: 'w1', text: 'hello', endTime: 3.0 }], startTime: 1.0 },
     ])
     const { editor } = mountEditor()
     editor.activateLine('l1')
     editor.handlePlayLineInterval()
-    expect(store.currentTime).toBe(1.0)
+    expect(playIntervalSpy).toHaveBeenCalledWith(1.0, 3.0)
   })
 })
 
@@ -714,8 +738,9 @@ describe('handlePlayWordInterval (V)', () => {
     editor.handlePlayWordInterval()
   })
 
-  it('seeks to word start when word has endTime', () => {
+  it('plays the selected word interval when word has a complete time range', () => {
     const store = useEditorStore()
+    const playIntervalSpy = vi.spyOn(store, 'playInterval')
     store.insertLyricLines([
       {
         id: 'l1',
@@ -730,7 +755,26 @@ describe('handlePlayWordInterval (V)', () => {
     editor.activateLine('l1')
     editor.activeWordIndex.value = 2
     editor.handlePlayWordInterval()
-    expect(store.currentTime).toBe(1.0)
+    expect(playIntervalSpy).toHaveBeenCalledWith(1.0, 2.0)
+  })
+
+  it('treats a zero word endTime as a defined interval boundary', () => {
+    const store = useEditorStore()
+    const playIntervalSpy = vi.spyOn(store, 'playInterval')
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [{ id: 'w1', text: 'a', endTime: 0 }],
+        startTime: -1,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handlePlayWordInterval()
+
+    expect(playIntervalSpy).toHaveBeenCalledWith(-1, 0)
   })
 })
 

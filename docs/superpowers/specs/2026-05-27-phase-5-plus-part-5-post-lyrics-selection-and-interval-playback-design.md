@@ -7,6 +7,7 @@ This design covers three Phase 5 Plus follow-up fixes:
 - Selecting a different lyric line in timing mode should reset the WordSplitBar to the start block, while selecting the same line again should preserve the user's current word selection.
 - Clicking a start or word block in the WordSplitBar timing mode should seek to the corresponding known timing position.
 - The play-current-line and play-current-word shortcuts should stop at the correct endpoint and handle playback/seek edge cases predictably.
+- Spectrogram mode must not cover the timing grid, playhead, hover time preview, or lyric overlay.
 
 ## Selection Behavior
 
@@ -89,3 +90,4 @@ Add or update tests around:
 - manual pause, audio replacement, normal playback, and external seek cancel interval playback;
 - external seek does not pause playback when no interval playback is active;
 - zero-valued word end times are treated as defined.
+- spectrogram plugin DOM is kept below wrapper-attached overlays and the viewport-fixed playhead.

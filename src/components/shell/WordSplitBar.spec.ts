@@ -218,11 +218,13 @@ describe('wordSplitBar', () => {
 
     it('clicking a word sets activeWordIndex', async () => {
       const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
       store.insertLyricLines([
         {
           id: 'line-1',
+          startTime: 1,
           words: [
-            { id: 'w1', text: 'Hello' },
+            { id: 'w1', text: 'Hello', endTime: 2 },
             { id: 'w2', text: 'world' },
           ],
         },
@@ -235,6 +237,50 @@ describe('wordSplitBar', () => {
       await blocks[1].trigger('click')
       // word at array index 1 → activeWordIndex 2 (index+1)
       expect(lyricsEditor.activeWordIndex.value).toBe(2)
+      expect(store.currentTime).toBe(2)
+    })
+
+    it('clicking the first word seeks to line startTime', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          startTime: 1.25,
+          words: [{ id: 'w1', text: 'Hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper.findAll('[data-testid="word-block"]')[0].trigger('click')
+
+      expect(lyricsEditor.activeWordIndex.value).toBe(1)
+      expect(store.currentTime).toBe(1.25)
+    })
+
+    it('clicking a word without a known derived start time does not seek', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.seekPlayback(4)
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'Hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper.findAll('[data-testid="word-block"]')[1].trigger('click')
+
+      expect(lyricsEditor.activeWordIndex.value).toBe(2)
+      expect(store.currentTime).toBe(4)
     })
   })
 
@@ -547,9 +593,11 @@ describe('wordSplitBar', () => {
   describe('start block click', () => {
     it('sets activeWordIndex to 0 when clicking start block in select mode', async () => {
       const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
       store.insertLyricLines([
         {
           id: 'line-1',
+          startTime: 1.5,
           words: [{ id: 'w1', text: 'Hello' }],
         },
       ])
@@ -560,6 +608,7 @@ describe('wordSplitBar', () => {
       const startBlock = wrapper.find('[data-testid="start-block"]')
       await startBlock.trigger('click')
       expect(lyricsEditor.activeWordIndex.value).toBe(0)
+      expect(store.currentTime).toBe(1.5)
     })
   })
 

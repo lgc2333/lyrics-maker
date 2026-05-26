@@ -27,16 +27,16 @@ For Codex: Git index writes (`git add`, `git restore --staged`, `git commit`) ma
 
 ## Tooling
 
-**Always**: Use **Context7** MCP to get up-to-date documentation of Vue, Pinia, Vite, Tailwind CSS, DaisyUI, and other dependencies. Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
+Use **Context7** MCP to get up-to-date documentation of dependencies. Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
 
 ## Workflow Skills
 
 - **TDD (mandatory)**: This project uses TDD. Before any code change — features, refactors, and bug fixes alike — invoke `test-driven-development`. Write/update tests first, then implement.
 - **Bug fixing**: Always invoke `systematic-debugging` before proposing any fix.
-- **Vue component work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`.
-- **Vue composable work**: Before touching composables, invoke `vue-best-practices` and `create-adaptable-composable`.
-- **Pinia store work**: Before touching Pinia stores, invoke `vue-best-practices` and `vue-pinia-best-practices`.
-- **Vue test work**: Before touching Vue-related tests, invoke `vue-testing-best-practices`.
+- **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also:
+  - **Vue composable work**: Before touching composables, invoke `create-adaptable-composable`.
+  - **Pinia store work**: Before touching Pinia stores, invoke `vue-pinia-best-practices`.
+  - **Vue test work**: Before touching Vue-related tests, invoke `vue-testing-best-practices`.
 
 If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
 

@@ -151,6 +151,25 @@ describe('waveSurferView', () => {
       })
       expect(view).toBeDefined()
     })
+
+    it('keeps spectrogram DOM below timeline overlays', async () => {
+      const container = createContainer()
+      createWaveSurferView(container, {
+        ...defaultOptions,
+        mode: 'spectrogram',
+      })
+
+      const SpectrogramMock =
+        await import('wavesurfer.js/dist/plugins/spectrogram-windowed.esm.js')
+      const results = (SpectrogramMock.default.create as ReturnType<typeof vi.fn>).mock
+        .results
+      const plugin = results.at(-1)?.value
+
+      expect(plugin.wrapper.style.position).toBe('relative')
+      expect(plugin.wrapper.style.zIndex).toBe('1')
+      expect(plugin.canvasContainer.style.position).toBe('relative')
+      expect(plugin.canvasContainer.style.zIndex).toBe('1')
+    })
   })
 
   describe('loadBlob', () => {

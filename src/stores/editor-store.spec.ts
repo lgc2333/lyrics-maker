@@ -720,6 +720,94 @@ describe('editor store (phase 2 - audio transport)', () => {
     expect(store.seekRequest.time).toBe(120)
   })
 
+  it('keeps playback running when seeking outside interval playback', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+
+    store.seekPlayback(5)
+
+    expect(store.isPlaying).toBe(true)
+    expect(transportPlaying()).toBe(true)
+    expect(store.currentTime).toBe(5)
+  })
+
+  it('playInterval seeks to the start and starts playback', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    await store.playInterval(2, 4)
+
+    expect(mockTransport.seek).toHaveBeenCalledWith(2)
+    expect(mockTransport.play).toHaveBeenCalled()
+    expect(store.currentTime).toBe(2)
+    expect(store.isPlaying).toBe(true)
+  })
+
+  it('playInterval reports missing audio without starting playback', async () => {
+    const store = useEditorStore()
+
+    await store.playInterval(2, 4)
+
+    expect(store.isPlaying).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.audioRequired')
+    expect(store.statusMessage?.params?.action).toBe('transport.playInterval')
+  })
+
+  it('playInterval ignores empty ranges after clamping', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    await store.playInterval(4, 2)
+
+    expect(mockTransport.seek).not.toHaveBeenCalledWith(4)
+    expect(mockTransport.play).not.toHaveBeenCalled()
+    expect(store.isPlaying).toBe(false)
+  })
+
+  it('stops interval playback at the stop target', async () => {
+    vi.useFakeTimers()
+
+    let now = 0
+    const mock = createMockAudioTransport()
+    mock.transport.getCurrentTime = vi.fn(() => now)
+    mockTransport = mock.transport
+    transportPlaying = mock.isPlaying
+    __overrideAudioTransportFactory(() => mockTransport)
+
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      setTimeout(() => cb(performance.now()), 0)
+      return 3
+    })
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.playInterval(1, 2)
+
+    now = 2.1
+    await vi.runOnlyPendingTimersAsync()
+
+    expect(mockTransport.pause).toHaveBeenCalled()
+    expect(mockTransport.seek).toHaveBeenCalledWith(2)
+    expect(store.isPlaying).toBe(false)
+    expect(store.currentTime).toBe(2)
+
+    vi.useRealTimers()
+  })
+
+  it('external seek cancels active interval playback and pauses audio', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.playInterval(2, 4)
+
+    store.seekPlayback(3)
+
+    expect(mockTransport.pause).toHaveBeenCalled()
+    expect(store.isPlaying).toBe(false)
+    expect(store.currentTime).toBe(3)
+  })
+
   it('updates currentTime while playback loop is running', async () => {
     vi.useFakeTimers()
 

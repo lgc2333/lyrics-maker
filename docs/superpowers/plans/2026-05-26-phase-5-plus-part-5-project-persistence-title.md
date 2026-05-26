@@ -167,3 +167,35 @@ Run: `pnpm format`
 Run: `pnpm check`
 
 Expected: all commands exit 0.
+
+### Task 7: Post-Part-5 Lyrics Selection And Timeline Overlay Fixes
+
+**Files:**
+- Modify: `src/composables/useLyricsEditor.ts`
+- Modify: `src/composables/useLyricsEditor.spec.ts`
+- Modify: `src/components/shell/WordSplitBar.vue`
+- Modify: `src/components/shell/WordSplitBar.spec.ts`
+- Modify: `src/stores/editor-store.ts`
+- Modify: `src/stores/editor-store.spec.ts`
+- Modify: `src/platform/waveform/wavesurfer-view.ts`
+- Modify: `src/platform/waveform/wavesurfer-view.spec.ts`
+- Modify: `src/components/shell/MenuBar.spec.ts`
+- Modify: `src/components/shell/AppShell.spec.ts`
+
+- [ ] **Step 1: Add regression tests**
+
+Cover same-line lyric reselect preserving the active word, other-line selection resetting to the start block, WordSplitBar timing clicks seeking to known block start times, interval playback stopping at the correct endpoint, external seek cancellation during interval playback only, spectrogram DOM staying below overlays, and current title text expectations.
+
+- [ ] **Step 2: Implement minimal fixes**
+
+Keep lyric selection state in `useLyricsEditor`, seek from WordSplitBar timing block clicks when a start time is known, add store-owned `playInterval(start, end)` stop handling, lower spectrogram plugin DOM z-index below overlay layers, and update title tests to include the app title suffix.
+
+- [ ] **Step 3: Run targeted verification**
+
+Run: `pnpm test:run "src/composables/useLyricsEditor.spec.ts" "src/components/shell/WordSplitBar.spec.ts" "src/stores/editor-store.spec.ts" "src/platform/waveform/wavesurfer-view.spec.ts" "src/components/shell/MenuBar.spec.ts" "src/components/shell/AppShell.spec.ts"`
+
+Run: `pnpm lint`
+
+Run: `pnpm format`
+
+Run: `pnpm check`

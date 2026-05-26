@@ -122,7 +122,7 @@ describe('menuBar', () => {
     expect(wrapper.get('[data-testid="menu-open-project"]').text()).toContain(
       '打开工程',
     )
-    expect(wrapper.get('[data-testid="menu-open-audio"]').text()).toContain('打开音乐')
+    expect(wrapper.get('[data-testid="menu-open-audio"]').text()).toContain('导入音乐')
     expect(wrapper.get('[data-testid="menu-save-project"]').text()).toContain(
       '保存项目',
     )
@@ -171,7 +171,9 @@ describe('menuBar', () => {
       },
     })
 
-    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe('*Song A')
+    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe(
+      '*Song A - Lyrics Maker',
+    )
   })
 
   it('edits project title inline on enter and cancels with escape', async () => {

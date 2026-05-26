@@ -18,12 +18,17 @@ export function useLyricsEditor() {
       : null,
   )
 
+  // Suppress watch sync for one tick (used by explicit selection changes)
+  let _suppressWatchSync = false
+
   function activateLine(lineId: string): void {
     const lyrics = store.project.lyrics
     const line = lyrics.find((l) => l.id === lineId)
     if (!line) return
+    const isSameLine = activeLineId.value === lineId
+    if (!isSameLine) _suppressWatchSync = true
     activeLineId.value = lineId
-    activeWordIndex.value = 0
+    if (!isSameLine) activeWordIndex.value = 0
 
     // Seek strategy (spec §5 priority degradation)
     if (line.startTime !== undefined) {
@@ -41,9 +46,6 @@ export function useLyricsEditor() {
       }
     }
   }
-
-  // Suppress watch sync for one tick (used by handleMarkNoAdvanceKey)
-  let _suppressWatchSync = false
 
   // Undo/Redo sync: re-derive activeWordIndex from data state
   watch(
@@ -242,8 +244,7 @@ export function useLyricsEditor() {
     if (!line || line.startTime === undefined) return
     const lastWord = line.words[line.words.length - 1]
     if (lastWord?.endTime === undefined) return
-    store.seekPlayback(line.startTime)
-    if (!store.isPlaying) store.togglePlayback()
+    store.playInterval(line.startTime, lastWord.endTime)
   }
 
   function handlePlayWordInterval(): void {
@@ -257,12 +258,11 @@ export function useLyricsEditor() {
     if (activeWordIndex.value === 0 || activeWordIndex.value > line.words.length) return
     const wordIndex = activeWordIndex.value - 1
     const word = line.words[wordIndex]
-    if (!word?.endTime) return
+    if (word?.endTime === undefined) return
     const wordStart =
       wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
     if (wordStart === undefined) return
-    store.seekPlayback(wordStart)
-    if (!store.isPlaying) store.togglePlayback()
+    store.playInterval(wordStart, word.endTime)
   }
 
   return {

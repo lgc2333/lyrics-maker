@@ -327,7 +327,9 @@ describe('appShell', () => {
     await wrapper.get('[data-testid="menu-title-input"]').trigger('keydown.enter')
 
     expect(store.project.title).toBe('Renamed')
-    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe('*Renamed')
+    expect(wrapper.get('[data-testid="menu-title-button"]').text()).toBe(
+      '*Renamed - Lyrics Maker',
+    )
   })
 
   it('defaults theme based on system preference', async () => {

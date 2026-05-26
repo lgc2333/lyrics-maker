@@ -79,6 +79,18 @@ export function createWaveSurferView(
       frequencyMax,
     })
     ws.registerPlugin(spectrogramPlugin)
+    const plugin = spectrogramPlugin as unknown as {
+      wrapper: HTMLElement
+      canvasContainer: HTMLElement
+    }
+    Object.assign(plugin.wrapper.style, {
+      position: 'relative',
+      zIndex: '1',
+    })
+    Object.assign(plugin.canvasContainer.style, {
+      position: 'relative',
+      zIndex: '1',
+    })
   }
 
   function _getWrapper(): HTMLElement {

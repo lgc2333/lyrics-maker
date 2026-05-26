@@ -115,6 +115,7 @@ export const useEditorStore = defineStore('editor', () => {
   const _seekRequestVersion = shallowRef(0)
   const _seekRequestTime = shallowRef(0)
   const _isPlaying = shallowRef(false)
+  const _playbackStopAt = shallowRef<number | null>(null)
   const _metronomeState = shallowRef<'off' | 'on' | 'latch_pending'>('off')
   const _tapCount = shallowRef(0) // incremented on every tap call, reset after idle timeout
   const _tapSampleCount = shallowRef(0)
@@ -225,6 +226,10 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  function _clearPlaybackStop(): void {
+    _playbackStopAt.value = null
+  }
+
   // ---- Playback loop ----
 
   let _rafId: number | null = null
@@ -232,6 +237,7 @@ export const useEditorStore = defineStore('editor', () => {
   function _tickPlayback(): void {
     const transport = _audioTransport.value
     if (!transport || !transport.getIsPlaying()) {
+      _clearPlaybackStop()
       _handlePlaybackStopped(_currentTime.value, _isPlaying.value)
       _rafId = null
       _isPlaying.value = false
@@ -240,6 +246,18 @@ export const useEditorStore = defineStore('editor', () => {
 
     const now = transport.getCurrentTime()
     _currentTime.value = now
+
+    const stopAt = _playbackStopAt.value
+    if (stopAt !== null && now >= stopAt) {
+      transport.pause()
+      transport.seek(stopAt)
+      _stopPlaybackLoop()
+      _isPlaying.value = false
+      _currentTime.value = stopAt
+      _clearPlaybackStop()
+      _handlePlaybackStopped(stopAt, true)
+      return
+    }
 
     const m = _metronome.value
     if (m && project.value.timingPoints.length > 0) {
@@ -431,6 +449,7 @@ export const useEditorStore = defineStore('editor', () => {
       : _currentTime.value
     _audioTransport.value?.pause()
     _isPlaying.value = false
+    _clearPlaybackStop()
     _handlePlaybackStopped(stoppedAt, wasPlaying)
     _currentTime.value = 0
 
@@ -460,8 +479,10 @@ export const useEditorStore = defineStore('editor', () => {
       _stopPlaybackLoop()
       _isPlaying.value = false
       _currentTime.value = stoppedAt
+      _clearPlaybackStop()
       _handlePlaybackStopped(stoppedAt, true)
     } else {
+      _clearPlaybackStop()
       _isPlaying.value = true
       await transport.play()
       if (_metronomeState.value === 'on') _metronome.value?.setEnabled(true)
@@ -478,7 +499,41 @@ export const useEditorStore = defineStore('editor', () => {
     _stopPlaybackLoop()
     _isPlaying.value = false
     _currentTime.value = stoppedAt
+    _clearPlaybackStop()
     _handlePlaybackStopped(stoppedAt, wasPlaying)
+  }
+
+  async function playInterval(start: number, end: number): Promise<void> {
+    const transport = _audioTransport.value
+    if (!transport) {
+      showStatus('status.audioRequired', { action: 'transport.playInterval' })
+      return
+    }
+
+    const d = duration.value
+    const clampedStart = Math.max(0, Math.min(d || 0, start))
+    const clampedEnd = Math.max(0, Math.min(d || 0, end))
+    if (clampedEnd <= clampedStart) {
+      _clearPlaybackStop()
+      return
+    }
+
+    _clearPlaybackStop()
+    transport.seek(clampedStart)
+    _currentTime.value = clampedStart
+    _seekRequestTime.value = clampedStart
+    _seekRequestVersion.value += 1
+    _playbackStopAt.value = clampedEnd
+
+    if (!transport.getIsPlaying()) {
+      _isPlaying.value = true
+      await transport.play()
+      if (_metronomeState.value === 'on') _metronome.value?.setEnabled(true)
+    } else {
+      _isPlaying.value = true
+    }
+    _stopPlaybackLoop()
+    _startPlaybackLoop()
   }
 
   // ---- Phase 2: Timing Points ----
@@ -625,6 +680,14 @@ export const useEditorStore = defineStore('editor', () => {
     }
     const d = duration.value
     const target = Math.max(0, Math.min(d || 0, time))
+    const shouldCancelInterval = _playbackStopAt.value !== null
+    if (shouldCancelInterval) {
+      transport.pause()
+      _stopPlaybackLoop()
+      _isPlaying.value = false
+      _clearPlaybackStop()
+      _handlePlaybackStopped(target, true)
+    }
     transport.seek(target)
     _currentTime.value = target
     _seekRequestTime.value = target
@@ -827,6 +890,7 @@ export const useEditorStore = defineStore('editor', () => {
     importAudioFile,
     togglePlayback,
     pausePlayback,
+    playInterval,
 
     // Phase 2: timing points
     addTimingPoint,
