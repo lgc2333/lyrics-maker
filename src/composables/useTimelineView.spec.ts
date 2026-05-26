@@ -28,6 +28,12 @@ const mockViews: Array<{
 const mockGridPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
 const mockLinePlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
 const mockPlayheadPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
+const mockViewListeners: Array<Record<string, Array<(...args: unknown[]) => void>>> =
+  []
+
+function emitViewEvent(index: number, event: string, ...args: unknown[]) {
+  for (const fn of mockViewListeners[index]?.[event] ?? []) fn(...args)
+}
 
 vi.mock('../platform/waveform/grid-overlay-plugin', () => ({
   GridOverlayPlugin: {
@@ -61,6 +67,8 @@ vi.mock('../platform/waveform/playhead-overlay-plugin', () => ({
 
 vi.mock('../platform/waveform/wavesurfer-view', () => ({
   createWaveSurferView: vi.fn(() => {
+    const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
+    mockViewListeners.push(listeners)
     const view = {
       registerPlugin: vi.fn((plugin: unknown) => plugin),
       loadBlob: vi.fn(async () => {}),
@@ -72,7 +80,10 @@ vi.mock('../platform/waveform/wavesurfer-view', () => ({
       getScrollTime: vi.fn(() => 0),
       setContainerHeight: vi.fn(),
       syncContainerHeight: vi.fn(async () => {}),
-      on: vi.fn(() => () => {}),
+      on: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
+        ;(listeners[event] ??= []).push(fn)
+        return () => {}
+      }),
       destroy: vi.fn(),
     }
     mockViews.push(view)
@@ -97,6 +108,7 @@ describe('useTimelineView', () => {
     mockGridPlugins.length = 0
     mockLinePlugins.length = 0
     mockPlayheadPlugins.length = 0
+    mockViewListeners.length = 0
     __overrideAudioTransportFactory(() => ({
       loadFile: vi.fn(async () => {}),
       play: vi.fn(async () => {}),
@@ -321,6 +333,45 @@ describe('useTimelineView', () => {
     expect(mockGridPlugins[0].update).not.toHaveBeenCalled()
     expect(mockLinePlugins[0].update).not.toHaveBeenCalled()
     expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(7, 0.5)
+
+    wrapper.unmount()
+  })
+
+  it('refreshes playhead on WaveSurfer ready scroll zoom redraw and resize', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+
+    mockPlayheadPlugins[0].update.mockClear()
+
+    emitViewEvent(0, 'ready')
+    emitViewEvent(0, 'scroll')
+    emitViewEvent(0, 'zoom')
+    emitViewEvent(0, 'redraw')
+    emitViewEvent(0, 'resize')
+    await wrapper.vm.$nextTick()
+
+    expect(mockPlayheadPlugins[0].update).toHaveBeenCalledTimes(5)
+
+    wrapper.unmount()
+  })
+
+  it('recreates the playhead plugin when switching view modes', async () => {
+    let timeline: ReturnType<typeof useTimelineView> | undefined
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      timeline = useTimelineView(containerRef)
+    })
+
+    expect(mockPlayheadPlugins).toHaveLength(1)
+    timeline!.setViewMode('spectrogram')
+    await wrapper.vm.$nextTick()
+
+    expect(mockViews[0].destroy).toHaveBeenCalled()
+    expect(mockPlayheadPlugins).toHaveLength(2)
 
     wrapper.unmount()
   })

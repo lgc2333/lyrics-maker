@@ -105,6 +105,15 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       playheadPlugin?.update(_buildPlayheadParams())
     })
 
+    const refreshPlayhead = () => {
+      playheadPlugin?.update(_buildPlayheadParams())
+    }
+
+    view.on('scroll', refreshPlayhead)
+    view.on('zoom', refreshPlayhead)
+    view.on('redraw', refreshPlayhead)
+    view.on('resize', refreshPlayhead)
+
     // Observe container height changes so spectrogram/waveform canvases
     // resize with the drag handle.
     resizeObserver?.disconnect()
