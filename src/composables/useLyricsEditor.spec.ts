@@ -273,6 +273,28 @@ describe('handleMarkKey (D)', () => {
     expect(store.project.lyrics[0].words[0].endTime).toBe(2.0)
   })
 
+  it('ignores the current word old endTime when snapping during re-timing', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        words: [
+          { id: 'w1', text: 'hello', endTime: 0.125 },
+          { id: 'w2', text: 'world' },
+        ],
+        startTime: 0,
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.handleMarkKey(0.13)
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[0].endTime).toBeCloseTo(0.125, 6)
+  })
+
   it('clears endTime of subsequent words when time exceeds them', async () => {
     const store = useEditorStore()
     store.insertLyricLines([

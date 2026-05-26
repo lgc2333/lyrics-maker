@@ -63,10 +63,11 @@ export function useLyricsEditor() {
     },
   )
 
-  function _getSnappedTime(rawTime: number): number {
+  function _getSnappedTime(rawTime: number, currentWordId?: string): number {
     const line = activeLine.value
     if (!line) return rawTime
     const existingEndTimes = line.words
+      .filter((w) => w.id !== currentWordId)
       .map((w) => w.endTime)
       .filter((t): t is number => t !== undefined)
     return computeSnappedTime({
@@ -115,7 +116,7 @@ export function useLyricsEditor() {
     const word = line.words[wordIndex]
     if (!word) return
 
-    const time = _getSnappedTime(rawTime)
+    const time = _getSnappedTime(rawTime, word.id)
     const prevEnd = _getPrevEndTime(wordIndex)
     const clamped = clampWordTime(time, prevEnd, store.duration)
 
@@ -150,9 +151,9 @@ export function useLyricsEditor() {
     // Finalize current line's last word (runs for ALL lines including last)
     if (line.startTime !== undefined) {
       const rawTime = currentTime ?? store.currentTime
-      const time = _getSnappedTime(rawTime)
       const lastWord = line.words[line.words.length - 1]
       if (lastWord) {
+        const time = _getSnappedTime(rawTime, lastWord.id)
         const prevEnd = _getPrevEndTime(line.words.length - 1)
         const clamped = clampWordTime(time, prevEnd, store.duration)
         store.setWordEndTime(activeLineId.value, lastWord.id, clamped)
@@ -194,7 +195,7 @@ export function useLyricsEditor() {
     const word = line.words[wordIndex]
     if (!word) return
 
-    const time = _getSnappedTime(rawTime)
+    const time = _getSnappedTime(rawTime, word.id)
     const prevEnd = _getPrevEndTime(wordIndex)
     const clamped = clampWordTime(time, prevEnd, store.duration)
 
