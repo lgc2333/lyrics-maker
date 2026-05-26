@@ -198,9 +198,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
       <div class="join" data-testid="split-bar-mode-toggle">
         <button
           class="btn btn-xs join-item"
-          :class="
-            lyricsEditor.splitBarMode.value === 'cut' ? 'btn-warning' : 'btn-ghost'
-          "
+          :class="lyricsEditor.splitBarMode.value === 'cut' && 'btn-warning'"
           :title="t('lyrics.wordSplitBar.cutMode')"
           @click="lyricsEditor.splitBarMode.value = 'cut'"
         >
@@ -208,9 +206,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         </button>
         <button
           class="btn btn-xs join-item"
-          :class="
-            lyricsEditor.splitBarMode.value === 'timing' ? 'btn-primary' : 'btn-ghost'
-          "
+          :class="lyricsEditor.splitBarMode.value === 'timing' && 'btn-primary'"
           :title="t('lyrics.wordSplitBar.timingMode')"
           @click="lyricsEditor.splitBarMode.value = 'timing'"
         >
@@ -218,7 +214,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
         </button>
         <button
           class="btn btn-xs join-item"
-          :class="lyricsEditor.splitBarMode.value === 'edit' ? 'btn-info' : 'btn-ghost'"
+          :class="lyricsEditor.splitBarMode.value === 'edit' && 'btn-info'"
           :title="t('lyrics.wordSplitBar.editMode')"
           @click="lyricsEditor.splitBarMode.value = 'edit'"
         >
@@ -283,7 +279,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
 
               <div
                 data-testid="word-block-cut"
-                class="flex items-center rounded border transition-colors"
+                class="flex items-center rounded border transition-colors px-1.5"
                 :class="wordColor(wIdx)"
               >
                 <template v-for="(char, cIdx) in word.text.split('')" :key="cIdx">
@@ -311,12 +307,12 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             v-else-if="lyricsEditor.splitBarMode.value === 'edit' && !wholeLineEditMode"
           >
             <button
-              class="btn btn-xs btn-ghost"
+              class="btn btn-xs mr-1.5"
               data-testid="whole-line-edit-btn"
               :title="t('lyrics.wordSplitBar.wholeLineEdit')"
               @click="enterWholeLineEdit"
             >
-              <Icon icon="material-symbols:text-fields" class="text-sm" />
+              <Icon icon="radix-icons:input" class="text-sm" />
             </button>
 
             <template v-for="(word, wIdx) in words" :key="word.id">
@@ -391,7 +387,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
             (isStartBlockActive() || selectedWord)
           "
           data-testid="selected-time-editor"
-          class="ml-auto flex h-7 shrink-0 items-center gap-1.5 rounded border border-base-300 bg-base-200/60 px-0.5 text-[10px] text-base-content/60"
+          class="ml-auto flex shrink-0 items-center gap-1.5 rounded text-[11px] text-base-content/60"
         >
           <template v-if="isStartBlockActive()">
             <span class="whitespace-nowrap">
@@ -401,7 +397,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
               data-testid="start-time-input"
               type="text"
               inputmode="decimal"
-              class="input input-xs h-5 w-[6.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              class="input input-xs h-5 w-20 border-base-300/70 bg-base-100/70 text-right tabular-nums"
               :value="
                 activeLine.startTime !== undefined
                   ? formatTimestamp(activeLine.startTime)
@@ -426,7 +422,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
               data-testid="word-end-time-input"
               type="text"
               inputmode="decimal"
-              class="input input-xs h-5 w-[6.75rem] border-base-300/70 bg-base-100/70 px-1 text-right text-[11px] tabular-nums"
+              class="input input-xs h-5 w-20 border-base-300/70 bg-base-100/70 px-1 text-right tabular-nums"
               :value="
                 selectedWord.endTime !== undefined
                   ? formatTimestamp(selectedWord.endTime)
