@@ -24,6 +24,9 @@ export class LineOverlayPlugin extends BasePlugin<
 
   private visibleStart = 0
   private visibleEnd = 0
+  private renderedStart = 0
+  private renderedEnd = 0
+  private hasRenderedRange = false
 
   static create(options?: LineOverlayOptions): LineOverlayPlugin {
     return new LineOverlayPlugin(options ?? {})
@@ -50,7 +53,7 @@ export class LineOverlayPlugin extends BasePlugin<
     this.subscriptions.push(
       ws.on('scroll', () => {
         this._refreshVisibleRange()
-        this._draw()
+        if (!this._isVisibleRangeCovered()) this._draw()
       }),
       ws.on('redraw', () => this._draw()),
       ws.on('zoom', () => {
@@ -106,8 +109,15 @@ export class LineOverlayPlugin extends BasePlugin<
   }
 
   private _intersects(start: number, end: number): boolean {
-    const buffer = 0.5
-    return end >= this.visibleStart - buffer && start <= this.visibleEnd + buffer
+    return end >= this.renderedStart && start <= this.renderedEnd
+  }
+
+  private _isVisibleRangeCovered(): boolean {
+    return (
+      this.hasRenderedRange &&
+      this.visibleStart >= this.renderedStart &&
+      this.visibleEnd <= this.renderedEnd
+    )
   }
 
   private _draw(): void {
@@ -124,6 +134,10 @@ export class LineOverlayPlugin extends BasePlugin<
     if (visibleDuration <= 0) return
 
     const pxPerSec = wrapper.scrollWidth / duration
+    const renderBuffer = Math.max(0.5, visibleDuration / 2)
+    this.renderedStart = Math.max(0, this.visibleStart - renderBuffer)
+    this.renderedEnd = Math.min(duration, this.visibleEnd + renderBuffer)
+    this.hasRenderedRange = true
 
     for (const line of this.params.lyrics) {
       if (line.startTime === undefined) continue

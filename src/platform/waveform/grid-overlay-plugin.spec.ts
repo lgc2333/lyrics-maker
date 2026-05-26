@@ -96,7 +96,7 @@ describe('gridOverlayPlugin', () => {
     })
 
     it('virtualizes grid lines outside the buffered visible range', () => {
-      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs(100)
       scrollContainer.scrollLeft = 500
       const plugin = GridOverlayPlugin.create()
       Reflect.set(plugin, 'wavesurfer', ws)
@@ -114,7 +114,67 @@ describe('gridOverlayPlugin', () => {
         (line) => Number(line.getAttribute('x1')),
       )
       expect(xs.length).toBeGreaterThan(0)
-      expect(xs.every((x) => x >= 450 && x <= 1000)).toBe(true)
+      expect(xs.every((x) => x >= 250 && x <= 1000)).toBe(true)
+    })
+
+    it('does not rebuild grid DOM while scrolling inside the rendered buffer', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+      const svg = wrapper.querySelector('[data-testid="timeline-grid"]')!
+      const replaceSpy = vi.spyOn(svg, 'replaceChildren')
+
+      scrollContainer.scrollLeft = 10
+      emit('scroll')
+
+      expect(replaceSpy).not.toHaveBeenCalled()
+    })
+
+    it('keeps a large enough scroll buffer at low zoom', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs(100)
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+      const svg = wrapper.querySelector('[data-testid="timeline-grid"]')!
+      const replaceSpy = vi.spyOn(svg, 'replaceChildren')
+
+      scrollContainer.scrollLeft = 10
+      emit('scroll')
+
+      expect(replaceSpy).not.toHaveBeenCalled()
+    })
+
+    it('keeps dense low-zoom grid DOM bounded', () => {
+      const { wrapper, ws, emit } = createFakeWs(100)
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 16,
+        triplets: false,
+      })
+
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line').length,
+      ).toBeLessThan(500)
     })
 
     it('clears grid lines when timing points become empty', () => {

@@ -31,6 +31,9 @@ export class GridOverlayPlugin extends BasePlugin<
 
   private visibleStart = 0
   private visibleEnd = 0
+  private renderedStart = 0
+  private renderedEnd = 0
+  private hasRenderedRange = false
 
   static create(options?: GridOverlayOptions): GridOverlayPlugin {
     return new GridOverlayPlugin(options ?? {})
@@ -57,7 +60,7 @@ export class GridOverlayPlugin extends BasePlugin<
     this.subscriptions.push(
       ws.on('scroll', () => {
         this._refreshVisibleRange()
-        this._draw()
+        if (!this._isVisibleRangeCovered()) this._draw()
       }),
       ws.on('redraw', () => this._draw()),
       ws.on('zoom', () => {
@@ -92,6 +95,14 @@ export class GridOverlayPlugin extends BasePlugin<
       (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
   }
 
+  private _isVisibleRangeCovered(): boolean {
+    return (
+      this.hasRenderedRange &&
+      this.visibleStart >= this.renderedStart &&
+      this.visibleEnd <= this.renderedEnd
+    )
+  }
+
   private _draw(): void {
     if (!this.svg || !this.wavesurfer) return
 
@@ -108,16 +119,29 @@ export class GridOverlayPlugin extends BasePlugin<
     const wrapper = this.wavesurfer.getWrapper()
     if (wrapper.scrollWidth <= 0) return
     const pxPerSec = wrapper.scrollWidth / duration
+    const renderBuffer = Math.max(0.5, visibleDuration / 2)
+    const renderStart = Math.max(0, this.visibleStart - renderBuffer)
+    const renderEnd = Math.min(duration, this.visibleEnd + renderBuffer)
+    this.renderedStart = renderStart
+    this.renderedEnd = renderEnd
+    this.hasRenderedRange = true
+
     const lines = getBeatGridLines(
       this.params.timingPoints,
       this.params.divisor,
       this.params.triplets,
-      Math.max(0, this.visibleStart - 0.5),
-      Math.min(duration, this.visibleEnd + 0.5),
+      renderStart,
+      renderEnd,
     )
 
+    let lastRenderedSubdivisionX = -Infinity
     for (const line of lines) {
       const x = line.time * pxPerSec
+      if (line.type === 'subdivision') {
+        if (x - lastRenderedSubdivisionX < 4) continue
+        lastRenderedSubdivisionX = x
+      }
+
       const el = document.createElementNS('http://www.w3.org/2000/svg', 'line')
       el.setAttribute('x1', `${x}`)
       el.setAttribute('x2', `${x}`)

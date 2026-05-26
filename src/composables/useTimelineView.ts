@@ -183,6 +183,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
         Date.now() - lastUserScrollAt > USER_SCROLL_COOLDOWN_MS
       ) {
         wavesurferView?.scrollPlaybackTo(t, PLAYBACK_FOLLOW_THRESHOLD_RATIO)
+        playheadPlugin?.update(_buildPlayheadParams())
       }
     },
   )

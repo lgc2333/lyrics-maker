@@ -336,6 +336,28 @@ describe('useTimelineView', () => {
     wrapper.unmount()
   })
 
+  it('refreshes playhead after playback auto-follow scrolls', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    await store.togglePlayback()
+
+    mockPlayheadPlugins[0].update.mockClear()
+    mockViews[0].scrollPlaybackTo.mockClear()
+
+    store.seekPlayback(7)
+    await wrapper.vm.$nextTick()
+
+    expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(7, 0.5)
+    expect(mockPlayheadPlugins[0].update).toHaveBeenCalledTimes(2)
+
+    wrapper.unmount()
+  })
+
   it('refreshes playhead on WaveSurfer ready scroll zoom redraw and resize', async () => {
     const container = document.createElement('div')
     const containerRef = shallowRef<HTMLElement | null>(container)

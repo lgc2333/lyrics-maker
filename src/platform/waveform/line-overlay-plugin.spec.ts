@@ -132,6 +132,58 @@ describe('lineOverlayPlugin', () => {
       expect(wrapper.querySelector('[data-testid="lyric-range-far-line"]')).toBeNull()
     })
 
+    it('does not rebuild lyric DOM while scrolling inside the rendered buffer', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: null,
+      })
+      const layer = wrapper.querySelector('[data-testid="timeline-lyrics"]')!
+      const replaceSpy = vi.spyOn(layer, 'replaceChildren')
+
+      scrollContainer.scrollLeft = 10
+      emit('scroll')
+
+      expect(replaceSpy).not.toHaveBeenCalled()
+    })
+
+    it('keeps a large enough scroll buffer at low zoom', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs(100)
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: null,
+      })
+      const layer = wrapper.querySelector('[data-testid="timeline-lyrics"]')!
+      const replaceSpy = vi.spyOn(layer, 'replaceChildren')
+
+      scrollContainer.scrollLeft = 10
+      emit('scroll')
+
+      expect(replaceSpy).not.toHaveBeenCalled()
+    })
+
     it('does not throw before initialization', () => {
       const plugin = LineOverlayPlugin.create()
       expect(() => plugin.update({ lyrics: [], activeLineId: null })).not.toThrow()

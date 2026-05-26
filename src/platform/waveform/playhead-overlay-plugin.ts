@@ -76,15 +76,16 @@ export class PlayheadOverlayPlugin extends BasePlugin<
 
     const pxPerSec = wrapper.scrollWidth / duration
     const x = this.currentTime * pxPerSec - scrollContainer.scrollLeft
+    const translateX = Math.round(x * 1000) / 1000
     const buffer = 4
     if (x < -buffer || x > scrollContainer.clientWidth + buffer) {
       this.line.style.display = 'none'
-      this.line.style.transform = `translateX(${Math.round(x)}px)`
+      this.line.style.transform = `translateX(${translateX}px)`
       return
     }
 
     this.line.style.display = 'block'
-    this.line.style.transform = `translateX(${Math.round(x)}px)`
+    this.line.style.transform = `translateX(${translateX}px)`
   }
 
   destroy(): void {

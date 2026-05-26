@@ -9,7 +9,7 @@ function createFakeWs(duration = 10) {
   Object.defineProperty(scrollContainer, 'clientWidth', { value: 800 })
   Object.defineProperty(scrollContainer, 'scrollWidth', { value: 1600 })
   const wrapper = document.createElement('div')
-  Object.defineProperty(wrapper, 'scrollWidth', { value: 1600 })
+  Object.defineProperty(wrapper, 'scrollWidth', { value: 1600, configurable: true })
   scrollContainer.appendChild(wrapper)
   outerContainer.appendChild(scrollContainer)
 
@@ -57,6 +57,22 @@ describe('playheadOverlayPlugin', () => {
     ) as HTMLElement
     expect(line.style.transform).toBe('translateX(120px)')
     expect(line.style.display).toBe('block')
+  })
+
+  it('preserves subpixel x positions to avoid playhead jitter', () => {
+    const { outerContainer, scrollContainer, wrapper, ws } = createFakeWs()
+    Object.defineProperty(wrapper, 'scrollWidth', { value: 1001, configurable: true })
+    scrollContainer.scrollLeft = 200.25
+    const plugin = PlayheadOverlayPlugin.create({ outerContainer })
+    Reflect.set(plugin, 'wavesurfer', ws)
+    Reflect.get(plugin, 'onInit').call(plugin)
+
+    plugin.update({ currentTime: 2 })
+
+    const line = outerContainer.querySelector(
+      '[data-testid="timeline-playhead"]',
+    ) as HTMLElement
+    expect(line.style.transform).toBe('translateX(-0.05px)')
   })
 
   it('remains independent of timing points', () => {
