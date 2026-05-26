@@ -3,20 +3,32 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LineOverlayPlugin } from './line-overlay-plugin'
 import type { LineOverlayOptions } from './line-overlay-plugin'
 
-function createMockCanvas(context: unknown = null) {
-  const parentDiv = document.createElement('div')
-  parentDiv.style.width = '800px'
-  parentDiv.style.height = '200px'
-  Object.defineProperty(parentDiv, 'clientWidth', { value: 800 })
-  Object.defineProperty(parentDiv, 'clientHeight', { value: 200 })
+function createFakeWs(duration = 10) {
+  const wrapper = document.createElement('div')
+  Object.defineProperty(wrapper, 'scrollWidth', { value: 1000, configurable: true })
+  const scrollContainer = document.createElement('div')
+  Object.defineProperty(scrollContainer, 'clientWidth', { value: 500, configurable: true })
+  Object.defineProperty(scrollContainer, 'scrollWidth', {
+    value: 1000,
+    configurable: true,
+  })
+  scrollContainer.appendChild(wrapper)
+  const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
+
   return {
-    tagName: 'CANVAS',
-    style: {} as Record<string, string>,
-    width: 0,
-    height: 0,
-    getContext: vi.fn(() => context),
-    remove: vi.fn(),
-    parentElement: parentDiv,
+    wrapper,
+    scrollContainer,
+    emit(event: string, ...args: unknown[]) {
+      for (const fn of listeners[event] ?? []) fn(...args)
+    },
+    ws: {
+      getWrapper: vi.fn(() => wrapper),
+      getDuration: vi.fn(() => duration),
+      on: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
+        ;(listeners[event] ??= []).push(fn)
+        return () => {}
+      }),
+    },
   }
 }
 
@@ -39,141 +51,103 @@ describe('lineOverlayPlugin', () => {
     })
   })
 
-  describe('early-exit from draw', () => {
-    it('does not throw when canvas is null (not yet initialized)', () => {
+  describe('rendering', () => {
+    it('appends a lyrics layer to the WaveSurfer wrapper', () => {
+      const { wrapper, ws } = createFakeWs()
       const plugin = LineOverlayPlugin.create()
-      expect(() =>
-        plugin.update({ lyrics: [], activeLineId: null, currentTime: 0 }),
-      ).not.toThrow()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      expect(wrapper.querySelector('[data-testid="timeline-lyrics"]')).toBeInstanceOf(
+        HTMLDivElement,
+      )
     })
 
-    it('does not throw when wavesurfer is null', () => {
+    it('renders a completed timed line with current visual semantics', () => {
+      const { wrapper, ws, emit } = createFakeWs()
       const plugin = LineOverlayPlugin.create()
-      expect(() =>
-        plugin.update({ lyrics: [], activeLineId: null, currentTime: 0 }),
-      ).not.toThrow()
-    })
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
 
-    it('does not throw when duration is 0 or less', () => {
-      const plugin = LineOverlayPlugin.create()
-      const fakeWs = {
-        getWrapper: vi.fn(() => {
-          const wrapper = document.createElement('div')
-          wrapper.style.width = '1600px'
-          const parent = document.createElement('div')
-          parent.style.width = '800px'
-          parent.appendChild(wrapper)
-          return wrapper
-        }),
-        getDuration: vi.fn(() => 0),
-        on: vi.fn(() => vi.fn()),
-      }
-      Reflect.set(plugin, 'wavesurfer', fakeWs)
-
-      const mockCanvas = createMockCanvas()
-      Reflect.set(plugin, 'canvas', mockCanvas)
-
-      expect(() =>
-        plugin.update({ lyrics: [], activeLineId: null, currentTime: 0 }),
-      ).not.toThrow()
-    })
-  })
-
-  describe('update', () => {
-    it('is callable and does not throw with valid params', () => {
-      const plugin = LineOverlayPlugin.create()
-      expect(() =>
-        plugin.update({
-          lyrics: [],
-          activeLineId: null,
-          currentTime: 10,
-        }),
-      ).not.toThrow()
-    })
-
-    it('accepts lyrics with timing data', () => {
-      const plugin = LineOverlayPlugin.create()
-      expect(() =>
-        plugin.update({
-          lyrics: [
-            {
-              id: 'line-1',
-              startTime: 1.0,
-              words: [
-                { id: 'w1', text: 'hello', endTime: 1.5 },
-                { id: 'w2', text: 'world', endTime: 2.0 },
-              ],
-            },
-          ],
-          activeLineId: 'line-1',
-          currentTime: 1.2,
-        }),
-      ).not.toThrow()
-    })
-
-    it('draws word separator dashed lines in yellow', () => {
-      const strokeStyles: string[] = []
-      const ctx = {
-        clearRect: vi.fn(),
-        fillRect: vi.fn(),
-        beginPath: vi.fn(),
-        moveTo: vi.fn(),
-        lineTo: vi.fn(),
-        stroke: vi.fn(),
-        save: vi.fn(),
-        restore: vi.fn(),
-        setLineDash: vi.fn(),
-        fillText: vi.fn(),
-        fillStyle: '',
-        strokeStyle: '',
-        lineWidth: 0,
-        shadowColor: '',
-        shadowBlur: 0,
-        textAlign: '',
-        textBaseline: '',
-        font: '',
-      }
-      Object.defineProperty(ctx, 'strokeStyle', {
-        get: () => strokeStyles.at(-1) ?? '',
-        set: (value: string) => {
-          strokeStyles.push(value)
-        },
-      })
-      const plugin = LineOverlayPlugin.create()
-      Reflect.set(plugin, 'wavesurfer', { getDuration: vi.fn(() => 4) })
-      Reflect.set(plugin, 'canvas', createMockCanvas(ctx))
-      Reflect.set(plugin, 'visibleStart', 0)
-      Reflect.set(plugin, 'visibleEnd', 4)
-
+      emit('ready')
       plugin.update({
         lyrics: [
           {
             id: 'line-1',
-            startTime: 0,
+            startTime: 1,
             words: [
-              { id: 'w1', text: 'hello', endTime: 1 },
-              { id: 'w2', text: 'world', endTime: 2 },
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 3 },
             ],
           },
         ],
         activeLineId: 'line-1',
-        currentTime: 0,
       })
 
-      expect(strokeStyles).toContain('rgba(255, 214, 80, 0.85)')
+      expect(wrapper.querySelector('[data-testid="lyric-range-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="line-start-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="line-end-line-1"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="word-separator-w2"]')).not.toBeNull()
+      expect(wrapper.querySelector('[data-testid="word-label-w1"]')?.textContent).toBe(
+        'hello',
+      )
+    })
+
+    it('skips untimed lines', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [{ id: 'line-1', words: [{ id: 'w1', text: 'hello' }] }],
+        activeLineId: null,
+      })
+
+      expect(wrapper.querySelector('[data-testid^="lyric-range-"]')).toBeNull()
+    })
+
+    it('virtualizes lines outside the buffered visible range', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'far-line',
+            startTime: 8,
+            words: [{ id: 'w1', text: 'later', endTime: 9 }],
+          },
+        ],
+        activeLineId: null,
+      })
+
+      expect(wrapper.querySelector('[data-testid="lyric-range-far-line"]')).toBeNull()
+    })
+
+    it('does not throw before initialization', () => {
+      const plugin = LineOverlayPlugin.create()
+      expect(() => plugin.update({ lyrics: [], activeLineId: null })).not.toThrow()
     })
   })
 
   describe('destroy', () => {
-    it('removes canvas and nulls reference', () => {
+    it('removes DOM layer and nulls reference', () => {
+      const { ws } = createFakeWs()
       const plugin = LineOverlayPlugin.create()
-      const removeSpy = vi.fn()
-      Reflect.set(plugin, 'canvas', { remove: removeSpy, style: {} })
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const layer = Reflect.get(plugin, 'layer') as HTMLDivElement
+      const removeSpy = vi.spyOn(layer, 'remove')
 
       plugin.destroy()
 
       expect(removeSpy).toHaveBeenCalled()
-      expect(Reflect.get(plugin, 'canvas')).toBeNull()
+      expect(Reflect.get(plugin, 'layer')).toBeNull()
     })
 
     it('can be called before init without error', () => {

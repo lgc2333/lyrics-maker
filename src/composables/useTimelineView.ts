@@ -65,7 +65,6 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     return {
       lyrics: store.project.lyrics,
       activeLineId: null as string | null,
-      currentTime: store.currentTime,
     }
   }
 
