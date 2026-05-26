@@ -178,6 +178,70 @@
 - 点击波形修改歌曲进度时，自动回中了，取消自动回中也会出问题。要不将seek的阈值改为左右10%，如果超出则根据位置滚动到两侧的10%位置，seek自动滚动行为不受自动归中这个是对的
 - 当当前timeline中没有timing point时，网格渲染直接罢工，也不会清空已有网格线
 
+## Part 3.5：Timeline overlay 坐标系与播放性能整理
+
+### 起因
+
+播放时自动归中的跟随滚动在高刷新率屏幕上看起来只有低帧率，并且在居中放大时播放指针有抖动。调研 WaveSurfer 的 Regions、Envelope 等插件后，倾向于让时间线装饰层进入 WaveSurfer wrapper 坐标系，而不是继续用外层固定 canvas 每帧重算和重绘。
+
+### 目标
+
+把时间线 overlay 从外层固定 canvas 改成跟随 WaveSurfer wrapper 滚动的内容层，同时把播放指针拆成独立的轻量 overlay，避免播放时每帧重绘网格和歌词。
+
+### 后修复
+
+第一轮 wrapper-attached overlay 重构解决了坐标系统一和播放热路径拆分，但随后暴露出新的性能瓶颈：播放跟随会持续写入 `scrollLeft`，并触发 WaveSurfer 的 `scroll` 事件；当 grid/lyrics overlay 在每次 scroll 上都 `replaceChildren()` 并重建可见范围内的 SVG/DOM 节点时，DevTools 可以看到大量元素属性疯狂变化，页面会明显卡顿。低 zoom 下固定 `0.5s` buffer 太小，容易频繁越界重绘；细 subdivision 线密度过高时也会生成过多 SVG line。播放指针抖动则来自整数像素取整和跟随滚动后的更新顺序。
+
+### 已完成内容
+
+- `WaveSurferView` 增加 wrapper、scroll container、duration、pixels-per-second 和 visible range 等几何 helper。
+- 播放自动跟随改为平滑追赶：
+  - 低 zoom 下超过阈值后每次最多追 10px。
+  - 高 zoom 下使用完整追赶距离。
+  - 指针在可视区域外时仍然直接拉回到视图中间。
+- 新增独立 `PlayheadOverlayPlugin`：
+  - playhead 是外层容器上的单条 DOM 线。
+  - 只根据 `currentTime`、`scrollLeft` 和 pixels-per-second 更新 `transform`。
+  - 不依赖 timing points，删除最后一个 timing point 不会隐藏播放指针。
+- `GridOverlayPlugin` 改成挂载在 `wavesurfer.getWrapper()` 内的 SVG layer：
+  - 使用 WaveSurfer wrapper 坐标系。
+  - 只渲染当前可见范围加动态 buffer 内的 beat/bar/subdivision 线。
+  - 记录已渲染范围；只要新的可见范围仍被覆盖，scroll 时跳过 DOM 重建。
+  - buffer 随当前可见时长放大，至少为半个可见时长，避免低 zoom 下频繁越界。
+  - 低 zoom 下对过密 subdivision 线做 decimation，跳过像素距离太近的细分线。
+  - 不再负责绘制 playhead。
+  - `currentTime` 不再进入 grid overlay 的更新参数。
+- `LineOverlayPlugin` 改成挂载在 `wavesurfer.getWrapper()` 内的 DOM layer：
+  - 使用 WaveSurfer wrapper 坐标系。
+  - 只渲染当前可见范围加动态 buffer 内的已完成歌词区间。
+  - 记录已渲染范围；scroll 仍落在 buffer 内时不重建歌词 DOM。
+  - 保留红色行起点、蓝色行终点、黄色分词虚线、区间填充和 trimmed word label。
+  - `currentTime` 不再进入 lyrics overlay 的更新参数。
+- `useTimelineView` 拆分 overlay 更新热路径：
+  - `currentTime` tick 只更新 playhead 和播放跟随。
+  - timing point、细分、triplet 改变才更新 grid。
+  - lyrics 数据改变才更新 lyrics overlay。
+  - ready、scroll、zoom、redraw、resize 会刷新 playhead 位置。
+  - 播放跟随写完 `scrollLeft` 后会再次刷新 playhead，避免指针使用旧 scroll offset。
+- `PlayheadOverlayPlugin` 保留 subpixel `translateX`，不再把坐标取整到整数像素，减轻居中放大时的视觉抖动。
+- 更新 `docs/patterns/timeline-audio-lyrics.md`，记录 wrapper-attached overlay、虚拟化、rendered range cache、动态 buffer、低 zoom decimation 和 playhead 独立规则。
+
+### 验收结果
+
+- 目标测试覆盖：
+  - `wavesurfer-view.spec.ts`
+  - `playhead-overlay-plugin.spec.ts`
+  - `grid-overlay-plugin.spec.ts`
+  - `line-overlay-plugin.spec.ts`
+  - `useTimelineView.spec.ts`
+- 验证记录：
+  - 首轮 targeted tests：64 passed
+  - 首轮 full tests：663 passed
+  - 后续性能修复 targeted tests：71 passed
+  - `pnpm lint`
+  - `pnpm format`
+  - `pnpm check`
+
 ## Part 4：Overlay 部分打轴显示与指针预览
 
 ### 目标
@@ -432,14 +496,15 @@
 1. Part 1：StatusBar 地基与无音频边界。
 2. Part 2：Timing 与菜单 UI 整理。
 3. Part 3：时间线滚动、seek 跟随与缩放行为。
-4. Part 4：Overlay 部分打轴显示与指针预览。
-5. Part 5：项目保存、自动保存、草稿恢复与标题编辑。
-6. Part 6：本地用户设置与首选项地基。
-7. Part 7：导入导出架构与文件交互。
-8. Part 8：快捷键自定义。
-9. Part 9：音频播放增强。
-10. Part 10：歌词列表编辑与剪贴板粘贴。
-11. Part 11：Overlay 拖拽编辑。
+4. Part 3.5：Timeline overlay 坐标系与播放性能整理。
+5. Part 4：Overlay 部分打轴显示与指针预览。
+6. Part 5：项目保存、自动保存、草稿恢复与标题编辑。
+7. Part 6：本地用户设置与首选项地基。
+8. Part 7：导入导出架构与文件交互。
+9. Part 8：快捷键自定义。
+10. Part 9：音频播放增强。
+11. Part 10：歌词列表编辑与剪贴板粘贴。
+12. Part 11：Overlay 拖拽编辑。
 
 ## 后续计划说明
 
