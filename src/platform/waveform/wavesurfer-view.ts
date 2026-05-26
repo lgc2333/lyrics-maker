@@ -15,10 +15,23 @@ export interface WaveSurferViewOptions {
   verticalZoom?: number
 }
 
+export interface TimelineVisibleRange {
+  start: number
+  end: number
+  scrollLeft: number
+  clientWidth: number
+  scrollWidth: number
+}
+
 export interface WaveSurferView {
   registerPlugin: <T extends GenericPlugin>(plugin: T) => T
   loadBlob: (blob: Blob) => Promise<void>
   zoom: (pxPerSec: number, anchorClientX?: number) => void
+  getWrapper: () => HTMLElement
+  getScrollContainer: () => HTMLElement | null
+  getDuration: () => number
+  getPixelsPerSecond: () => number
+  getVisibleRange: () => TimelineVisibleRange | null
   scrollTo: (time: number) => void
   scrollSeekTo: (time: number, marginRatio: number) => void
   scrollPlaybackTo: (time: number, thresholdRatio: number) => void
@@ -68,8 +81,36 @@ export function createWaveSurferView(
     ws.registerPlugin(spectrogramPlugin)
   }
 
+  function _getWrapper(): HTMLElement {
+    return ws.getWrapper()
+  }
+
   function _getScrollContainer(): HTMLElement | null {
-    return ws.getWrapper().parentElement
+    return _getWrapper().parentElement
+  }
+
+  function _getDuration(): number {
+    return ws.getDuration()
+  }
+
+  function _getPixelsPerSecond(): number {
+    const duration = _getDuration()
+    if (duration <= 0) return 0
+    return _getWrapper().scrollWidth / duration
+  }
+
+  function _getVisibleRange(): TimelineVisibleRange | null {
+    const scrollEl = _getScrollContainer()
+    const pxPerSec = _getPixelsPerSecond()
+    if (!scrollEl || pxPerSec <= 0) return null
+
+    return {
+      start: scrollEl.scrollLeft / pxPerSec,
+      end: (scrollEl.scrollLeft + scrollEl.clientWidth) / pxPerSec,
+      scrollLeft: scrollEl.scrollLeft,
+      clientWidth: scrollEl.clientWidth,
+      scrollWidth: scrollEl.scrollWidth,
+    }
   }
 
   return {
@@ -90,9 +131,7 @@ export function createWaveSurferView(
 
     zoom(pxPerSec: number, anchorClientX?: number): void {
       const scrollEl = _getScrollContainer()
-      const duration = ws.getDuration()
-      const wrapper = ws.getWrapper()
-      const oldPxPerSec = duration > 0 ? wrapper.scrollWidth / duration : 0
+      const oldPxPerSec = _getPixelsPerSecond()
       const anchorOffset =
         scrollEl && anchorClientX !== undefined
           ? anchorClientX - scrollEl.getBoundingClientRect().left
@@ -109,13 +148,17 @@ export function createWaveSurferView(
       }
     },
 
+    getWrapper: _getWrapper,
+    getScrollContainer: _getScrollContainer,
+    getDuration: _getDuration,
+    getPixelsPerSecond: _getPixelsPerSecond,
+    getVisibleRange: _getVisibleRange,
+
     scrollTo(time: number): void {
       const scrollEl = _getScrollContainer()
       if (!scrollEl) return
-      const duration = ws.getDuration()
-      if (duration <= 0) return
-      const wrapper = ws.getWrapper()
-      const pxPerSec = wrapper.scrollWidth / duration
+      const pxPerSec = _getPixelsPerSecond()
+      if (pxPerSec <= 0) return
       const center = scrollEl.clientWidth / 2
       scrollEl.scrollLeft = Math.max(0, time * pxPerSec - center)
     },
@@ -123,10 +166,8 @@ export function createWaveSurferView(
     scrollSeekTo(time: number, marginRatio: number): void {
       const scrollEl = _getScrollContainer()
       if (!scrollEl) return
-      const duration = ws.getDuration()
-      if (duration <= 0) return
-      const wrapper = ws.getWrapper()
-      const pxPerSec = wrapper.scrollWidth / duration
+      const pxPerSec = _getPixelsPerSecond()
+      if (pxPerSec <= 0) return
       const margin = scrollEl.clientWidth * marginRatio
       const targetX = time * pxPerSec
       const visibleX = targetX - scrollEl.scrollLeft
@@ -142,17 +183,25 @@ export function createWaveSurferView(
     scrollPlaybackTo(time: number, thresholdRatio: number): void {
       const scrollEl = _getScrollContainer()
       if (!scrollEl) return
-      const duration = ws.getDuration()
-      if (duration <= 0) return
-      const wrapper = ws.getWrapper()
-      const pxPerSec = wrapper.scrollWidth / duration
-      const threshold = scrollEl.clientWidth * thresholdRatio
-      const playheadX = time * pxPerSec - scrollEl.scrollLeft
+      const pxPerSec = _getPixelsPerSecond()
+      if (pxPerSec <= 0) return
+
+      const targetX = time * pxPerSec
+      const playheadX = targetX - scrollEl.scrollLeft
       const isBeforeViewport = playheadX < 0
       const isAfterViewport = playheadX > scrollEl.clientWidth
-      if (!isBeforeViewport && !isAfterViewport && playheadX < threshold) return
-      const center = scrollEl.clientWidth / 2
-      scrollEl.scrollLeft = Math.max(0, time * pxPerSec - center)
+
+      if (isBeforeViewport || isAfterViewport) {
+        scrollEl.scrollLeft = Math.max(0, targetX - scrollEl.clientWidth / 2)
+        return
+      }
+
+      const threshold = scrollEl.clientWidth * thresholdRatio
+      const overflow = playheadX - threshold
+      if (overflow <= 0) return
+
+      const delta = pxPerSec <= 600 ? Math.min(overflow, 10) : overflow
+      scrollEl.scrollLeft += delta
     },
 
     scrollByDelta(delta: number): void {
@@ -163,10 +212,9 @@ export function createWaveSurferView(
     getScrollTime(): number {
       const scrollEl = _getScrollContainer()
       if (!scrollEl) return 0
-      const duration = ws.getDuration()
-      if (duration <= 0) return 0
-      const wrapper = ws.getWrapper()
-      return (scrollEl.scrollLeft / wrapper.scrollWidth) * duration
+      const pxPerSec = _getPixelsPerSecond()
+      if (pxPerSec <= 0) return 0
+      return scrollEl.scrollLeft / pxPerSec
     },
 
     on(event: string, handler: (...args: unknown[]) => void): () => void {

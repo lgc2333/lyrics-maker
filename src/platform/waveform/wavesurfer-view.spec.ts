@@ -211,6 +211,38 @@ describe('waveSurferView', () => {
   })
 
   describe('scrollTo', () => {
+    it('exposes the WaveSurfer wrapper and scroll container', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const wrapper = latestWs().getWrapper()
+
+      expect(view.getWrapper()).toBe(wrapper)
+      expect(view.getScrollContainer()).toBe(wrapper.parentElement)
+    })
+
+    it('returns pixels per second from wrapper width and duration', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+
+      expect(view.getDuration()).toBe(120)
+      expect(view.getPixelsPerSecond()).toBeCloseTo(13.333, 3)
+    })
+
+    it('returns the current visible time range and scroll geometry', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const scrollEl = latestWs().getWrapper().parentElement!
+      scrollEl.scrollLeft = 400
+
+      expect(view.getVisibleRange()).toEqual({
+        start: 30,
+        end: 90,
+        scrollLeft: 400,
+        clientWidth: 800,
+        scrollWidth: 1600,
+      })
+    })
+
     it('does not throw when scroll container is available', () => {
       const container = createContainer()
       const view = createWaveSurferView(container, defaultOptions)
@@ -268,13 +300,27 @@ describe('waveSurferView', () => {
       expect(scrollEl.scrollLeft).toBe(0)
     })
 
-    it('centers playback when the visible playhead passes the midpoint', () => {
+    it('smoothly catches up by at most 10px at low zoom', () => {
       const container = createContainer()
       const view = createWaveSurferView(container, defaultOptions)
       const scrollEl = latestWs().getWrapper().parentElement!
 
       view.scrollPlaybackTo(31, 0.5)
-      expect(scrollEl.scrollLeft).toBeCloseTo(13.333, 3)
+      expect(scrollEl.scrollLeft).toBe(10)
+    })
+
+    it('uses full catch-up at high zoom', () => {
+      const container = createContainer()
+      const view = createWaveSurferView(container, defaultOptions)
+      const wrapper = latestWs().getWrapper()
+      Object.defineProperty(wrapper, 'scrollWidth', {
+        value: 120000,
+        configurable: true,
+      })
+
+      view.scrollPlaybackTo(1, 0.5)
+
+      expect(scrollElFromLatestWs().scrollLeft).toBe(600)
     })
 
     it('pulls playback back into view when the playhead is left of the viewport', () => {
@@ -389,3 +435,7 @@ describe('waveSurferView', () => {
     })
   })
 })
+
+function scrollElFromLatestWs(): HTMLElement {
+  return latestWs().getWrapper().parentElement!
+}
