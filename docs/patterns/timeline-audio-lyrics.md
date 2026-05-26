@@ -4,6 +4,7 @@
 
 - **WaveSurfer `ready` event must trigger grid update.** `GridOverlayPlugin._draw()` exits early when `duration <= 0`. After a view-mode switch the `scroll` event hasn't fired, so call `gridPlugin.update(params)` inside the `ready` handler to show lines immediately.
 - **Grid overlay `zoom` handler must recompute `visibleStart`/`visibleEnd` before `_draw()`.** WaveSurfer's `zoom` event fires before the `scroll` event, so stale visible-range values produce grid lines at wrong positions. Recompute from `wrapper.scrollWidth`, `scrollContainer.scrollLeft`, and `duration` - same pattern as the `ready` handler.
+- **Grid overlay must clear canvas before empty timing point exits.** In `GridOverlayPlugin._draw()`, call `ctx.clearRect(...)` before returning for `timingPoints.length === 0`; otherwise deleting the last timing point leaves stale grid lines visible. Keep the regression test in `grid-overlay-plugin.spec.ts` green.
 - **WaveSurfer spectrogram vertical zoom via `frequencyMax`.** Set `frequencyMax = Math.round(22050 / zoom)` in `WindowedSpectrogramPlugin.create()` - not a post-init method. Requires recreating the WaveSurfer instance to take effect.
 - **WaveSurfer waveform hidden in spectrogram mode:** set both `height: 0` and `waveColor: 'transparent'`. `height: 0` collapses the canvas; `waveColor: 'transparent'` prevents pixel bleed if height rounds up.
 - **WaveSurfer `progressColor: 'transparent'` + `hideScrollbar: true`** when drawing a custom playhead overlay and managing scrolling manually.
@@ -12,6 +13,7 @@
 - **Spectrogram resize targets the plugin's wrapper div, not just the canvas.** The plugin sets `wrapper.style.height` as a fixed inline style. Use `ResizeObserver` on the container: CSS-stretch `plugin.wrapper` + canvas immediately during drag, then pixel-resize + call `plugin.render(ws.getDecodedData())` after a ~300ms debounce. Access private properties via `as unknown as { wrapper: HTMLElement; canvasContainer: HTMLElement; height: number }`.
 - **WaveSurfer v7 decoded audio is `ws.getDecodedData()`** (not `getDecodedAudio`). Returns `AudioBuffer | null`.
 - **WaveSurfer spectrogram rendering gaps:** enable `progressiveLoading: true` to pre-compute full-file spectrogram segments in background. Reduce `fftSamples` to 512 (must be power of 2) for faster segment computation. See `wavesurfer-view.ts:57-64`.
+- **Timeline seek scroll is separate from playback auto-follow.** Explicit seek (`store.seekPlayback` via waveform click/progress/lyrics) should always run even when playback auto-follow is disabled, and should use `WaveSurferView.scrollSeekTo(time, 0.1)` so targets outside the visible 10%-90% band move only to the nearest 10% edge. Playback auto-follow uses `scrollPlaybackTo(time, 0.5)` and may be gated by user-scroll cooldown / auto-follow toggle.
 
 ## Audio & Metronome
 

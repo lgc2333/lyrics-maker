@@ -136,9 +136,9 @@ export class GridOverlayPlugin extends BasePlugin<
     const ctx = this.canvas.getContext('2d')
     if (!ctx) return
 
-    if (this.params.timingPoints.length === 0) return
-
     ctx.clearRect(0, 0, w, h)
+
+    if (this.params.timingPoints.length === 0) return
 
     const lines = getBeatGridLines(
       this.params.timingPoints,

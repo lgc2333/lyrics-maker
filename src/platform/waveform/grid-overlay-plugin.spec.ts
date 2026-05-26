@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { TimingPoint } from '../../core/domain/project'
 import { GridOverlayPlugin } from './grid-overlay-plugin'
 import type { GridOverlayOptions } from './grid-overlay-plugin'
 
@@ -103,6 +104,66 @@ describe('gridOverlayPlugin', () => {
           triplets: false,
         }),
       ).not.toThrow()
+    })
+
+    it('clears previously drawn grid lines when timing points become empty', () => {
+      const plugin = GridOverlayPlugin.create()
+      const parentDiv = document.createElement('div')
+      Object.defineProperty(parentDiv, 'clientWidth', { value: 800 })
+      Object.defineProperty(parentDiv, 'clientHeight', { value: 200 })
+
+      const clearRect = vi.fn()
+      const ctx = {
+        clearRect,
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        stroke: vi.fn(),
+        strokeStyle: '',
+        lineWidth: 0,
+      }
+      const canvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => ctx),
+        parentElement: parentDiv,
+      }
+      const fakeWs = {
+        getDuration: vi.fn(() => 10),
+      }
+      const timingPoints: TimingPoint[] = [
+        {
+          id: 'tp-1',
+          time: 0,
+          bpm: 120,
+          timeSignatureNumerator: 4,
+          timeSignatureDenominator: 4,
+        },
+      ]
+
+      Reflect.set(plugin, 'wavesurfer', fakeWs)
+      Reflect.set(plugin, 'canvas', canvas)
+      Reflect.set(plugin, 'visibleStart', 0)
+      Reflect.set(plugin, 'visibleEnd', 10)
+
+      plugin.update({
+        timingPoints,
+        currentTime: 1,
+        divisor: 4,
+        triplets: false,
+      })
+      clearRect.mockClear()
+      ctx.stroke.mockClear()
+
+      plugin.update({
+        timingPoints: [],
+        currentTime: 1,
+        divisor: 4,
+        triplets: false,
+      })
+
+      expect(clearRect).toHaveBeenCalledWith(0, 0, 800, 200)
+      expect(ctx.stroke).not.toHaveBeenCalled()
     })
   })
 
