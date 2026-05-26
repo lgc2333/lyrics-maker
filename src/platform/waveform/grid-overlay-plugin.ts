@@ -6,15 +6,14 @@ import { getBeatGridLines } from '../../core/timing/timing-engine'
 
 export interface GridOverlayOptions {
   /**
-   * The shadow host element (same as WaveSurfer's container option).
-   *  The canvas is placed here so it doesn't scroll with WaveSurfer's internal #scroll.
+   * Kept for compatibility with older call sites. Grid content now attaches to
+   * WaveSurfer's wrapper so it scrolls with the waveform/spectrogram.
    */
   outerContainer?: HTMLElement
 }
 
 export interface GridOverlayParams {
   timingPoints: TimingPoint[]
-  currentTime: number
   divisor: number
   triplets: boolean
 }
@@ -23,10 +22,9 @@ export class GridOverlayPlugin extends BasePlugin<
   BasePluginEvents,
   GridOverlayOptions
 > {
-  private canvas: HTMLCanvasElement | null = null
+  private svg: SVGSVGElement | null = null
   private params: GridOverlayParams = {
     timingPoints: [],
-    currentTime: 0,
     divisor: 4,
     triplets: false,
   }
@@ -41,66 +39,33 @@ export class GridOverlayPlugin extends BasePlugin<
   protected onInit(): void {
     const ws = this.wavesurfer!
     const wrapper = ws.getWrapper()
-    // #scroll is the viewport container inside WaveSurfer's shadow DOM
-    const scrollContainer = wrapper.parentElement
 
-    // Use the provided outerContainer (shadow host in the light DOM).
-    // Fall back to shadow-root introspection for environments where outerContainer is omitted.
-    const containerEl: HTMLElement =
-      this.options.outerContainer ??
-      (() => {
-        const root = wrapper.getRootNode()
-        // In real WaveSurfer, getRootNode() returns the ShadowRoot; .host is the container.
-        const host = (root as ShadowRoot).host
-        return (host as HTMLElement | undefined) ?? wrapper
-      })()
-
-    this.canvas = document.createElement('canvas')
-    Object.assign(this.canvas.style, {
+    wrapper.style.position = 'relative'
+    this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    this.svg.dataset.testid = 'timeline-grid'
+    Object.assign(this.svg.style, {
       position: 'absolute',
-      top: '0',
-      left: '0',
+      inset: '0',
       width: '100%',
       height: '100%',
       pointerEvents: 'none',
       zIndex: '2',
+      overflow: 'visible',
     })
-    // Make the container a positioning context for the absolutely-placed canvas
-    containerEl.style.position = 'relative'
-    containerEl.appendChild(this.canvas)
+    wrapper.appendChild(this.svg)
 
     this.subscriptions.push(
-      ws.on('scroll', (start: number, end: number) => {
-        this.visibleStart = start
-        this.visibleEnd = end
+      ws.on('scroll', () => {
+        this._refreshVisibleRange()
         this._draw()
       }),
       ws.on('redraw', () => this._draw()),
       ws.on('zoom', () => {
-        // Recompute visible range — zoom changes wrapper.scrollWidth so the
-        // old visibleStart/visibleEnd (from the last scroll event) are stale.
-        if (scrollContainer) {
-          const duration = ws.getDuration()
-          if (wrapper.scrollWidth > 0 && duration > 0) {
-            const pxPerSec = wrapper.scrollWidth / duration
-            this.visibleStart = scrollContainer.scrollLeft / pxPerSec
-            this.visibleEnd =
-              (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
-          }
-        }
+        this._refreshVisibleRange()
         this._draw()
       }),
       ws.on('ready', () => {
-        // Initialize visible range from the scroll container's current state
-        if (scrollContainer) {
-          const duration = ws.getDuration()
-          if (wrapper.scrollWidth > 0 && duration > 0) {
-            const pxPerSec = wrapper.scrollWidth / duration
-            this.visibleStart = scrollContainer.scrollLeft / pxPerSec
-            this.visibleEnd =
-              (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
-          }
-        }
+        this._refreshVisibleRange()
         this._draw()
       }),
     )
@@ -111,80 +76,72 @@ export class GridOverlayPlugin extends BasePlugin<
     this._draw()
   }
 
+  private _refreshVisibleRange(): void {
+    if (!this.wavesurfer) return
+    const wrapper = this.wavesurfer.getWrapper()
+    const scrollContainer = wrapper.parentElement
+    const duration = this.wavesurfer.getDuration()
+    if (!scrollContainer || wrapper.scrollWidth <= 0 || duration <= 0) {
+      this.visibleStart = 0
+      this.visibleEnd = 0
+      return
+    }
+    const pxPerSec = wrapper.scrollWidth / duration
+    this.visibleStart = scrollContainer.scrollLeft / pxPerSec
+    this.visibleEnd =
+      (scrollContainer.scrollLeft + scrollContainer.clientWidth) / pxPerSec
+  }
+
   private _draw(): void {
-    if (!this.canvas || !this.wavesurfer) return
+    if (!this.svg || !this.wavesurfer) return
+
+    this.svg.replaceChildren()
 
     const duration = this.wavesurfer.getDuration()
     if (duration <= 0) return
 
-    const container = this.canvas.parentElement
-    if (!container) return
-
-    const w = container.clientWidth
-    const h = container.clientHeight
-    if (w <= 0 || h <= 0) return
-
-    if (this.canvas.width !== w || this.canvas.height !== h) {
-      this.canvas.width = w
-      this.canvas.height = h
-    }
-
     const visibleDuration = this.visibleEnd - this.visibleStart
     if (visibleDuration <= 0) return
 
-    const pxPerSec = w / visibleDuration
-    const ctx = this.canvas.getContext('2d')
-    if (!ctx) return
+    if (this.params.timingPoints.length === 0) return
 
-    ctx.clearRect(0, 0, w, h)
+    const wrapper = this.wavesurfer.getWrapper()
+    if (wrapper.scrollWidth <= 0) return
+    const pxPerSec = wrapper.scrollWidth / duration
+    const lines = getBeatGridLines(
+      this.params.timingPoints,
+      this.params.divisor,
+      this.params.triplets,
+      Math.max(0, this.visibleStart - 0.5),
+      Math.min(duration, this.visibleEnd + 0.5),
+    )
 
-    if (this.params.timingPoints.length > 0) {
-      const lines = getBeatGridLines(
-        this.params.timingPoints,
-        this.params.divisor,
-        this.params.triplets,
-        Math.max(0, this.visibleStart - 0.5),
-        Math.min(duration, this.visibleEnd + 0.5),
-      )
+    for (const line of lines) {
+      const x = line.time * pxPerSec
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      el.setAttribute('x1', `${x}`)
+      el.setAttribute('x2', `${x}`)
+      el.setAttribute('y1', '0')
+      el.setAttribute('y2', '100%')
 
-      for (const line of lines) {
-        const x = Math.round((line.time - this.visibleStart) * pxPerSec) + 0.5
-        if (x < -2 || x > w + 2) continue
-
-        if (line.type === 'bar') {
-          ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-          ctx.lineWidth = 2
-        } else if (line.type === 'beat') {
-          ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-          ctx.lineWidth = 1
-        } else {
-          ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-          ctx.lineWidth = 1
-        }
-
-        ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, h)
-        ctx.stroke()
+      if (line.type === 'bar') {
+        el.setAttribute('stroke', 'rgba(255,255,255,0.8)')
+        el.setAttribute('stroke-width', '2')
+      } else if (line.type === 'beat') {
+        el.setAttribute('stroke', 'rgba(255,255,255,0.5)')
+        el.setAttribute('stroke-width', '1')
+      } else {
+        el.setAttribute('stroke', 'rgba(255,255,255,0.2)')
+        el.setAttribute('stroke-width', '1')
       }
-    }
 
-    // Draw playhead
-    const px =
-      Math.round((this.params.currentTime - this.visibleStart) * pxPerSec) + 0.5
-    if (px >= -2 && px <= w + 2) {
-      ctx.strokeStyle = 'rgba(255,50,50,0.9)'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(px, 0)
-      ctx.lineTo(px, h)
-      ctx.stroke()
+      this.svg.appendChild(el)
     }
   }
 
   destroy(): void {
-    this.canvas?.remove()
-    this.canvas = null
+    this.svg?.remove()
+    this.svg = null
     super.destroy()
   }
 }

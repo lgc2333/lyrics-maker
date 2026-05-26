@@ -56,7 +56,6 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
   function _buildOverlayParams() {
     return {
       timingPoints: store.project.timingPoints,
-      currentTime: store.currentTime,
       divisor: divisor.value,
       triplets: effectiveTriplets.value,
     }

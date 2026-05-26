@@ -4,20 +4,44 @@ import type { TimingPoint } from '../../core/domain/project'
 import { GridOverlayPlugin } from './grid-overlay-plugin'
 import type { GridOverlayOptions } from './grid-overlay-plugin'
 
-function createMockCanvas() {
-  const parentDiv = document.createElement('div')
-  parentDiv.style.width = '800px'
-  parentDiv.style.height = '200px'
+function createFakeWs(duration = 10) {
+  const wrapper = document.createElement('div')
+  Object.defineProperty(wrapper, 'scrollWidth', { value: 1000, configurable: true })
+  const scrollContainer = document.createElement('div')
+  Object.defineProperty(scrollContainer, 'clientWidth', { value: 500, configurable: true })
+  Object.defineProperty(scrollContainer, 'scrollWidth', {
+    value: 1000,
+    configurable: true,
+  })
+  scrollContainer.appendChild(wrapper)
+  const listeners: Record<string, Array<(...args: unknown[]) => void>> = {}
+
   return {
-    tagName: 'CANVAS',
-    style: {} as Record<string, string>,
-    width: 0,
-    height: 0,
-    getContext: vi.fn(() => null),
-    remove: vi.fn(),
-    parentElement: parentDiv,
+    wrapper,
+    scrollContainer,
+    emit(event: string, ...args: unknown[]) {
+      for (const fn of listeners[event] ?? []) fn(...args)
+    },
+    ws: {
+      getWrapper: vi.fn(() => wrapper),
+      getDuration: vi.fn(() => duration),
+      on: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
+        ;(listeners[event] ??= []).push(fn)
+        return () => {}
+      }),
+    },
   }
 }
+
+const timingPoints: TimingPoint[] = [
+  {
+    id: 'tp-1',
+    time: 0,
+    bpm: 120,
+    timeSignatureNumerator: 4,
+    timeSignatureDenominator: 4,
+  },
+]
 
 describe('gridOverlayPlugin', () => {
   afterEach(() => {
@@ -38,150 +62,110 @@ describe('gridOverlayPlugin', () => {
     })
   })
 
-  describe('early-exit from draw', () => {
-    it('does not throw when canvas is null (not yet initialized)', () => {
+  describe('rendering', () => {
+    it('appends an SVG grid layer to the WaveSurfer wrapper', () => {
+      const { wrapper, ws } = createFakeWs()
       const plugin = GridOverlayPlugin.create()
-      expect(() =>
-        plugin.update({
-          timingPoints: [],
-          currentTime: 0,
-          divisor: 4,
-          triplets: false,
-        }),
-      ).not.toThrow()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      expect(wrapper.querySelector('[data-testid="timeline-grid"]')).toBeInstanceOf(
+        SVGSVGElement,
+      )
     })
 
-    it('does not throw when wavesurfer is null', () => {
+    it('renders beat lines using absolute wrapper coordinates', () => {
+      const { wrapper, ws, emit } = createFakeWs()
       const plugin = GridOverlayPlugin.create()
-      expect(() =>
-        plugin.update({
-          timingPoints: [],
-          currentTime: 0,
-          divisor: 4,
-          triplets: false,
-        }),
-      ).not.toThrow()
-    })
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
 
-    it('does not throw when duration is 0 or less', () => {
-      const plugin = GridOverlayPlugin.create()
-      const fakeWs = {
-        getWrapper: vi.fn(() => {
-          const wrapper = document.createElement('div')
-          wrapper.style.width = '1600px'
-          const parent = document.createElement('div')
-          parent.style.width = '800px'
-          parent.appendChild(wrapper)
-          return wrapper
-        }),
-        getDuration: vi.fn(() => 0),
-        on: vi.fn(() => vi.fn()),
-      }
-      Reflect.set(plugin, 'wavesurfer', fakeWs)
-
-      const mockCanvas = createMockCanvas()
-      Reflect.set(plugin, 'canvas', mockCanvas)
-
-      expect(() =>
-        plugin.update({
-          timingPoints: [],
-          currentTime: 0,
-          divisor: 4,
-          triplets: false,
-        }),
-      ).not.toThrow()
-    })
-  })
-
-  describe('update', () => {
-    it('is callable and does not throw with valid params', () => {
-      const plugin = GridOverlayPlugin.create()
-      expect(() =>
-        plugin.update({
-          timingPoints: [],
-          currentTime: 10,
-          divisor: 4,
-          triplets: false,
-        }),
-      ).not.toThrow()
-    })
-
-    it('clears previous grid lines but keeps drawing the playhead when timing points become empty', () => {
-      const plugin = GridOverlayPlugin.create()
-      const parentDiv = document.createElement('div')
-      Object.defineProperty(parentDiv, 'clientWidth', { value: 800 })
-      Object.defineProperty(parentDiv, 'clientHeight', { value: 200 })
-
-      const clearRect = vi.fn()
-      const ctx = {
-        clearRect,
-        beginPath: vi.fn(),
-        moveTo: vi.fn(),
-        lineTo: vi.fn(),
-        stroke: vi.fn(),
-        strokeStyle: '',
-        lineWidth: 0,
-      }
-      const canvas = {
-        width: 0,
-        height: 0,
-        getContext: vi.fn(() => ctx),
-        parentElement: parentDiv,
-      }
-      const fakeWs = {
-        getDuration: vi.fn(() => 10),
-      }
-      const timingPoints: TimingPoint[] = [
-        {
-          id: 'tp-1',
-          time: 0,
-          bpm: 120,
-          timeSignatureNumerator: 4,
-          timeSignatureDenominator: 4,
-        },
-      ]
-
-      Reflect.set(plugin, 'wavesurfer', fakeWs)
-      Reflect.set(plugin, 'canvas', canvas)
-      Reflect.set(plugin, 'visibleStart', 0)
-      Reflect.set(plugin, 'visibleEnd', 10)
-
+      emit('ready')
       plugin.update({
         timingPoints,
-        currentTime: 1,
         divisor: 4,
         triplets: false,
       })
-      clearRect.mockClear()
-      ctx.beginPath.mockClear()
-      ctx.moveTo.mockClear()
-      ctx.lineTo.mockClear()
-      ctx.stroke.mockClear()
+
+      const line = wrapper.querySelector('[data-testid="timeline-grid"] line')
+      expect(line?.getAttribute('x1')).toBe('0')
+      expect(line?.getAttribute('y2')).toBe('100%')
+    })
+
+    it('virtualizes grid lines outside the buffered visible range', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      scrollContainer.scrollLeft = 500
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+
+      const xs = Array.from(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line'),
+        (line) => Number(line.getAttribute('x1')),
+      )
+      expect(xs.length).toBeGreaterThan(0)
+      expect(xs.every((x) => x >= 450 && x <= 1000)).toBe(true)
+    })
+
+    it('clears grid lines when timing points become empty', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line').length,
+      ).toBeGreaterThan(0)
 
       plugin.update({
         timingPoints: [],
-        currentTime: 1,
         divisor: 4,
         triplets: false,
       })
 
-      expect(clearRect).toHaveBeenCalledWith(0, 0, 800, 200)
-      expect(ctx.moveTo).toHaveBeenCalledWith(80.5, 0)
-      expect(ctx.lineTo).toHaveBeenCalledWith(80.5, 200)
-      expect(ctx.stroke).toHaveBeenCalledOnce()
+      expect(wrapper.querySelectorAll('[data-testid="timeline-grid"] line')).toHaveLength(
+        0,
+      )
+    })
+
+    it('does not throw before initialization', () => {
+      const plugin = GridOverlayPlugin.create()
+      expect(() =>
+        plugin.update({
+          timingPoints,
+          divisor: 4,
+          triplets: false,
+        }),
+      ).not.toThrow()
     })
   })
 
   describe('destroy', () => {
-    it('removes canvas and nulls reference', () => {
+    it('removes SVG and nulls reference', () => {
+      const { ws } = createFakeWs()
       const plugin = GridOverlayPlugin.create()
-      const removeSpy = vi.fn()
-      Reflect.set(plugin, 'canvas', { remove: removeSpy, style: {} })
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const svg = Reflect.get(plugin, 'svg') as SVGSVGElement
+      const removeSpy = vi.spyOn(svg, 'remove')
 
       plugin.destroy()
 
       expect(removeSpy).toHaveBeenCalled()
-      expect(Reflect.get(plugin, 'canvas')).toBeNull()
+      expect(Reflect.get(plugin, 'svg')).toBeNull()
     })
   })
 })
