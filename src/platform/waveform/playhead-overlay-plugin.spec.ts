@@ -41,6 +41,27 @@ describe('playheadOverlayPlugin', () => {
     expect(line).toBeInstanceOf(HTMLDivElement)
     expect((line as HTMLElement).style.position).toBe('absolute')
     expect((line as HTMLElement).style.pointerEvents).toBe('none')
+    expect(
+      outerContainer.querySelector('[data-testid="timeline-playhead-marker-top"]'),
+    ).not.toBeNull()
+    expect(
+      outerContainer.querySelector('[data-testid="timeline-playhead-marker-bottom"]'),
+    ).not.toBeNull()
+    expect(
+      outerContainer.querySelector<HTMLElement>(
+        '[data-testid="timeline-playhead-marker-top"]',
+      )?.style.width,
+    ).toBe('11px')
+    expect(
+      outerContainer.querySelector<HTMLElement>(
+        '[data-testid="timeline-playhead-marker-top"]',
+      )?.style.height,
+    ).toBe('9px')
+    expect(
+      outerContainer.querySelector<HTMLElement>(
+        '[data-testid="timeline-playhead-marker-top"]',
+      )?.style.clipPath,
+    ).toBe('polygon(0px 0px, 100% 0px, 50% 100%, 50% 100%)')
   })
 
   it('updates viewport x with transform from current time and scrollLeft', () => {

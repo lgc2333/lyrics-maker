@@ -252,6 +252,100 @@ describe('gridOverlayPlugin', () => {
       expect(label?.textContent).toBe('00:03.500')
     })
 
+    it('refreshes pointer time preview after zoom changes wrapper geometry', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 250,
+          bubbles: true,
+        }),
+      )
+
+      Object.defineProperty(wrapper, 'scrollWidth', {
+        value: 2000,
+        configurable: true,
+      })
+      emit('zoom')
+
+      const line = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-line"]',
+      )
+      const label = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-label"]',
+      )
+
+      expect(line?.style.left).toBe('250px')
+      expect(label?.textContent).toBe('00:01.250')
+    })
+
+    it('places pointer time label to the left when it would overflow right edge', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const label = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-label"]',
+      )!
+      Object.defineProperty(label, 'offsetWidth', {
+        value: 80,
+        configurable: true,
+      })
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 970,
+          bubbles: true,
+        }),
+      )
+
+      expect(label.style.transform).toBe('translateX(calc(-100% - 6px))')
+    })
+
+    it('places pointer time label to the left when it would overflow the visible viewport', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(wrapper, 'scrollWidth', {
+        value: 3000,
+        configurable: true,
+      })
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      scrollContainer.scrollLeft = 1000
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const label = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-label"]',
+      )!
+      Object.defineProperty(label, 'offsetWidth', {
+        value: 80,
+        configurable: true,
+      })
+
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 470,
+          bubbles: true,
+        }),
+      )
+
+      expect(label.style.left).toBe('1470px')
+      expect(label.style.transform).toBe('translateX(calc(-100% - 6px))')
+    })
+
     it('clamps pointer preview time to the audio duration', () => {
       const { wrapper, scrollContainer, ws } = createFakeWs()
       Object.defineProperty(scrollContainer, 'getBoundingClientRect', {

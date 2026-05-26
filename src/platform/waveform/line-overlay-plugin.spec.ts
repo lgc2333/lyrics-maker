@@ -90,6 +90,47 @@ describe('lineOverlayPlugin', () => {
       expect(wrapper.querySelector('[data-testid="lyric-range-line-1"]')).not.toBeNull()
       expect(wrapper.querySelector('[data-testid="line-start-line-1"]')).not.toBeNull()
       expect(wrapper.querySelector('[data-testid="line-end-line-1"]')).not.toBeNull()
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-start-line-1-line"]')
+          ?.style.width,
+      ).toBe('2px')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-end-line-1-line"]')
+          ?.style.width,
+      ).toBe('2px')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-start-line-1"]')?.style
+          .borderLeft,
+      ).toBe('')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-end-line-1"]')?.style
+          .borderLeft,
+      ).toBe('')
+      expect(
+        wrapper.querySelector('[data-testid="line-start-line-1-marker-top"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="line-start-line-1-marker-bottom"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="line-end-line-1-marker-top"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="line-end-line-1-marker-bottom"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector<HTMLElement>(
+          '[data-testid="line-start-line-1-marker-top"]',
+        )?.style.clipPath,
+      ).toBe('polygon(0px 0px, 100% 0px, 0px 100%)')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-end-line-1-marker-top"]')
+          ?.style.clipPath,
+      ).toBe('polygon(0px 0px, 100% 0px, 100% 100%)')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="line-end-line-1-marker-top"]')
+          ?.style.left,
+      ).toBe('-9px')
       expect(wrapper.querySelector('[data-testid="word-separator-w2"]')).not.toBeNull()
       expect(wrapper.querySelector('[data-testid="word-label-w1"]')?.textContent).toBe(
         'hello',
@@ -178,6 +219,22 @@ describe('lineOverlayPlugin', () => {
       expect(
         wrapper.querySelector('[data-testid="partial-line-end-line-1"]'),
       ).not.toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="partial-line-end-line-1-marker-top"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector('[data-testid="partial-line-end-line-1-marker-bottom"]'),
+      ).not.toBeNull()
+      expect(
+        wrapper.querySelector<HTMLElement>(
+          '[data-testid="partial-line-end-line-1-marker-top"]',
+        )?.style.width,
+      ).toBe('8px')
+      expect(
+        wrapper.querySelector<HTMLElement>(
+          '[data-testid="partial-line-end-line-1-marker-top"]',
+        )?.style.clipPath,
+      ).toBe('polygon(0px 0px, 100% 0px, 100% 100%)')
     })
 
     it('virtualizes lines outside the buffered visible range', () => {

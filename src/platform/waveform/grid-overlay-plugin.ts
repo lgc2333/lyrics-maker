@@ -27,6 +27,7 @@ export class GridOverlayPlugin extends BasePlugin<
   private preview: HTMLDivElement | null = null
   private previewLine: HTMLDivElement | null = null
   private previewLabel: HTMLDivElement | null = null
+  private lastPointerClientX: number | null = null
   private params: GridOverlayParams = {
     timingPoints: [],
     divisor: 4,
@@ -120,15 +121,21 @@ export class GridOverlayPlugin extends BasePlugin<
       ws.on('scroll', () => {
         this._refreshVisibleRange()
         if (!this._isVisibleRangeCovered()) this._draw()
+        this._refreshPointerPreview()
       }),
-      ws.on('redraw', () => this._draw()),
+      ws.on('redraw', () => {
+        this._draw()
+        this._refreshPointerPreview()
+      }),
       ws.on('zoom', () => {
         this._refreshVisibleRange()
         this._draw()
+        this._refreshPointerPreview()
       }),
       ws.on('ready', () => {
         this._refreshVisibleRange()
         this._draw()
+        this._refreshPointerPreview()
       }),
     )
   }
@@ -163,6 +170,17 @@ export class GridOverlayPlugin extends BasePlugin<
   }
 
   private _showPointerPreview(event: PointerEvent): void {
+    this.lastPointerClientX = event.clientX
+    this._positionPointerPreview(event.clientX)
+  }
+
+  private _refreshPointerPreview(): void {
+    if (this.preview?.style.display !== 'block') return
+    if (this.lastPointerClientX === null) return
+    this._positionPointerPreview(this.lastPointerClientX)
+  }
+
+  private _positionPointerPreview(clientX: number): void {
     if (!this.preview || !this.previewLine || !this.previewLabel || !this.wavesurfer) {
       return
     }
@@ -178,7 +196,7 @@ export class GridOverlayPlugin extends BasePlugin<
     const pxPerSec = wrapper.scrollWidth / duration
     const pointerX =
       scrollContainer.scrollLeft +
-      event.clientX -
+      clientX -
       scrollContainer.getBoundingClientRect().left
     const clampedX = Math.max(0, Math.min(wrapper.scrollWidth, pointerX))
     const time = Math.max(0, Math.min(duration, clampedX / pxPerSec))
@@ -187,10 +205,16 @@ export class GridOverlayPlugin extends BasePlugin<
     this.previewLine.style.left = `${clampedX}px`
     this.previewLabel.style.left = `${clampedX}px`
     this.previewLabel.textContent = formatTimestamp(time)
+    const visibleX = clampedX - scrollContainer.scrollLeft
+    this.previewLabel.style.transform =
+      visibleX + this.previewLabel.offsetWidth + 6 > scrollContainer.clientWidth
+        ? 'translateX(calc(-100% - 6px))'
+        : 'translateX(6px)'
   }
 
   private _hidePointerPreview(): void {
     if (this.preview) this.preview.style.display = 'none'
+    this.lastPointerClientX = null
   }
 
   private _draw(): void {
@@ -260,6 +284,7 @@ export class GridOverlayPlugin extends BasePlugin<
     this.preview = null
     this.previewLine = null
     this.previewLabel = null
+    this.lastPointerClientX = null
     super.destroy()
   }
 }

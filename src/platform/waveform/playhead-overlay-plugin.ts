@@ -45,6 +45,10 @@ export class PlayheadOverlayPlugin extends BasePlugin<
       transform: 'translateX(-9999px)',
       willChange: 'transform',
     })
+    this.line.append(
+      this._createMarker('timeline-playhead-marker-top', 'top'),
+      this._createMarker('timeline-playhead-marker-bottom', 'bottom'),
+    )
 
     containerEl.style.position = 'relative'
     containerEl.appendChild(this.line)
@@ -56,6 +60,28 @@ export class PlayheadOverlayPlugin extends BasePlugin<
       ws.on('redraw', () => this._position()),
       ws.on('resize', () => this._position()),
     )
+  }
+
+  private _createMarker(testId: string, edge: 'top' | 'bottom'): HTMLDivElement {
+    const markerWidth = 11
+    const markerHeight = 9
+    const marker = document.createElement('div')
+    marker.dataset.testid = testId
+    Object.assign(marker.style, {
+      position: 'absolute',
+      left: '50%',
+      width: `${markerWidth}px`,
+      height: `${markerHeight}px`,
+      transform: 'translateX(-50%)',
+      background: 'rgba(255,50,50,0.9)',
+      clipPath:
+        edge === 'top'
+          ? 'polygon(0px 0px, 100% 0px, 50% 100%, 50% 100%)'
+          : 'polygon(50% 0px, 100% 100%, 0px 100%)',
+      pointerEvents: 'none',
+      ...(edge === 'top' ? { top: '0' } : { bottom: '0' }),
+    })
+    return marker
   }
 
   update(params: PlayheadOverlayParams): void {

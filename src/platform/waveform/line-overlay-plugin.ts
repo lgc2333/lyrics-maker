@@ -93,6 +93,8 @@ export class LineOverlayPlugin extends BasePlugin<
     leftPx: number,
     color: string,
     dashed = false,
+    markers = false,
+    markerSide: 'right' | 'left' = 'right',
   ): HTMLDivElement {
     const el = document.createElement('div')
     el.dataset.testid = testId
@@ -102,10 +104,63 @@ export class LineOverlayPlugin extends BasePlugin<
       left: `${leftPx}px`,
       width: '0',
       height: '100%',
-      borderLeft: `2px ${dashed ? 'dashed' : 'solid'} ${color}`,
       pointerEvents: 'none',
     })
+    const line = document.createElement('div')
+    line.dataset.testid = `${testId}-line`
+    Object.assign(line.style, {
+      position: 'absolute',
+      top: '0',
+      left: '-1px',
+      width: '2px',
+      height: '100%',
+      borderLeft: dashed ? `2px dashed ${color}` : '',
+      background: dashed ? '' : color,
+      pointerEvents: 'none',
+    })
+    el.appendChild(line)
+    if (markers) {
+      el.append(
+        this._createBoundaryMarker(`${testId}-marker-top`, color, 'top', markerSide),
+        this._createBoundaryMarker(
+          `${testId}-marker-bottom`,
+          color,
+          'bottom',
+          markerSide,
+        ),
+      )
+    }
     return el
+  }
+
+  private _createBoundaryMarker(
+    testId: string,
+    color: string,
+    edge: 'top' | 'bottom',
+    side: 'right' | 'left',
+  ): HTMLDivElement {
+    const markerSize = 8
+    const topClip =
+      side === 'right'
+        ? 'polygon(0px 0px, 100% 0px, 0px 100%)'
+        : 'polygon(0px 0px, 100% 0px, 100% 100%)'
+    const bottomClip =
+      side === 'right'
+        ? 'polygon(0px 0px, 100% 100%, 0px 100%)'
+        : 'polygon(100% 0px, 100% 100%, 0px 100%)'
+    const marker = document.createElement('div')
+    marker.dataset.testid = testId
+    Object.assign(marker.style, {
+      position: 'absolute',
+      left: side === 'right' ? '1px' : `${-markerSize - 1}px`,
+      width: `${markerSize}px`,
+      height: `${markerSize}px`,
+      background: color,
+      clipPath: edge === 'top' ? topClip : bottomClip,
+      pointerEvents: 'none',
+      ...(edge === 'top' ? { top: '0' } : { bottom: '0' }),
+    })
+    return marker
   }
 
   private _intersects(start: number, end: number): boolean {
@@ -185,7 +240,13 @@ export class LineOverlayPlugin extends BasePlugin<
       })
 
       range.appendChild(
-        this._createBoundary(`line-start-${line.id}`, 0, 'rgba(255, 80, 80, 0.8)'),
+        this._createBoundary(
+          `line-start-${line.id}`,
+          0,
+          'rgba(255, 80, 80, 0.8)',
+          false,
+          true,
+        ),
       )
       if (lineState.finalWordIsTimed) {
         range.appendChild(
@@ -193,6 +254,9 @@ export class LineOverlayPlugin extends BasePlugin<
             `line-end-${line.id}`,
             Math.max(0, x2 - x1),
             'rgba(100, 180, 255, 0.8)',
+            false,
+            true,
+            'left',
           ),
         )
       } else {
@@ -202,6 +266,8 @@ export class LineOverlayPlugin extends BasePlugin<
             Math.max(0, x2 - x1),
             isActive ? 'rgba(255, 214, 80, 0.85)' : 'rgba(255, 214, 80, 0.45)',
             true,
+            true,
+            'left',
           ),
         )
       }
