@@ -23,6 +23,8 @@ Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its
 
 Use plain `pnpm` first, if not found, fall back to: `fnm exec --using default pnpm.cmd`
 
+For Codex: Git index writes (`git add`, `git restore --staged`, `git commit`) may require escalation if `.git/index.lock` is permission-denied by the sandbox.
+
 ## Tooling
 
 **Always**: Use **Context7** MCP to get up-to-date documentation of Vue, Pinia, Vite, Tailwind CSS, DaisyUI, and other dependencies. Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
