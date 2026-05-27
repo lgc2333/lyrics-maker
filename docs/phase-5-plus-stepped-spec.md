@@ -430,6 +430,7 @@
 ### 后修改
 
 - project-draft-service 与 project-file-service 里可以接入zod做格式校验
+- 将 triplet 与 common 加上本地化；alt 触发的临时更改，新增一个不同的提示
 
 ### 建议涉及文件
 

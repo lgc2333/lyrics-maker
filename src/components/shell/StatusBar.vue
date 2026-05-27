@@ -43,6 +43,11 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
   'lyrics.playWordInterval': 'status.action.lyrics.playWordInterval',
 }
 
+const RHYTHM_MODE_LABEL_KEYS: Record<string, string> = {
+  common: 'transport.rhythmCommon',
+  triplets: 'transport.rhythmTriplets',
+}
+
 function translateMappedValue(
   value: string | number | boolean,
   map: Record<string, string>,
@@ -63,6 +68,9 @@ const messageText = computed(() => {
   }
   if (params.action !== undefined) {
     params.action = translateMappedValue(params.action, ACTION_LABEL_KEYS)
+  }
+  if (params.mode !== undefined) {
+    params.mode = translateMappedValue(params.mode, RHYTHM_MODE_LABEL_KEYS)
   }
 
   return te(message.key) ? t(message.key, params) : message.key

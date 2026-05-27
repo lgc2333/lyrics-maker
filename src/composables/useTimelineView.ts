@@ -276,11 +276,16 @@ export function useTimelineView(
       // Prevent browser from intercepting Alt (e.g. Windows menu bar focus),
       // which would steal focus and block subsequent Alt keydown events.
       e.preventDefault()
+      if (altTripletActive.value) return
       altTripletActive.value = true
+      store.showStatus('status.settings.rhythmModeTemporary', { mode: 'triplets' })
     }
   }
   function _onKeyup(e: KeyboardEvent): void {
-    if (e.key === 'Alt') altTripletActive.value = false
+    if (e.key === 'Alt' && altTripletActive.value) {
+      altTripletActive.value = false
+      store.showStatus('status.settings.rhythmMode', { mode: rhythmMode.value })
+    }
   }
 
   onMounted(() => {

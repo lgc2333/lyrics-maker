@@ -173,7 +173,8 @@
       "sfxMuted": "音效音量已静音",
       "sfxUnmuted": "音效音量已恢复",
       "viewMode": "时间线视图已切换为 {mode}",
-      "autoFollowPlayback": "播放时自动跟随已{state}"
+      "autoFollowPlayback": "播放时自动跟随已{state}",
+      "rhythmModeTemporary": "临时切换节奏模式：{mode}"
     },
     "localSettings": {
       "loadFailed": "本地设置读取失败：{reason}",

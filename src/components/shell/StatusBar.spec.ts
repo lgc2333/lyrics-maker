@@ -65,4 +65,35 @@ describe('statusBar', () => {
     expect(store.canUndo).toBe(false)
     expect(store.dirty).toBe(false)
   })
+
+  it('renders localized rhythm mode names in settings status', async () => {
+    const store = useEditorStore()
+    const wrapper = mount(StatusBar)
+
+    store.setRhythmMode('triplets')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '节奏模式已切换为 三连音',
+    )
+
+    store.setRhythmMode('common')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '节奏模式已切换为 普通',
+    )
+  })
+
+  it('renders temporary Alt rhythm status separately', async () => {
+    const store = useEditorStore()
+    const wrapper = mount(StatusBar)
+
+    store.showStatus('status.settings.rhythmModeTemporary', { mode: 'triplets' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '临时切换节奏模式：三连音',
+    )
+  })
 })

@@ -146,10 +146,15 @@ describe('useTimelineView', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt', bubbles: true }))
     await wrapper.vm.$nextTick()
     expect(timeline!.altTripletActive.value).toBe(true)
+    const store = useEditorStore()
+    expect(store.statusMessage?.key).toBe('status.settings.rhythmModeTemporary')
+    expect(store.statusMessage?.params?.mode).toBe('triplets')
 
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Alt', bubbles: true }))
     await wrapper.vm.$nextTick()
     expect(timeline!.altTripletActive.value).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.settings.rhythmMode')
+    expect(store.statusMessage?.params?.mode).toBe('common')
 
     wrapper.unmount()
   })
