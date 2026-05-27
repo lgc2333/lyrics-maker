@@ -180,6 +180,28 @@ describe('lyricsLineList', () => {
       expect(row.text()).toContain('2/3')
     })
 
+    it('highlights the word status when not all words are timed', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          startTime: 0,
+          words: [
+            { id: 'w1', text: 'A', endTime: 1 },
+            { id: 'w2', text: 'B' },
+          ],
+        },
+      ])
+      const wrapper = mountComponent()
+      const status = wrapper.get('[data-testid="lyrics-line-word-status"]')
+
+      expect(status.text()).toBe('1/2')
+      expect(status.classes()).toContain('text-warning')
+      expect(status.classes()).toContain('font-semibold')
+      expect(status.classes()).toContain('opacity-100')
+      expect(status.classes()).not.toContain('opacity-40')
+    })
+
     it('shows total/total when all words are timed', () => {
       const store = useEditorStore()
       store.insertLyricLines([
@@ -195,20 +217,31 @@ describe('lyricsLineList', () => {
       const wrapper = mountComponent()
       const row = wrapper.find('[data-testid="lyrics-line-row"]')
       expect(row.text()).toContain('2/2')
+      const status = wrapper.get('[data-testid="lyrics-line-word-status"]')
+      expect(status.classes()).not.toContain('text-warning')
+      expect(status.classes()).not.toContain('font-semibold')
+      expect(status.classes()).toContain('opacity-40')
     })
 
-    it('shows empty word status when line has no startTime', () => {
+    it('highlights 0/total when line has no startTime and no words are timed', () => {
       const store = useEditorStore()
       store.insertLyricLines([
         {
           id: 'line-1',
-          words: [{ id: 'w1', text: 'A' }],
+          words: [
+            { id: 'w1', text: 'A' },
+            { id: 'w2', text: 'B' },
+          ],
         },
       ])
       const wrapper = mountComponent()
-      const row = wrapper.find('[data-testid="lyrics-line-row"]')
-      // Should not contain "0/1" or any fraction
-      expect(row.text()).not.toMatch(/\d+\/\d+/)
+      const status = wrapper.get('[data-testid="lyrics-line-word-status"]')
+
+      expect(status.text()).toBe('0/2')
+      expect(status.classes()).toContain('text-warning')
+      expect(status.classes()).toContain('font-semibold')
+      expect(status.classes()).toContain('opacity-100')
+      expect(status.classes()).not.toContain('opacity-40')
     })
   })
 

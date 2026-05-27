@@ -291,6 +291,24 @@ describe('useTimelineView', () => {
     wrapper.unmount()
   })
 
+  it('notifies the explicit seek handler when WaveSurfer interaction seeks', async () => {
+    const onExplicitSeek = vi.fn()
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef, { onExplicitSeek })
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    emitViewEvent(0, 'interaction', 1.5)
+
+    expect(onExplicitSeek).toHaveBeenCalledWith(1.5)
+    expect(store.currentTime).toBe(1.5)
+
+    wrapper.unmount()
+  })
+
   it('uses threshold playback follow while playing', async () => {
     const container = document.createElement('div')
     const containerRef = shallowRef<HTMLElement | null>(container)
@@ -328,7 +346,9 @@ describe('useTimelineView', () => {
     store.seekPlayback(7)
     await wrapper.vm.$nextTick()
 
-    expect(mockPlayheadPlugins[0].update).toHaveBeenCalledWith({ currentTime: 7 })
+    expect(mockPlayheadPlugins[0].update).toHaveBeenCalledWith(
+      expect.objectContaining({ currentTime: 7 }),
+    )
     expect(mockGridPlugins[0].update).not.toHaveBeenCalled()
     expect(mockLinePlugins[0].update).not.toHaveBeenCalled()
     expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalledWith(7, 0.5)

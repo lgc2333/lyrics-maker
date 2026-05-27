@@ -52,11 +52,21 @@ function getWordStatus(line: {
   words: { endTime?: number }[]
   startTime?: number
 }): string {
-  if (line.startTime === undefined) return ''
   const total = line.words.length
   const timed = line.words.filter((w) => w.endTime !== undefined).length
+  if (line.startTime === undefined && timed > 0) return ''
   if (timed === total) return `${total}/${total}`
   return `${timed}/${total}`
+}
+
+function hasIncompleteWordStatus(line: {
+  words: { endTime?: number }[]
+  startTime?: number
+}): boolean {
+  return (
+    getWordStatus(line).length > 0 &&
+    line.words.some((word) => word.endTime === undefined)
+  )
 }
 </script>
 
@@ -105,9 +115,16 @@ function getWordStatus(line: {
             >
           </template>
         </span>
-        <span class="w-10 text-right text-xs opacity-40">{{
-          getWordStatus(line)
-        }}</span>
+        <span
+          data-testid="lyrics-line-word-status"
+          class="w-10 text-right text-xs"
+          :class="
+            hasIncompleteWordStatus(line)
+              ? 'font-semibold text-warning opacity-100'
+              : 'opacity-40'
+          "
+          >{{ getWordStatus(line) }}</span
+        >
       </li>
     </ul>
   </div>

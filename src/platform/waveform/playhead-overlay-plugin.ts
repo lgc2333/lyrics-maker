@@ -1,11 +1,14 @@
 import BasePlugin from 'wavesurfer.js/dist/base-plugin.js'
 import type { BasePluginEvents } from 'wavesurfer.js/dist/base-plugin.js'
 
-export interface PlayheadOverlayOptions {
+import { getOverlayStyleTokens } from './overlay-style-tokens'
+import type { OverlayStyleContext } from './overlay-style-tokens'
+
+export interface PlayheadOverlayOptions extends OverlayStyleContext {
   outerContainer?: HTMLElement
 }
 
-export interface PlayheadOverlayParams {
+export interface PlayheadOverlayParams extends OverlayStyleContext {
   currentTime: number
 }
 
@@ -14,7 +17,9 @@ export class PlayheadOverlayPlugin extends BasePlugin<
   PlayheadOverlayOptions
 > {
   private line: HTMLDivElement | null = null
+  private markers: HTMLDivElement[] = []
   private currentTime = 0
+  private styleContext: OverlayStyleContext = {}
 
   static create(options?: PlayheadOverlayOptions): PlayheadOverlayPlugin {
     return new PlayheadOverlayPlugin(options ?? {})
@@ -31,6 +36,7 @@ export class PlayheadOverlayPlugin extends BasePlugin<
         return (host as HTMLElement | undefined) ?? wrapper
       })()
 
+    const tokens = this._tokens()
     this.line = document.createElement('div')
     this.line.dataset.testid = 'timeline-playhead'
     Object.assign(this.line.style, {
@@ -39,7 +45,8 @@ export class PlayheadOverlayPlugin extends BasePlugin<
       left: '0',
       width: '2px',
       height: '100%',
-      background: 'rgba(255,50,50,0.9)',
+      background: tokens.color,
+      boxShadow: tokens.shadow,
       pointerEvents: 'none',
       zIndex: '5',
       transform: 'translateX(-9999px)',
@@ -63,6 +70,7 @@ export class PlayheadOverlayPlugin extends BasePlugin<
   }
 
   private _createMarker(testId: string, edge: 'top' | 'bottom'): HTMLDivElement {
+    const tokens = this._tokens()
     const markerWidth = 11
     const markerHeight = 9
     const marker = document.createElement('div')
@@ -73,20 +81,42 @@ export class PlayheadOverlayPlugin extends BasePlugin<
       width: `${markerWidth}px`,
       height: `${markerHeight}px`,
       transform: 'translateX(-50%)',
-      background: 'rgba(255,50,50,0.9)',
+      background: tokens.color,
       clipPath:
         edge === 'top'
           ? 'polygon(0px 0px, 100% 0px, 50% 100%, 50% 100%)'
           : 'polygon(50% 0px, 100% 100%, 0px 100%)',
       pointerEvents: 'none',
+      filter: tokens.markerShadow,
       ...(edge === 'top' ? { top: '0' } : { bottom: '0' }),
     })
+    this.markers.push(marker)
     return marker
   }
 
   update(params: PlayheadOverlayParams): void {
     this.currentTime = params.currentTime
+    this.styleContext = params
+    this._applyTokens()
     this._position()
+  }
+
+  private _tokens() {
+    return getOverlayStyleTokens({
+      theme: this.styleContext.theme ?? this.options.theme,
+      viewMode: this.styleContext.viewMode ?? this.options.viewMode,
+    }).playhead
+  }
+
+  private _applyTokens(): void {
+    if (!this.line) return
+    const tokens = this._tokens()
+    this.line.style.background = tokens.color
+    this.line.style.boxShadow = tokens.shadow
+    for (const marker of this.markers) {
+      marker.style.background = tokens.color
+      marker.style.filter = tokens.markerShadow
+    }
   }
 
   private _position(): void {
@@ -117,6 +147,7 @@ export class PlayheadOverlayPlugin extends BasePlugin<
   destroy(): void {
     this.line?.remove()
     this.line = null
+    this.markers = []
     super.destroy()
   }
 }

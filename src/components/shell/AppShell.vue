@@ -16,6 +16,7 @@ import MenuBar from './MenuBar.vue'
 import StatusBar from './StatusBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
+import UnsavedChangesDialog from './UnsavedChangesDialog.vue'
 import {
   LYRICS_EDITOR_KEY,
   MAIN_VIEW_HEIGHT_KEY,
@@ -32,10 +33,13 @@ const theme = ref<'light' | 'dark'>('light')
 const followSystemTheme = ref(true)
 const audioInput = ref<HTMLInputElement | null>(null)
 const showPasteModal = ref(false)
+const showUnsavedOpenDialog = ref(false)
 
 // ---- Timeline view ----
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
-const timeline = useTimelineView(timelineContainerRef)
+const timeline = useTimelineView(timelineContainerRef, {
+  onExplicitSeek: (time) => lyricsEditor.selectTimedWordAt(time),
+})
 
 provide(TIMELINE_VIEW_KEY, timeline)
 provide(TIMELINE_CONTAINER_REF_KEY, timelineContainerRef)
@@ -83,6 +87,36 @@ function toggleTheme(): void {
 
 function openAudioPicker(): void {
   audioInput.value?.click()
+}
+
+async function openProjectNow(): Promise<void> {
+  await persistence.openProject()
+}
+
+async function requestOpenProject(): Promise<void> {
+  if (!store.dirty) {
+    await openProjectNow()
+    return
+  }
+  showUnsavedOpenDialog.value = true
+}
+
+async function saveAndOpenProject(): Promise<void> {
+  showUnsavedOpenDialog.value = false
+  const result = await persistence.saveByShortcut()
+  if (result?.ok) {
+    await openProjectNow()
+  }
+}
+
+async function discardAndOpenProject(): Promise<void> {
+  showUnsavedOpenDialog.value = false
+  await openProjectNow()
+}
+
+function cancelOpenProject(): void {
+  showUnsavedOpenDialog.value = false
+  store.showStatus('status.project.openCancelled')
 }
 
 async function onAudioSelected(event: Event): Promise<void> {
@@ -139,6 +173,7 @@ watch(
   theme,
   (nextTheme) => {
     document.documentElement.setAttribute('data-theme', nextTheme)
+    timeline.setTheme(nextTheme)
   },
   { immediate: true },
 )
@@ -200,7 +235,7 @@ useEditorShortcuts({
         }
       "
       @toggleTheme="toggleTheme"
-      @openProject="persistence.openProject"
+      @openProject="requestOpenProject"
       @saveProject="persistence.saveByShortcut"
       @saveProjectAs="persistence.saveAs"
       @updateProjectTitle="store.setProjectTitle"
@@ -215,6 +250,12 @@ useEditorShortcuts({
       v-if="showPasteModal"
       @confirm="onPasteLyricsConfirm"
       @cancel="showPasteModal = false"
+    />
+    <UnsavedChangesDialog
+      v-if="showUnsavedOpenDialog"
+      @saveAndOpen="saveAndOpenProject"
+      @discardAndOpen="discardAndOpenProject"
+      @cancel="cancelOpenProject"
     />
     <input
       ref="audioInput"

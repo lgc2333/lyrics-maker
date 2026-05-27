@@ -158,6 +158,50 @@ describe('useLyricsEditor', () => {
     editor.activateLine('nonexistent')
     expect(editor.activeLineId.value).toBeNull()
   })
+
+  it('selectTimedWordAt activates the line and word containing the time', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        startTime: 0,
+        words: [
+          { id: 'w1', text: 'hello', endTime: 1 },
+          { id: 'w2', text: 'world', endTime: 2 },
+        ],
+      },
+      {
+        id: 'l2',
+        startTime: 3,
+        words: [{ id: 'w3', text: 'again', endTime: 4 }],
+      },
+    ])
+    const { editor } = mountEditor()
+
+    editor.selectTimedWordAt(1.5)
+
+    expect(editor.activeLineId.value).toBe('l1')
+    expect(editor.activeWordIndex.value).toBe(2)
+  })
+
+  it('selectTimedWordAt keeps current selection when no timed word contains the time', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        startTime: 0,
+        words: [{ id: 'w1', text: 'hello', endTime: 1 }],
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+    editor.activeWordIndex.value = 1
+
+    editor.selectTimedWordAt(2)
+
+    expect(editor.activeLineId.value).toBe('l1')
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
 })
 
 describe('handleMarkKey (D)', () => {

@@ -47,6 +47,25 @@ export function useLyricsEditor() {
     }
   }
 
+  function selectTimedWordAt(time: number): void {
+    for (const line of store.project.lyrics) {
+      if (line.startTime === undefined) continue
+
+      for (let wordIndex = 0; wordIndex < line.words.length; wordIndex++) {
+        const word = line.words[wordIndex]
+        const wordStart =
+          wordIndex === 0 ? line.startTime : line.words[wordIndex - 1]?.endTime
+        if (wordStart === undefined || word.endTime === undefined) continue
+        if (wordStart <= time && time <= word.endTime) {
+          if (activeLineId.value !== line.id) _suppressWatchSync = true
+          activeLineId.value = line.id
+          activeWordIndex.value = wordIndex + 1
+          return
+        }
+      }
+    }
+  }
+
   // Undo/Redo sync: re-derive activeWordIndex from data state
   watch(
     () => activeLine.value,
@@ -271,6 +290,7 @@ export function useLyricsEditor() {
     splitBarMode,
     activeLine,
     activateLine,
+    selectTimedWordAt,
     handleMarkKey,
     handleNextLineKey,
     handleMarkNoAdvanceKey,

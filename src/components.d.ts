@@ -24,6 +24,7 @@ declare module 'vue' {
     TimingPointList: typeof import('./components/shell/TimingPointList.vue')['default']
     TimingPointsPanel: typeof import('./components/shell/TimingPointsPanel.vue')['default']
     TransportBar: typeof import('./components/shell/TransportBar.vue')['default']
+    UnsavedChangesDialog: typeof import('./components/shell/UnsavedChangesDialog.vue')['default']
     VerticalSliderPopover: typeof import('./components/shell/VerticalSliderPopover.vue')['default']
     WordSplitBar: typeof import('./components/shell/WordSplitBar.vue')['default']
   }

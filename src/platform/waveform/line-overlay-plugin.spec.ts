@@ -137,6 +137,83 @@ describe('lineOverlayPlugin', () => {
       )
     })
 
+    it('applies light waveform overlay tokens for readable lyric ranges and labels', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        theme: 'light',
+        viewMode: 'waveform',
+      })
+
+      const range = wrapper.querySelector<HTMLElement>(
+        '[data-testid="lyric-range-line-1"]',
+      )
+      const label = wrapper.querySelector<HTMLElement>('[data-testid="word-label-w1"]')
+      const startLine = wrapper.querySelector<HTMLElement>(
+        '[data-testid="line-start-line-1-line"]',
+      )
+      const marker = wrapper.querySelector<HTMLElement>(
+        '[data-testid="line-start-line-1-marker-top"]',
+      )
+
+      expect(range?.style.background).toBe('rgba(37, 99, 235, 0.18)')
+      expect(label?.style.color).toBe('rgba(3, 7, 18, 0.98)')
+      expect(label?.style.textShadow).toBe(
+        '0 0 1px rgba(255, 255, 255, 1), 0 0 3px rgba(255, 255, 255, 0.96), 0 1px 2px rgba(255, 255, 255, 0.88)',
+      )
+      expect(startLine?.style.background).toBe('rgb(190, 18, 60)')
+      expect(marker?.style.filter).toContain('drop-shadow')
+    })
+
+    it('applies spectrogram overlay tokens for readable lyric ranges and labels', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        theme: 'dark',
+        viewMode: 'spectrogram',
+      })
+
+      const range = wrapper.querySelector<HTMLElement>(
+        '[data-testid="lyric-range-line-1"]',
+      )
+      const label = wrapper.querySelector<HTMLElement>('[data-testid="word-label-w1"]')
+      const separator = wrapper.querySelector<HTMLElement>(
+        '[data-testid="word-separator-w2-line"]',
+      )
+
+      expect(range?.style.background).toBe('rgba(8, 13, 28, 0.5)')
+      expect(label?.style.color).toBe('rgba(255, 255, 255, 0.98)')
+      expect(label?.style.textShadow).toContain('rgba(0, 0, 0')
+      expect(separator?.style.borderLeft).toContain('rgba(255, 236, 153')
+    })
+
     it('skips untimed lines', () => {
       const { wrapper, ws, emit } = createFakeWs()
       const plugin = LineOverlayPlugin.create()

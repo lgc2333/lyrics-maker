@@ -96,6 +96,51 @@ describe('playheadOverlayPlugin', () => {
     expect(line.style.transform).toBe('translateX(-0.05px)')
   })
 
+  it('applies light waveform playhead tokens for readable contrast', () => {
+    const { outerContainer, ws } = createFakeWs()
+    const plugin = PlayheadOverlayPlugin.create({
+      outerContainer,
+      theme: 'light',
+      viewMode: 'waveform',
+    })
+    Reflect.set(plugin, 'wavesurfer', ws)
+    Reflect.get(plugin, 'onInit').call(plugin)
+
+    const line = outerContainer.querySelector(
+      '[data-testid="timeline-playhead"]',
+    ) as HTMLElement
+    const marker = outerContainer.querySelector(
+      '[data-testid="timeline-playhead-marker-top"]',
+    ) as HTMLElement
+
+    expect(line.style.background).toBe('rgb(190, 18, 60)')
+    expect(line.style.boxShadow).toContain('255, 255, 255')
+    expect(marker.style.background).toBe('rgb(190, 18, 60)')
+    expect(marker.style.filter).toContain('drop-shadow')
+  })
+
+  it('applies spectrogram playhead tokens for readable contrast', () => {
+    const { outerContainer, ws } = createFakeWs()
+    const plugin = PlayheadOverlayPlugin.create({
+      outerContainer,
+      theme: 'dark',
+      viewMode: 'spectrogram',
+    })
+    Reflect.set(plugin, 'wavesurfer', ws)
+    Reflect.get(plugin, 'onInit').call(plugin)
+
+    const line = outerContainer.querySelector(
+      '[data-testid="timeline-playhead"]',
+    ) as HTMLElement
+    const marker = outerContainer.querySelector(
+      '[data-testid="timeline-playhead-marker-bottom"]',
+    ) as HTMLElement
+
+    expect(line.style.background).toBe('rgb(255, 79, 79)')
+    expect(line.style.boxShadow).toContain('0, 0, 0')
+    expect(marker.style.background).toBe('rgb(255, 79, 79)')
+  })
+
   it('remains independent of timing points', () => {
     const { outerContainer, ws } = createFakeWs()
     const plugin = PlayheadOverlayPlugin.create({ outerContainer })

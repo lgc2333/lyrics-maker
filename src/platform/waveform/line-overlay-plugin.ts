@@ -2,12 +2,14 @@ import BasePlugin from 'wavesurfer.js/dist/base-plugin.js'
 import type { BasePluginEvents } from 'wavesurfer.js/dist/base-plugin.js'
 
 import type { LyricLine } from '../../core/domain/project'
+import { getOverlayStyleTokens } from './overlay-style-tokens'
+import type { OverlayStyleContext } from './overlay-style-tokens'
 
-export interface LineOverlayOptions {
+export interface LineOverlayOptions extends OverlayStyleContext {
   outerContainer?: HTMLElement
 }
 
-export interface LineOverlayParams {
+export interface LineOverlayParams extends OverlayStyleContext {
   lyrics: LyricLine[]
   activeLineId: string | null
 }
@@ -95,6 +97,7 @@ export class LineOverlayPlugin extends BasePlugin<
     dashed = false,
     markers = false,
     markerSide: 'right' | 'left' = 'right',
+    shadow = '',
   ): HTMLDivElement {
     const el = document.createElement('div')
     el.dataset.testid = testId
@@ -117,16 +120,24 @@ export class LineOverlayPlugin extends BasePlugin<
       borderLeft: dashed ? `2px dashed ${color}` : '',
       background: dashed ? '' : color,
       pointerEvents: 'none',
+      filter: shadow,
     })
     el.appendChild(line)
     if (markers) {
       el.append(
-        this._createBoundaryMarker(`${testId}-marker-top`, color, 'top', markerSide),
+        this._createBoundaryMarker(
+          `${testId}-marker-top`,
+          color,
+          'top',
+          markerSide,
+          shadow,
+        ),
         this._createBoundaryMarker(
           `${testId}-marker-bottom`,
           color,
           'bottom',
           markerSide,
+          shadow,
         ),
       )
     }
@@ -138,6 +149,7 @@ export class LineOverlayPlugin extends BasePlugin<
     color: string,
     edge: 'top' | 'bottom',
     side: 'right' | 'left',
+    shadow: string,
   ): HTMLDivElement {
     const markerSize = 8
     const topClip =
@@ -158,6 +170,7 @@ export class LineOverlayPlugin extends BasePlugin<
       background: color,
       clipPath: edge === 'top' ? topClip : bottomClip,
       pointerEvents: 'none',
+      filter: shadow,
       ...(edge === 'top' ? { top: '0' } : { bottom: '0' }),
     })
     return marker
@@ -211,6 +224,10 @@ export class LineOverlayPlugin extends BasePlugin<
     if (visibleDuration <= 0) return
 
     const pxPerSec = wrapper.scrollWidth / duration
+    const tokens = getOverlayStyleTokens({
+      theme: this.params.theme ?? this.options.theme,
+      viewMode: this.params.viewMode ?? this.options.viewMode,
+    }).line
     const renderBuffer = Math.max(0.5, visibleDuration / 2)
     this.renderedStart = Math.max(0, this.visibleStart - renderBuffer)
     this.renderedEnd = Math.min(duration, this.visibleEnd + renderBuffer)
@@ -234,8 +251,8 @@ export class LineOverlayPlugin extends BasePlugin<
         width: `${Math.max(0, x2 - x1)}px`,
         height: '100%',
         background: isActive
-          ? 'rgba(100, 180, 255, 0.12)'
-          : 'rgba(100, 180, 255, 0.05)',
+          ? tokens.activeRangeBackground
+          : tokens.inactiveRangeBackground,
         pointerEvents: 'none',
       })
 
@@ -243,9 +260,11 @@ export class LineOverlayPlugin extends BasePlugin<
         this._createBoundary(
           `line-start-${line.id}`,
           0,
-          'rgba(255, 80, 80, 0.8)',
+          tokens.lineStart,
           false,
           true,
+          'right',
+          tokens.boundaryShadow,
         ),
       )
       if (lineState.finalWordIsTimed) {
@@ -253,10 +272,11 @@ export class LineOverlayPlugin extends BasePlugin<
           this._createBoundary(
             `line-end-${line.id}`,
             Math.max(0, x2 - x1),
-            'rgba(100, 180, 255, 0.8)',
+            tokens.lineEnd,
             false,
             true,
             'left',
+            tokens.boundaryShadow,
           ),
         )
       } else {
@@ -264,10 +284,11 @@ export class LineOverlayPlugin extends BasePlugin<
           this._createBoundary(
             `partial-line-end-${line.id}`,
             Math.max(0, x2 - x1),
-            isActive ? 'rgba(255, 214, 80, 0.85)' : 'rgba(255, 214, 80, 0.45)',
+            isActive ? tokens.partialActive : tokens.partialInactive,
             true,
             true,
             'left',
+            tokens.boundaryShadow,
           ),
         )
       }
@@ -288,8 +309,11 @@ export class LineOverlayPlugin extends BasePlugin<
             this._createBoundary(
               `word-separator-${word.id}`,
               wordX1,
-              isActive ? 'rgba(255, 214, 80, 0.85)' : 'rgba(255, 214, 80, 0.45)',
+              isActive ? tokens.wordSeparatorActive : tokens.wordSeparatorInactive,
               true,
+              false,
+              'right',
+              tokens.boundaryShadow,
             ),
           )
         }
@@ -308,8 +332,8 @@ export class LineOverlayPlugin extends BasePlugin<
             whiteSpace: 'nowrap',
             textAlign: 'center',
             fontSize: `${Math.max(10, Math.min(14, wordWidth * 0.6))}px`,
-            color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)',
-            textShadow: '0 0 2px rgba(0,0,0,0.7)',
+            color: isActive ? tokens.activeWordText : tokens.inactiveWordText,
+            textShadow: tokens.wordTextShadow,
           })
           range.appendChild(label)
         }

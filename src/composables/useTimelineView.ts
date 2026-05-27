@@ -17,8 +17,16 @@ const DEFAULT_PX_PER_SEC = 100
 const PLAYBACK_FOLLOW_THRESHOLD_RATIO = 0.5
 const SEEK_SCROLL_MARGIN_RATIO = 0.1
 
-export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
+interface UseTimelineViewOptions {
+  onExplicitSeek?: (time: number) => void
+}
+
+export function useTimelineView(
+  containerRef: ShallowRef<HTMLElement | null>,
+  options: UseTimelineViewOptions = {},
+) {
   const store = useEditorStore()
+  const activeTheme = ref<'light' | 'dark'>('light')
 
   // ---- Local UI state ----
   const viewMode = ref<'waveform' | 'spectrogram'>('waveform')
@@ -58,6 +66,8 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
       timingPoints: store.project.timingPoints,
       divisor: divisor.value,
       triplets: effectiveTriplets.value,
+      theme: activeTheme.value,
+      viewMode: viewMode.value,
     }
   }
 
@@ -65,12 +75,16 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     return {
       lyrics: store.project.lyrics,
       activeLineId: null as string | null,
+      theme: activeTheme.value,
+      viewMode: viewMode.value,
     }
   }
 
   function _buildPlayheadParams() {
     return {
       currentTime: store.currentTime,
+      theme: activeTheme.value,
+      viewMode: viewMode.value,
     }
   }
 
@@ -94,7 +108,9 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
 
     // Click-to-seek: WaveSurfer fires 'interaction' with newTime when interact: true
     view.on('interaction', (time: unknown) => {
-      store.seekPlayback(time as number)
+      const seekTime = time as number
+      options.onExplicitSeek?.(seekTime)
+      store.seekPlayback(seekTime)
     })
 
     // When audio is ready: hide loading spinner and draw the initial grid
@@ -206,6 +222,16 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     { deep: true },
   )
 
+  watch(
+    [activeTheme, viewMode],
+    () => {
+      gridPlugin?.update(_buildOverlayParams())
+      lineOverlayPlugin?.update(_buildLineOverlayParams())
+      playheadPlugin?.update(_buildPlayheadParams())
+    },
+    { immediate: false },
+  )
+
   // Redraw line overlay when lyrics data changes
   watch(
     () => store.project.lyrics,
@@ -295,6 +321,10 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     autoFollowPlayback.value = enabled
   }
 
+  function setTheme(nextTheme: 'light' | 'dark'): void {
+    activeTheme.value = nextTheme
+  }
+
   /**
    * Wheel event handler for the waveform container.
    * Ctrl+wheel → horizontal zoom; Shift+wheel → subdivision divisor change;
@@ -341,6 +371,7 @@ export function useTimelineView(containerRef: ShallowRef<HTMLElement | null>) {
     setViewMode,
     setVerticalZoom,
     setAutoFollowPlayback,
+    setTheme,
     onWheel,
   }
 }

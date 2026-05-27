@@ -97,6 +97,9 @@ describe('appShell', () => {
     mockSaveByShortcut.mockReset()
     mockSaveAs.mockReset()
     mockOpenProject.mockReset()
+    mockSaveByShortcut.mockResolvedValue({ ok: true })
+    mockSaveAs.mockResolvedValue({ ok: true })
+    mockOpenProject.mockResolvedValue(undefined)
   })
 
   it('renders all phase-1 shell sections', () => {
@@ -316,6 +319,87 @@ describe('appShell', () => {
     await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
     await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
     expect(mockOpenProject).toHaveBeenCalledOnce()
+  })
+
+  it('opens a project immediately when the current project is clean', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(false)
+    expect(mockOpenProject).toHaveBeenCalledOnce()
+  })
+
+  it('asks for confirmation before opening another project when dirty', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(true)
+    expect(mockOpenProject).not.toHaveBeenCalled()
+  })
+
+  it('saves and opens only after the dirty project saves successfully', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    await wrapper.get('[data-testid="unsaved-save-open"]').trigger('click')
+
+    expect(mockSaveByShortcut).toHaveBeenCalledOnce()
+    expect(mockOpenProject).toHaveBeenCalledOnce()
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(false)
+  })
+
+  it('does not open another project when saving dirty changes fails', async () => {
+    mockSaveByShortcut.mockResolvedValue({ ok: false, reason: 'failed' })
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    await wrapper.get('[data-testid="unsaved-save-open"]').trigger('click')
+
+    expect(mockSaveByShortcut).toHaveBeenCalledOnce()
+    expect(mockOpenProject).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(false)
+  })
+
+  it('opens another project without saving when the dirty confirmation is discarded', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    await wrapper.get('[data-testid="unsaved-discard-open"]').trigger('click')
+
+    expect(mockSaveByShortcut).not.toHaveBeenCalled()
+    expect(mockOpenProject).toHaveBeenCalledOnce()
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(false)
+  })
+
+  it('cancels opening another project from the dirty confirmation', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
+    await wrapper.get('[data-testid="unsaved-cancel"]').trigger('click')
+
+    expect(mockOpenProject).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '已取消打开工程',
+    )
   })
 
   it('updates project title from menu title editor', async () => {

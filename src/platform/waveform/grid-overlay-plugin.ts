@@ -4,8 +4,10 @@ import type { BasePluginEvents } from 'wavesurfer.js/dist/base-plugin.js'
 import type { TimingPoint } from '../../core/domain/project'
 import { getBeatGridLines } from '../../core/timing/timing-engine'
 import { formatTimestamp } from '../../core/utils/format-timestamp'
+import { getOverlayStyleTokens } from './overlay-style-tokens'
+import type { OverlayStyleContext } from './overlay-style-tokens'
 
-export interface GridOverlayOptions {
+export interface GridOverlayOptions extends OverlayStyleContext {
   /**
    * Kept for compatibility with older call sites. Grid content now attaches to
    * WaveSurfer's wrapper so it scrolls with the waveform/spectrogram.
@@ -13,7 +15,7 @@ export interface GridOverlayOptions {
   outerContainer?: HTMLElement
 }
 
-export interface GridOverlayParams {
+export interface GridOverlayParams extends OverlayStyleContext {
   timingPoints: TimingPoint[]
   divisor: number
   triplets: boolean
@@ -142,7 +144,27 @@ export class GridOverlayPlugin extends BasePlugin<
 
   update(params: GridOverlayParams): void {
     this.params = params
+    this._applyPointerPreviewTokens()
     this._draw()
+  }
+
+  private _tokens() {
+    return getOverlayStyleTokens({
+      theme: this.params.theme ?? this.options.theme,
+      viewMode: this.params.viewMode ?? this.options.viewMode,
+    }).grid
+  }
+
+  private _applyPointerPreviewTokens(): void {
+    const tokens = this._tokens()
+    if (this.previewLine) {
+      this.previewLine.style.borderLeft = `2px solid ${tokens.previewLine}`
+    }
+    if (this.previewLabel) {
+      this.previewLabel.style.background = tokens.previewBackground
+      this.previewLabel.style.color = tokens.previewText
+      this.previewLabel.style.boxShadow = tokens.previewShadow
+    }
   }
 
   private _refreshVisibleRange(): void {
@@ -220,6 +242,7 @@ export class GridOverlayPlugin extends BasePlugin<
   private _draw(): void {
     if (!this.svg || !this.wavesurfer) return
 
+    this._applyPointerPreviewTokens()
     this.svg.replaceChildren()
 
     const duration = this.wavesurfer.getDuration()
@@ -247,6 +270,7 @@ export class GridOverlayPlugin extends BasePlugin<
       renderStart,
       renderEnd,
     )
+    const tokens = this._tokens()
 
     let lastRenderedSubdivisionX = -Infinity
     for (const line of lines) {
@@ -263,13 +287,13 @@ export class GridOverlayPlugin extends BasePlugin<
       el.setAttribute('y2', '100%')
 
       if (line.type === 'bar') {
-        el.setAttribute('stroke', 'rgba(255,255,255,0.8)')
+        el.setAttribute('stroke', tokens.barStroke)
         el.setAttribute('stroke-width', '2')
       } else if (line.type === 'beat') {
-        el.setAttribute('stroke', 'rgba(255,255,255,0.5)')
+        el.setAttribute('stroke', tokens.beatStroke)
         el.setAttribute('stroke-width', '1')
       } else {
-        el.setAttribute('stroke', 'rgba(255,255,255,0.2)')
+        el.setAttribute('stroke', tokens.subdivisionStroke)
         el.setAttribute('stroke-width', '1')
       }
 

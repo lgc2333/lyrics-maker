@@ -93,7 +93,14 @@
   "project": {
     "defaultTitle": "Untitled Project",
     "suggestedFileName": "lyrics-project.json",
-    "fileTypeDescription": "Lyrics Project"
+    "fileTypeDescription": "Lyrics Project",
+    "unsavedDialog": {
+      "title": "当前工程有未保存更改",
+      "message": "打开其他工程前，请选择如何处理当前更改。",
+      "saveAndOpen": "保存并打开",
+      "discardAndOpen": "不保存并打开",
+      "cancel": "取消"
+    }
   },
   "errors": {
     "unsupportedFsApi": "当前浏览器不支持实时写盘",

@@ -428,6 +428,7 @@ function makeTimeline(
     setViewMode: vi.fn(),
     setVerticalZoom: vi.fn(),
     setAutoFollowPlayback: vi.fn(),
+    setTheme: vi.fn(),
     onWheel: vi.fn(),
     ...overrides,
   }

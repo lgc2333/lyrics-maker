@@ -22,6 +22,7 @@
 - **WaveSurfer v7 decoded audio is `ws.getDecodedData()`** (not `getDecodedAudio`). Returns `AudioBuffer | null`.
 - **WaveSurfer spectrogram rendering gaps:** enable `progressiveLoading: true` to pre-compute full-file spectrogram segments in background. Reduce `fftSamples` to 512 (must be power of 2) for faster segment computation. See `wavesurfer-view.ts:57-64`.
 - **Timeline seek scroll is separate from playback auto-follow.** Explicit seek (`store.seekPlayback` via waveform click/progress/lyrics) should always run even when playback auto-follow is disabled, and should use `WaveSurferView.scrollSeekTo(time, 0.1)` so targets outside the visible 10%-90% band move only to the nearest 10% edge. Playback auto-follow uses `scrollPlaybackTo(time, 0.5)` and may be gated by user-scroll cooldown / auto-follow toggle.
+- **Manual timeline interaction may select lyrics by timed word range.** Keep WaveSurfer `interaction` seeking in `useTimelineView`, expose an optional explicit-seek callback, and let `useLyricsEditor` map `time` to `activeLineId`/1-based `activeWordIndex` from `[line.startTime|prevWord.endTime, word.endTime]`.
 
 ## Audio & Metronome
 
@@ -44,4 +45,5 @@
 - **`autoSplitText` preserves trailing whitespace on each token** (except the last). `"hello world"` -> `["hello ", "world"]`. Display code uses `word.text.trimEnd()` for visible text and `/\s$/.test(word.text)` to decide whether to show `␣` between words.
 - **Space characters render as `␣` symbol.** Use `splitBySpaces(text)` to split text into space/non-space segments. Space segments render as `<span class="text-[10px] text-base-content/30">␣</span>` (one `␣` per space char). In cut-mode per-character rendering, use `v-if="char === ' '"` to substitute. Never trim or use `whitespace-pre`.
 - **Lyrics line list word separators.** Always show `|` (`text-[8px] text-base-content/20`) between words regardless of trailing space. WordSplitBar timing/edit mode blocks have borders - no extra separators needed.
+- **Lyrics line list incomplete counts are attention states.** A visible `timed/total` status with untimed words, including no-start/no-word-timed `0/x`, should use the warning highlight; keep legacy blank status for no-start lines that already have timed words.
 - **Word timing edits use formatted timestamp text.** `WordSplitBar` time inputs display/accept `MM:SS.mmm` style strings via `formatTimestamp` / `parseTimestamp`, committing on Enter or blur; do not use `type="number"` seconds inputs.

@@ -109,6 +109,72 @@ describe('gridOverlayPlugin', () => {
       expect(line?.getAttribute('y2')).toBe('100%')
     })
 
+    it('applies light waveform grid tokens for readable contrast', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+        theme: 'light',
+        viewMode: 'waveform',
+      })
+
+      const lines = wrapper.querySelectorAll('[data-testid="timeline-grid"] line')
+      expect(lines[0]?.getAttribute('stroke')).toBe('rgba(15, 23, 42, 0.72)')
+      expect(lines[0]?.getAttribute('stroke-width')).toBe('2')
+      expect(lines[1]?.getAttribute('stroke')).toBe('rgba(180, 83, 9, 0.5)')
+      expect(Array.from(lines, (line) => line.getAttribute('stroke'))).toContain(
+        'rgba(180, 83, 9, 0.68)',
+      )
+    })
+
+    it('applies spectrogram grid and preview tokens for readable contrast', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+        theme: 'dark',
+        viewMode: 'spectrogram',
+      })
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 250,
+          bubbles: true,
+        }),
+      )
+
+      const lines = wrapper.querySelectorAll('[data-testid="timeline-grid"] line')
+      const previewLine = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-line"]',
+      )
+      const previewLabel = wrapper.querySelector<HTMLElement>(
+        '[data-testid="grid-time-preview-label"]',
+      )
+
+      expect(lines[0]?.getAttribute('stroke')).toBe('rgba(255, 255, 255, 0.9)')
+      expect(lines[1]?.getAttribute('stroke')).toBe('rgba(255, 255, 255, 0.32)')
+      expect(Array.from(lines, (line) => line.getAttribute('stroke'))).toContain(
+        'rgba(255, 255, 255, 0.58)',
+      )
+      expect(previewLine?.style.borderLeft).toBe('2px solid rgba(255, 236, 153, 0.98)')
+      expect(previewLabel?.style.background).toBe('rgba(0, 0, 0, 0.82)')
+    })
+
     it('virtualizes grid lines outside the buffered visible range', () => {
       const { wrapper, scrollContainer, ws, emit } = createFakeWs(100)
       scrollContainer.scrollLeft = 500

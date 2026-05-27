@@ -83,17 +83,19 @@ describe('useProjectPersistence', () => {
     const wrapper = mountHarness()
     mockSave.mockResolvedValue({ ok: true })
 
-    await wrapper.vm.saveByShortcut()
+    const result = await wrapper.vm.saveByShortcut()
 
     expect(mockSave).toHaveBeenCalled()
+    expect(result).toEqual({ ok: true })
   })
 
   it('saveAs calls store.saveProjectAs with service', async () => {
     const wrapper = mountHarness()
 
-    await wrapper.vm.saveAs()
+    const result = await wrapper.vm.saveAs()
 
     expect(mockSaveAs).toHaveBeenCalled()
+    expect(result).toEqual({ ok: true })
   })
 
   it('openProject loads opened project and marks it clean', async () => {

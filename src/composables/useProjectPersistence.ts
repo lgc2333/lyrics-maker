@@ -57,11 +57,11 @@ export function useProjectPersistence() {
     hasFileApi: () => hasSaveFilePicker(saveApi),
 
     saveByShortcut: async () => {
-      await store.saveProject(service)
+      return store.saveProject(service)
     },
 
     saveAs: async () => {
-      await store.saveProjectAs(service)
+      return store.saveProjectAs(service)
     },
 
     openProject: async () => {
