@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
@@ -39,6 +47,10 @@ const showUnsavedOpenDialog = ref(false)
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
 const timeline = useTimelineView(timelineContainerRef, {
   onExplicitSeek: (time) => lyricsEditor.selectTimedWordAt(time),
+  activeLyricSelection: computed(() => ({
+    lineId: lyricsEditor.activeLineId.value,
+    wordIndex: lyricsEditor.activeWordIndex.value,
+  })),
 })
 
 provide(TIMELINE_VIEW_KEY, timeline)
@@ -268,13 +280,15 @@ useEditorShortcuts({
     <MainView data-testid="main-view" />
     <TransportBar data-testid="transport-bar" />
     <!-- Resize handle: dragging adjusts MainView height -->
-    <div
-      data-testid="main-view-resize-handle"
-      class="h-0.5 cursor-row-resize bg-base-300 hover:bg-primary/60 active:bg-primary transition-colors"
-      @pointerdown="onResizePointerDown"
-      @pointermove="onResizePointerMove"
-      @pointerup="onResizePointerUp"
-    />
+    <div data-testid="main-view-resize-slot" class="relative h-0 overflow-visible">
+      <div
+        data-testid="main-view-resize-handle"
+        class="absolute -top-0.5 h-1 w-full cursor-row-resize hover:bg-primary/60 active:bg-primary transition-colors"
+        @pointerdown="onResizePointerDown"
+        @pointermove="onResizePointerMove"
+        @pointerup="onResizePointerUp"
+      />
+    </div>
     <TimingPointsPanel
       v-if="editorMode === 'timing'"
       data-testid="timing-points-panel"

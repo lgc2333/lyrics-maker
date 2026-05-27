@@ -1,6 +1,15 @@
 import { useDebounceFn, watchDebounced } from '@vueuse/core'
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
-import type { InjectionKey, ShallowRef } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  toRef,
+  toValue,
+  watch,
+  watchEffect,
+} from 'vue'
+import type { InjectionKey, MaybeRefOrGetter, ShallowRef } from 'vue'
 
 import { GridOverlayPlugin } from '../platform/waveform/grid-overlay-plugin'
 import { LineOverlayPlugin } from '../platform/waveform/line-overlay-plugin'
@@ -19,6 +28,10 @@ const SEEK_SCROLL_MARGIN_RATIO = 0.1
 
 interface UseTimelineViewOptions {
   onExplicitSeek?: (time: number) => void
+  activeLyricSelection?: MaybeRefOrGetter<{
+    lineId: string | null
+    wordIndex: number
+  }>
 }
 
 export function useTimelineView(
@@ -36,6 +49,9 @@ export function useTimelineView(
   const altTripletActive = ref(false)
   const isLoading = ref(false)
   const loadError = ref<string | null>(null)
+  const activeLyricSelection = toRef(
+    options.activeLyricSelection ?? { lineId: null, wordIndex: 0 },
+  )
 
   // ---- Project-persisted state (via store/commands) ----
   const divisor = computed({
@@ -72,9 +88,11 @@ export function useTimelineView(
   }
 
   function _buildLineOverlayParams() {
+    const selection = toValue(activeLyricSelection)
     return {
       lyrics: store.project.lyrics,
-      activeLineId: null as string | null,
+      activeLineId: selection.lineId,
+      activeWordIndex: selection.wordIndex,
       theme: activeTheme.value,
       viewMode: viewMode.value,
     }
@@ -234,7 +252,7 @@ export function useTimelineView(
 
   // Redraw line overlay when lyrics data changes
   watch(
-    () => store.project.lyrics,
+    [() => store.project.lyrics, activeLyricSelection],
     () => {
       lineOverlayPlugin?.update(_buildLineOverlayParams())
     },

@@ -237,6 +237,19 @@ describe('appShell', () => {
     expect(wrapper.find('[data-testid="audio-file-input"]').exists()).toBe(true)
   })
 
+  it('renders the main view resize handle without consuming layout height', () => {
+    const wrapper = mount(AppShell)
+    const resizeSlot = wrapper.get('[data-testid="main-view-resize-slot"]')
+    const resizeHandle = wrapper.get('[data-testid="main-view-resize-handle"]')
+
+    expect(resizeSlot.classes()).toEqual(
+      expect.arrayContaining(['relative', 'h-0', 'overflow-visible']),
+    )
+    expect(resizeHandle.classes()).toEqual(
+      expect.arrayContaining(['absolute', '-top-0.5', 'h-1', 'w-full']),
+    )
+  })
+
   it('adds a lyric line when crypto.randomUUID is unavailable over HTTP', async () => {
     const originalRandomUUID = globalThis.crypto.randomUUID
     Object.defineProperty(globalThis.crypto, 'randomUUID', {

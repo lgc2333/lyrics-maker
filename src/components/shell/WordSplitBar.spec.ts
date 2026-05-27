@@ -369,6 +369,61 @@ describe('wordSplitBar', () => {
       expect(gaps).toHaveLength(2)
     })
 
+    it('keeps cut-mode visual gaps compact while exposing larger hit targets', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'AB' },
+            { id: 'w2', text: 'CD' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.splitBarMode.value = 'cut'
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      const charGap = wrapper.get('[data-testid="char-gap"]')
+      const splitLine = wrapper.get('[data-testid="split-line"]')
+
+      expect(charGap.classes()).toContain('relative')
+      expect(charGap.classes()).toContain('group')
+      expect(charGap.classes()).toContain('w-1.5')
+      expect(charGap.get('[data-testid="char-gap-hit-target"]').classes()).toEqual(
+        expect.arrayContaining([
+          'absolute',
+          '-inset-x-1',
+          'cursor-pointer',
+          'bg-transparent',
+        ]),
+      )
+      expect(
+        charGap.get('[data-testid="char-gap-hit-target"]').classes(),
+      ).not.toContain('hover:bg-warning/20')
+      expect(charGap.get('[data-testid="char-gap-mark"]').classes()).toEqual(
+        expect.arrayContaining(['w-px', 'group-hover:bg-warning/70']),
+      )
+
+      expect(splitLine.classes()).toContain('relative')
+      expect(splitLine.classes()).toContain('w-1.5')
+      expect(splitLine.get('[data-testid="split-line-hit-target"]').classes()).toEqual(
+        expect.arrayContaining([
+          'absolute',
+          '-inset-x-1.5',
+          'cursor-pointer',
+          'bg-transparent',
+        ]),
+      )
+      expect(
+        splitLine.get('[data-testid="split-line-hit-target"]').classes(),
+      ).not.toContain('hover:bg-warning/20')
+      expect(splitLine.get('[data-testid="split-line-mark"]').classes()).toEqual(
+        expect.arrayContaining(['w-px', 'bg-warning']),
+      )
+    })
+
     it('does not show character gaps for single-character words', () => {
       const store = useEditorStore()
       store.insertLyricLines([

@@ -137,6 +137,85 @@ describe('lineOverlayPlugin', () => {
       )
     })
 
+    it('highlights the selected word range when its time range is complete', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        activeWordIndex: 2,
+      })
+
+      const selectedRange = wrapper.querySelector<HTMLElement>(
+        '[data-testid="selected-word-range-w2"]',
+      )
+
+      expect(selectedRange).not.toBeNull()
+      expect(selectedRange?.style.left).toBe('100px')
+      expect(selectedRange?.style.width).toBe('100px')
+      expect(selectedRange?.style.background).not.toBe('')
+    })
+
+    it('does not render selected word highlight for the line start block', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 2 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        activeWordIndex: 0,
+      })
+
+      expect(wrapper.querySelector('[data-testid^="selected-word-range-"]')).toBeNull()
+    })
+
+    it('does not render selected word highlight without a complete word range', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ' },
+              { id: 'w2', text: 'world', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        activeWordIndex: 2,
+      })
+
+      expect(wrapper.querySelector('[data-testid="selected-word-range-w2"]')).toBeNull()
+    })
+
     it('applies light waveform overlay tokens for readable lyric ranges and labels', () => {
       const { wrapper, ws, emit } = createFakeWs()
       const plugin = LineOverlayPlugin.create()

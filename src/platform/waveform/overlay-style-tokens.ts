@@ -17,6 +17,7 @@ interface LineOverlayTokens {
   wordSeparatorInactive: string
   activeWordText: string
   inactiveWordText: string
+  selectedWordBackground: string
   wordTextShadow: string
   boundaryShadow: string
 }
@@ -55,6 +56,7 @@ const DARK_WAVEFORM_TOKENS: OverlayStyleTokens = {
     wordSeparatorInactive: 'rgba(255, 214, 80, 0.5)',
     activeWordText: 'rgba(255, 255, 255, 0.92)',
     inactiveWordText: 'rgba(255, 255, 255, 0.58)',
+    selectedWordBackground: 'rgba(255, 214, 80, 0.24)',
     wordTextShadow: '0 0 2px rgba(0, 0, 0, 0.74)',
     boundaryShadow: 'drop-shadow(0 0 2px rgba(0, 0, 0, 0.72))',
   },
@@ -86,6 +88,7 @@ const LIGHT_WAVEFORM_TOKENS: OverlayStyleTokens = {
     wordSeparatorInactive: 'rgba(180, 83, 9, 0.78)',
     activeWordText: 'rgba(3, 7, 18, 0.98)',
     inactiveWordText: 'rgba(3, 7, 18, 0.82)',
+    selectedWordBackground: 'rgba(234, 179, 8, 0.34)',
     wordTextShadow:
       '0 0 1px rgba(255, 255, 255, 1), 0 0 3px rgba(255, 255, 255, 0.96), 0 1px 2px rgba(255, 255, 255, 0.88)',
     boundaryShadow: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.92))',
@@ -118,6 +121,7 @@ const SPECTROGRAM_TOKENS: OverlayStyleTokens = {
     wordSeparatorInactive: 'rgba(255, 236, 153, 0.7)',
     activeWordText: 'rgba(255, 255, 255, 0.98)',
     inactiveWordText: 'rgba(255, 255, 255, 0.78)',
+    selectedWordBackground: 'rgba(255, 236, 153, 0.28)',
     wordTextShadow: '0 1px 3px rgba(0, 0, 0, 0.95)',
     boundaryShadow: 'drop-shadow(0 0 3px rgba(0, 0, 0, 0.9))',
   },

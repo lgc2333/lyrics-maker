@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, shallowRef } from 'vue'
+import { computed, defineComponent, h, ref, shallowRef } from 'vue'
 
 import {
   __overrideAudioTransportFactory,
@@ -305,6 +305,42 @@ describe('useTimelineView', () => {
 
     expect(onExplicitSeek).toHaveBeenCalledWith(1.5)
     expect(store.currentTime).toBe(1.5)
+
+    wrapper.unmount()
+  })
+
+  it('passes the selected lyric word to the line overlay when selection changes', async () => {
+    const activeLineId = ref<string | null>('line-1')
+    const activeWordIndex = ref(1)
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef, {
+        activeLyricSelection: computed(() => ({
+          lineId: activeLineId.value,
+          wordIndex: activeWordIndex.value,
+        })),
+      })
+    })
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        startTime: 0,
+        words: [{ id: 'w1', text: 'hello', endTime: 1 }],
+      },
+    ])
+
+    mockLinePlugins[0].update.mockClear()
+    activeWordIndex.value = 0
+    await wrapper.vm.$nextTick()
+
+    expect(mockLinePlugins[0].update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activeLineId: 'line-1',
+        activeWordIndex: 0,
+      }),
+    )
 
     wrapper.unmount()
   })

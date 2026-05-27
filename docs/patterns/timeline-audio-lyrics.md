@@ -23,6 +23,8 @@
 - **WaveSurfer spectrogram rendering gaps:** enable `progressiveLoading: true` to pre-compute full-file spectrogram segments in background. Reduce `fftSamples` to 512 (must be power of 2) for faster segment computation. See `wavesurfer-view.ts:57-64`.
 - **Timeline seek scroll is separate from playback auto-follow.** Explicit seek (`store.seekPlayback` via waveform click/progress/lyrics) should always run even when playback auto-follow is disabled, and should use `WaveSurferView.scrollSeekTo(time, 0.1)` so targets outside the visible 10%-90% band move only to the nearest 10% edge. Playback auto-follow uses `scrollPlaybackTo(time, 0.5)` and may be gated by user-scroll cooldown / auto-follow toggle.
 - **Manual timeline interaction may select lyrics by timed word range.** Keep WaveSurfer `interaction` seeking in `useTimelineView`, expose an optional explicit-seek callback, and let `useLyricsEditor` map `time` to `activeLineId`/1-based `activeWordIndex` from `[line.startTime|prevWord.endTime, word.endTime]`.
+- **Selected word overlay highlight follows lyrics editor state.** Pass `activeLineId`/1-based `activeWordIndex` from `useLyricsEditor` through `useTimelineView` into `LineOverlayPlugin`; do not store this transient UI selection in project data.
+- **Selected word highlight requires a direct complete word range.** Highlight only when the selected word has its own start boundary (`line.startTime` or previous word `endTime`) and `endTime`; do not reuse partial-overlay bridge ranges for selection.
 
 ## Audio & Metronome
 

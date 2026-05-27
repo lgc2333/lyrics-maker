@@ -276,10 +276,19 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
               <div
                 v-if="wIdx > 0"
                 data-testid="split-line"
-                class="flex h-4 w-1.5 cursor-pointer items-center justify-center"
+                class="group relative flex h-4 w-1.5 items-center justify-center"
                 @click="onSplitLineClick(wIdx)"
               >
-                <div class="h-full w-px transition-colors bg-warning" />
+                <button
+                  data-testid="split-line-hit-target"
+                  class="absolute -inset-x-1.5 inset-y-0 cursor-pointer border-0 bg-transparent p-0"
+                  type="button"
+                  @click.stop="onSplitLineClick(wIdx)"
+                />
+                <div
+                  data-testid="split-line-mark"
+                  class="pointer-events-none h-full w-px transition-colors bg-warning"
+                />
               </div>
 
               <div
@@ -291,10 +300,19 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
                   <div
                     v-if="cIdx > 0"
                     data-testid="char-gap"
-                    class="flex h-5 w-1.5 cursor-pointer items-center justify-center hover:bg-warning/20"
+                    class="group relative flex h-5 w-1.5 items-center justify-center"
                     @click="onCharGapClick(wIdx, cIdx)"
                   >
-                    <div class="h-full w-px bg-transparent transition-colors" />
+                    <button
+                      data-testid="char-gap-hit-target"
+                      class="absolute -inset-x-1 inset-y-0 cursor-pointer border-0 bg-transparent p-0"
+                      type="button"
+                      @click.stop="onCharGapClick(wIdx, cIdx)"
+                    />
+                    <div
+                      data-testid="char-gap-mark"
+                      class="pointer-events-none h-full w-px bg-transparent transition-colors group-hover:bg-warning/70"
+                    />
                   </div>
                   <span
                     v-if="char === ' '"

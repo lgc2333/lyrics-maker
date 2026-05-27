@@ -222,7 +222,7 @@ function toggleRhythmMode(): void {
       @update:model-value="store.setSfxVolume"
     >
       <template #icon>
-        <Icon icon="material-symbols:graphic-eq-rounded" class="h-5 w-5" />
+        <Icon icon="mdi:bell-outline" class="h-5 w-5" />
       </template>
     </VerticalSliderPopover>
   </section>

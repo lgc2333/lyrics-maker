@@ -12,6 +12,7 @@ export interface LineOverlayOptions extends OverlayStyleContext {
 export interface LineOverlayParams extends OverlayStyleContext {
   lyrics: LyricLine[]
   activeLineId: string | null
+  activeWordIndex?: number
 }
 
 export class LineOverlayPlugin extends BasePlugin<
@@ -22,6 +23,7 @@ export class LineOverlayPlugin extends BasePlugin<
   private params: LineOverlayParams = {
     lyrics: [],
     activeLineId: null,
+    activeWordIndex: 0,
   }
 
   private visibleStart = 0
@@ -303,6 +305,12 @@ export class LineOverlayPlugin extends BasePlugin<
         const wordX1 = wordStart * pxPerSec - x1
         const wordX2 = wordEnd * pxPerSec - x1
         const wordWidth = wordX2 - wordX1
+        const selectedWordStart = i === 0 ? line.startTime : line.words[i - 1]?.endTime
+        const isSelectedWord =
+          isActive &&
+          this.params.activeWordIndex === i + 1 &&
+          selectedWordStart !== undefined &&
+          wordWidth > 0
 
         if (i > 0) {
           range.appendChild(
@@ -316,6 +324,21 @@ export class LineOverlayPlugin extends BasePlugin<
               tokens.boundaryShadow,
             ),
           )
+        }
+
+        if (isSelectedWord && this._intersects(wordStart, wordEnd)) {
+          const highlight = document.createElement('div')
+          highlight.dataset.testid = `selected-word-range-${word.id}`
+          Object.assign(highlight.style, {
+            position: 'absolute',
+            top: '0',
+            left: `${wordX1}px`,
+            width: `${wordWidth}px`,
+            height: '100%',
+            background: tokens.selectedWordBackground,
+            pointerEvents: 'none',
+          })
+          range.appendChild(highlight)
         }
 
         if (wordWidth > 8 && this._intersects(wordStart, wordEnd)) {
