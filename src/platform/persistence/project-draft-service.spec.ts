@@ -53,6 +53,23 @@ describe('project draft service', () => {
     expect(result.reason).toBe('invalid')
   })
 
+  it('returns invalid when stored draft has invalid nested project data', () => {
+    const service = createProjectDraftService(localStorage)
+    const project = createEmptyProject()
+    localStorage.setItem(
+      'lyrics-maker.project-draft.v1',
+      JSON.stringify({
+        ...project,
+        timingPoints: [{ ...project.timingPoints[0], bpm: '120' }],
+      }),
+    )
+
+    const result = service.loadDraft()
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toBe('invalid')
+  })
+
   it('clears saved drafts', () => {
     const service = createProjectDraftService(localStorage)
     service.saveDraft(JSON.stringify(createEmptyProject()))

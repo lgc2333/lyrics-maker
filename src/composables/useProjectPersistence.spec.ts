@@ -115,6 +115,21 @@ describe('useProjectPersistence', () => {
     expect(store.statusMessage?.key).toBe('status.project.openSuccess')
   })
 
+  it('openProject reports invalid opened project files', async () => {
+    mockOpenProject.mockResolvedValue({
+      ok: false,
+      reason: 'invalid',
+      errorMessage: 'invalid project',
+    })
+    const wrapper = mountHarness()
+
+    await wrapper.vm.openProject()
+
+    const store = useEditorStore()
+    expect(store.statusMessage?.key).toBe('status.project.openFailed')
+    expect(store.statusMessage?.params?.reason).toBe('invalid')
+  })
+
   it('restores a valid browser draft on mount and marks it dirty', async () => {
     const draft = { ...createEmptyProject(), title: 'Draft' }
     mockLoadDraft.mockReturnValue({

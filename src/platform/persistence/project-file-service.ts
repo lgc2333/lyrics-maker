@@ -5,6 +5,7 @@ import type {
   SaveFileHandleLike,
 } from './file-system-access'
 import { hasOpenFilePicker, hasSaveFilePicker } from './file-system-access'
+import { parseProjectDocument } from './project-json-schema'
 
 export interface SaveResult {
   ok: boolean
@@ -14,7 +15,7 @@ export interface SaveResult {
 
 export interface OpenProjectResult {
   ok: boolean
-  reason?: 'unsupported' | 'failed' | 'cancelled'
+  reason?: 'unsupported' | 'failed' | 'cancelled' | 'invalid'
   content?: string
   fileName?: string
   errorMessage?: string
@@ -114,9 +115,18 @@ export function createProjectFileService(api: ProjectFilePickerApi) {
     try {
       const file = await handle.getFile()
       const content = await file.text()
+      const parsed = JSON.parse(content) as unknown
+      if (!parseProjectDocument(parsed)) return { ok: false, reason: 'invalid' }
       cachedHandle = handle
       return { ok: true, content, fileName: file.name }
     } catch (error) {
+      if (error instanceof SyntaxError) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          errorMessage: error.message,
+        }
+      }
       return {
         ok: false,
         reason: 'failed',

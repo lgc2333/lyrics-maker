@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { createEmptyProject } from '../../core/domain/project'
 import { createProjectFileService } from './project-file-service'
 
 describe('project file service', () => {
@@ -30,7 +31,9 @@ describe('project file service', () => {
   })
 
   it('opens a project JSON file and caches the opened file handle', async () => {
-    const getFile = vi.fn(async () => new File(['{"version":1}'], 'demo.json'))
+    const getFile = vi.fn(
+      async () => new File([JSON.stringify(createEmptyProject())], 'demo.json'),
+    )
     const write = vi.fn()
     const close = vi.fn()
     const createWritable = vi.fn(async () => ({ write, close }))
@@ -40,7 +43,7 @@ describe('project file service', () => {
     const openResult = await service.openProject()
 
     expect(openResult.ok).toBe(true)
-    expect(openResult.content).toBe('{"version":1}')
+    expect(openResult.content).toBe(JSON.stringify(createEmptyProject()))
     expect(openResult.fileName).toBe('demo.json')
     expect(service.hasCachedHandle()).toBe(true)
 
@@ -56,6 +59,19 @@ describe('project file service', () => {
 
     expect(result.ok).toBe(false)
     expect(result.reason).toBe('unsupported')
+  })
+
+  it('returns invalid and does not cache the file handle when opened JSON is not a project document', async () => {
+    const getFile = vi.fn(async () => new File(['{"version":1}'], 'bad.json'))
+    const createWritable = vi.fn()
+    const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
+    const service = createProjectFileService({ showOpenFilePicker })
+
+    const result = await service.openProject()
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toBe('invalid')
+    expect(service.hasCachedHandle()).toBe(false)
   })
 
   it('saveAs accepts a project title for suggested file name', async () => {

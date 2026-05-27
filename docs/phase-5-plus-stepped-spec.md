@@ -427,6 +427,10 @@
   - 波形频谱切换
 - 补上音乐音量、音效音量按钮的点击静音与恢复（手动拉动音量条时解除静音状态，在音量为0或静音状态时都显示静音图标）
 
+### 后修改
+
+- project-draft-service 与 project-file-service 里可以接入zod做格式校验
+
 ### 建议涉及文件
 
 - `src/platform/settings/*`（新增）

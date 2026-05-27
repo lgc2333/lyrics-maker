@@ -78,6 +78,8 @@ export function useProjectPersistence() {
         store.showStatus('status.project.openFailed', {
           reason: result.errorMessage ?? result.reason,
         })
+      } else if (result.reason === 'invalid') {
+        store.showStatus('status.project.openFailed', { reason: result.reason })
       } else if (result.reason === 'cancelled') {
         store.showStatus('status.project.openCancelled')
       }

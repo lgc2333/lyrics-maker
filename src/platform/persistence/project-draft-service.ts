@@ -1,4 +1,5 @@
 import type { ProjectDocument } from '../../core/domain/project'
+import { parseProjectDocument } from './project-json-schema'
 
 export const PROJECT_DRAFT_STORAGE_KEY = 'lyrics-maker.project-draft.v1'
 
@@ -14,21 +15,6 @@ export interface DraftLoadResult {
   content?: string
   project?: ProjectDocument
   errorMessage?: string
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-export function isProjectDocument(value: unknown): value is ProjectDocument {
-  if (!isObject(value)) return false
-  if (value.version !== 1) return false
-  if (typeof value.title !== 'string') return false
-  if (!isObject(value.settings)) return false
-  if (value.settings.locale !== 'zh-CN') return false
-  if (!Array.isArray(value.lyrics)) return false
-  if (!Array.isArray(value.timingPoints)) return false
-  return true
 }
 
 export function createProjectDraftService(storage: Storage = localStorage) {
@@ -61,8 +47,9 @@ export function createProjectDraftService(storage: Storage = localStorage) {
 
     try {
       const parsed = JSON.parse(content) as unknown
-      if (!isProjectDocument(parsed)) return { ok: false, reason: 'invalid' }
-      return { ok: true, content, project: parsed }
+      const project = parseProjectDocument(parsed)
+      if (!project) return { ok: false, reason: 'invalid' }
+      return { ok: true, content, project }
     } catch (error) {
       return {
         ok: false,
