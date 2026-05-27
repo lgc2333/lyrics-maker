@@ -219,14 +219,14 @@ describe('useTimelineView', () => {
       timeline = useTimelineView(containerRef)
     })
     const store = useEditorStore()
-    const initialDivisor = store.project.settings.snapDivisor
+    const initialDivisor = store.snapDivisor
 
     const event = new WheelEvent('wheel', { deltaY: -100 })
     Object.defineProperty(event, 'shiftKey', { value: true })
     Object.defineProperty(event, 'deltaY', { value: -100 })
     timeline!.onWheel(event)
 
-    expect(store.project.settings.snapDivisor).toBe(initialDivisor)
+    expect(store.snapDivisor).toBe(initialDivisor)
     expect(store.statusMessage?.key).toBe('status.audioRequired')
     expect(store.statusMessage?.params?.action).toBe('transport.nextBeat')
 

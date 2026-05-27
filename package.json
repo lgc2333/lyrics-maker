@@ -18,17 +18,18 @@
   },
   "dependencies": {
     "@iconify/vue": "^5.0.1",
-    "@libraz/libsonare": "^1.1.0",
+    "@libraz/libsonare": "^1.2.1",
     "@vueuse/core": "^14.3.0",
     "pinia": "^3.0.4",
-    "vue": "^3.5.34",
+    "vue": "^3.5.35",
     "vue-i18n": "^11.4.4",
     "vue-router": "^5.0.7",
-    "wavesurfer.js": "^7.12.7"
+    "wavesurfer.js": "^7.12.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
-    "@cloudflare/vite-plugin": "^1.38.0",
+    "@cloudflare/vite-plugin": "^1.39.0",
     "@tailwindcss/vite": "^4.3.0",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.9.1",
@@ -36,7 +37,7 @@
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.10",
     "@vue/tsconfig": "^0.9.1",
-    "chrome-devtools-mcp": "^1.0.1",
+    "chrome-devtools-mcp": "^1.1.1",
     "daisyui": "^5.5.20",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
@@ -51,7 +52,7 @@
     "vite": "^8.0.14",
     "vitest": "^4.1.7",
     "vue-eslint-parser": "^10.4.0",
-    "vue-tsc": "^3.3.1",
-    "wrangler": "^4.94.0"
+    "vue-tsc": "^3.3.2",
+    "wrangler": "^4.95.0"
   }
 }

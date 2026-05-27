@@ -430,7 +430,7 @@
 ### 建议涉及文件
 
 - `src/platform/settings/*`（新增）
-- `src/composables/useLocalSettings.ts`（新增）
+- `src/composables/useLocalSettings.ts`（新增，也可以将 `src/composables/useProjectPersistence.ts` 集成至此，如果会增加耦合则不要这么做，请先与我探讨）
 - `src/components/shell/VolumePopover.vue`
 - `src/components/shell/TransportBar.vue`
 - `src/components/shell/MainView.vue`

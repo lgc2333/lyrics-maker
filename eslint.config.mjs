@@ -6,6 +6,7 @@ import prettier from 'eslint-config-prettier'
 
 export default antfu(
   {
+    ignores: ['pnpm-workspace.yaml'],
     markdown: false,
   },
   // disable temporarily because this is slowing down eslint

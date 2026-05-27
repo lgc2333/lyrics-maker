@@ -46,6 +46,24 @@ describe('verticalSliderPopover', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([[2.5]])
   })
 
+  it('exposes a stable button test id for icon button actions', async () => {
+    const wrapper = mount(VerticalSliderPopover, {
+      props: {
+        modelValue: 1,
+        label: 'Volume',
+        dataTestid: 'volume-control',
+        buttonTestid: 'volume-button',
+      },
+      slots: {
+        icon: '<span data-testid="icon" />',
+      },
+    })
+
+    await wrapper.get('[data-testid="volume-button"]').trigger('click')
+
+    expect(wrapper.emitted('click')).toHaveLength(1)
+  })
+
   it('keeps the hover path continuous between button and panel', () => {
     const wrapper = mount(VerticalSliderPopover, {
       props: {

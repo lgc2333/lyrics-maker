@@ -93,10 +93,10 @@ export function useLyricsEditor() {
       .filter((t): t is number => t !== undefined)
     return computeSnappedTime({
       rawTime,
-      snapEnabled: store.project.settings.snapEnabled,
+      snapEnabled: store.snapEnabled,
       timingPoints: store.project.timingPoints,
-      divisor: store.project.settings.snapDivisor,
-      triplets: store.project.settings.rhythmMode === 'triplets',
+      divisor: store.snapDivisor,
+      triplets: store.rhythmMode === 'triplets',
       existingEndTimes,
     })
   }

@@ -67,19 +67,20 @@ describe('transportBar', () => {
     expect(wrapper.find('[data-testid="snap-toggle"]').exists()).toBe(true)
   })
 
-  it('snap toggle updates project snapEnabled', async () => {
+  it('snap toggle updates local snap preference without dirtying the project', async () => {
     const wrapper = mount(TransportBar)
     const store = useEditorStore()
 
-    expect(store.project.settings.snapEnabled).toBe(true)
+    expect(store.snapEnabled).toBe(true)
 
     const toggle = wrapper.get('[data-testid="snap-toggle"]')
     expect((toggle.element as HTMLButtonElement).disabled).toBe(false)
 
     await toggle.trigger('click')
 
-    expect(store.project.settings.snapEnabled).toBe(false)
+    expect(store.snapEnabled).toBe(false)
     expect(store.statusMessage?.key).toBe('status.settings.snapEnabled')
+    expect(store.dirty).toBe(false)
   })
 
   it('renders previous bar button', () => {
@@ -252,12 +253,13 @@ describe('transportBar', () => {
     // Start from a non-max value
     store.setMusicVolume(0.5)
     await wrapper.vm.$nextTick()
-    const initial = store.project.audio.musicVolume
+    const initial = store.musicVolume
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
     await volCtrl.trigger('wheel', { deltaY: -100 })
 
-    expect(store.project.audio.musicVolume).toBeGreaterThan(initial)
+    expect(store.musicVolume).toBeGreaterThan(initial)
+    expect(store.musicMuted).toBe(false)
   })
 
   it('music volume wheel down decreases volume', async () => {
@@ -267,12 +269,12 @@ describe('transportBar', () => {
     // Set volume to 0.5 first
     store.setMusicVolume(0.5)
     await wrapper.vm.$nextTick()
-    expect(store.project.audio.musicVolume).toBe(0.5)
+    expect(store.musicVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
     await volCtrl.trigger('wheel', { deltaY: 100 })
 
-    expect(store.project.audio.musicVolume).toBeLessThan(0.5)
+    expect(store.musicVolume).toBeLessThan(0.5)
   })
 
   it('sfx volume wheel up increases volume', async () => {
@@ -281,12 +283,12 @@ describe('transportBar', () => {
 
     store.setSfxVolume(0.5)
     await wrapper.vm.$nextTick()
-    expect(store.project.audio.sfxVolume).toBe(0.5)
+    expect(store.sfxVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
     await volCtrl.trigger('wheel', { deltaY: -100 })
 
-    expect(store.project.audio.sfxVolume).toBeGreaterThan(0.5)
+    expect(store.sfxVolume).toBeGreaterThan(0.5)
   })
 
   it('sfx volume wheel down decreases volume', async () => {
@@ -295,12 +297,12 @@ describe('transportBar', () => {
 
     store.setSfxVolume(0.5)
     await wrapper.vm.$nextTick()
-    expect(store.project.audio.sfxVolume).toBe(0.5)
+    expect(store.sfxVolume).toBe(0.5)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
     await volCtrl.trigger('wheel', { deltaY: 100 })
 
-    expect(store.project.audio.sfxVolume).toBeLessThan(0.5)
+    expect(store.sfxVolume).toBeLessThan(0.5)
   })
 
   it('music volume wheel clamped at 0', async () => {
@@ -309,12 +311,12 @@ describe('transportBar', () => {
 
     store.setMusicVolume(0.01)
     await wrapper.vm.$nextTick()
-    expect(store.project.audio.musicVolume).toBe(0.01)
+    expect(store.musicVolume).toBe(0.01)
 
     const volCtrl = wrapper.get('[data-testid="music-volume"]')
     await volCtrl.trigger('wheel', { deltaY: 100 })
 
-    expect(store.project.audio.musicVolume).toBe(0)
+    expect(store.musicVolume).toBe(0)
   })
 
   it('sfx volume wheel clamped at 1', async () => {
@@ -323,12 +325,28 @@ describe('transportBar', () => {
 
     store.setSfxVolume(0.99)
     await wrapper.vm.$nextTick()
-    expect(store.project.audio.sfxVolume).toBe(0.99)
+    expect(store.sfxVolume).toBe(0.99)
 
     const volCtrl = wrapper.get('[data-testid="sfx-volume"]')
     await volCtrl.trigger('wheel', { deltaY: -100 })
 
-    expect(store.project.audio.sfxVolume).toBe(1)
+    expect(store.sfxVolume).toBe(1)
+  })
+
+  it('clicking volume buttons toggles mute state and slider movement unmutes', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="music-volume-button"]').trigger('click')
+
+    expect(store.musicMuted).toBe(true)
+    expect(
+      wrapper.get('[data-testid="music-volume"] icon-stub').attributes('icon'),
+    ).toBe('material-symbols:music-off-rounded')
+
+    await wrapper.get('[data-testid="music-volume"]').trigger('wheel', { deltaY: -100 })
+
+    expect(store.musicMuted).toBe(false)
   })
 
   // ---- Metronome toggle ----

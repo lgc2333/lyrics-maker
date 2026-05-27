@@ -102,6 +102,13 @@
       "cancel": "取消"
     }
   },
+  "preferences": {
+    "title": "首选项",
+    "close": "关闭",
+    "import": "导入本地设置",
+    "export": "导出本地设置",
+    "importPlaceholder": "粘贴本地设置 JSON"
+  },
   "errors": {
     "unsupportedFsApi": "当前浏览器不支持实时写盘",
     "saveFailed": "保存失败，请重试",
@@ -160,7 +167,20 @@
       "snapDivisor": "细分倍数已设为 {divisor}x",
       "snapEnabled": "吸附已{state}",
       "musicVolume": "音乐音量 {value}%",
-      "sfxVolume": "音效音量 {value}%"
+      "musicMuted": "音乐音量已静音",
+      "musicUnmuted": "音乐音量已恢复",
+      "sfxVolume": "音效音量 {value}%",
+      "sfxMuted": "音效音量已静音",
+      "sfxUnmuted": "音效音量已恢复",
+      "viewMode": "时间线视图已切换为 {mode}",
+      "autoFollowPlayback": "播放时自动跟随已{state}"
+    },
+    "localSettings": {
+      "loadFailed": "本地设置读取失败：{reason}",
+      "saveFailed": "本地设置保存失败：{reason}",
+      "importSuccess": "本地设置导入成功",
+      "importFailed": "本地设置导入失败：{reason}",
+      "exportSuccess": "本地设置已导出"
     },
     "lyrics": {
       "addLine": "已添加歌词行",

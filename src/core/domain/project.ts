@@ -2,9 +2,6 @@ export type LocaleCode = 'zh-CN'
 
 export interface ProjectSettings {
   locale: LocaleCode
-  snapDivisor: 1 | 2 | 4 | 8 | 16
-  rhythmMode: 'common' | 'triplets'
-  snapEnabled: boolean
 }
 
 export interface LyricWord {
@@ -33,7 +30,6 @@ export interface ProjectDocument {
   settings: ProjectSettings
   lyrics: LyricLine[]
   timingPoints: TimingPoint[]
-  audio: { musicVolume: number; sfxVolume: number }
 }
 
 export function createEmptyProject(): ProjectDocument {
@@ -42,9 +38,6 @@ export function createEmptyProject(): ProjectDocument {
     title: 'Untitled Project',
     settings: {
       locale: 'zh-CN',
-      snapDivisor: 4,
-      rhythmMode: 'common',
-      snapEnabled: true,
     },
     lyrics: [],
     timingPoints: [
@@ -56,9 +49,5 @@ export function createEmptyProject(): ProjectDocument {
         timeSignatureDenominator: 4,
       },
     ],
-    audio: {
-      musicVolume: 1,
-      sfxVolume: 0.8,
-    },
   }
 }

@@ -93,6 +93,7 @@ function createMockMetronome(): {
 describe('appShell', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.clear()
     document.documentElement.removeAttribute('data-theme')
     mockSaveByShortcut.mockReset()
     mockSaveAs.mockReset()
@@ -429,23 +430,9 @@ describe('appShell', () => {
     )
   })
 
-  it('defaults theme based on system preference', async () => {
-    const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(((
-      query: string,
-    ) => ({
-      matches: query.includes('prefers-color-scheme'),
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })) as typeof window.matchMedia)
-
+  it('defaults theme from local settings instead of system preference', async () => {
     const wrapper = mount(AppShell)
     await wrapper.vm.$nextTick()
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    matchMediaSpy.mockRestore()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 })

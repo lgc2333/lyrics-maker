@@ -19,11 +19,7 @@ import {
   createAddLyricLineCommand,
   createAddTimingPointCommand,
   createRemoveTimingPointCommand,
-  createSetAudioVolumeCommand,
   createSetProjectTitleCommand,
-  createSetRhythmModeCommand,
-  createSetSnapDivisorCommand,
-  createSetSnapEnabledCommand,
   createUpdateTimingPointCommand,
 } from '../core/commands/project-commands'
 import { createEmptyProject } from '../core/domain/project'
@@ -44,6 +40,12 @@ import type { MetronomeScheduler } from '../platform/audio/metronome'
 import { createMetronome } from '../platform/audio/metronome'
 import { createPrefixedId } from '../platform/ids/create-id'
 import type { SaveResult } from '../platform/persistence/project-file-service'
+import { DEFAULT_LOCAL_USER_SETTINGS } from '../platform/settings/local-settings'
+import type {
+  LocalRhythmMode,
+  LocalSnapDivisor,
+  LocalUserSettings,
+} from '../platform/settings/local-settings'
 
 function makeId(prefix: string) {
   return createPrefixedId(prefix)
@@ -120,6 +122,17 @@ export const useEditorStore = defineStore('editor', () => {
   const _tapCount = shallowRef(0) // incremented on every tap call, reset after idle timeout
   const _tapSampleCount = shallowRef(0)
   const _tapEstimatedBpm = shallowRef<number | null>(null)
+  const _musicVolume = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.musicVolume)
+  const _musicMuted = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.musicMuted)
+  const _sfxVolume = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.sfxVolume)
+  const _sfxMuted = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.sfxMuted)
+  const _snapEnabled = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.snapEnabled)
+  const _snapDivisor = shallowRef<LocalSnapDivisor>(
+    DEFAULT_LOCAL_USER_SETTINGS.snapDivisor,
+  )
+  const _rhythmMode = shallowRef<LocalRhythmMode>(
+    DEFAULT_LOCAL_USER_SETTINGS.rhythmMode,
+  )
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -149,6 +162,17 @@ export const useEditorStore = defineStore('editor', () => {
   const tapCount = computed(() => _tapCount.value)
   const tapSampleCount = computed(() => _tapSampleCount.value)
   const tapEstimatedBpm = computed(() => _tapEstimatedBpm.value)
+  const musicVolume = computed(() => _musicVolume.value)
+  const musicMuted = computed(() => _musicMuted.value)
+  const effectiveMusicVolume = computed(() =>
+    _musicMuted.value ? 0 : _musicVolume.value,
+  )
+  const sfxVolume = computed(() => _sfxVolume.value)
+  const sfxMuted = computed(() => _sfxMuted.value)
+  const effectiveSfxVolume = computed(() => (_sfxMuted.value ? 0 : _sfxVolume.value))
+  const snapEnabled = computed(() => _snapEnabled.value)
+  const snapDivisor = computed(() => _snapDivisor.value)
+  const rhythmMode = computed(() => _rhythmMode.value)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
   const hasAudio = computed(() => _audioFile.value !== null && duration.value > 0)
   const progressRatio = computed(() =>
@@ -193,7 +217,7 @@ export const useEditorStore = defineStore('editor', () => {
   function _ensureAudioTransport(): AudioTransport {
     if (!_audioTransport.value) {
       _audioTransport.value = _audioTransportFactory()
-      _audioTransport.value.setVolume(project.value.audio.musicVolume)
+      _audioTransport.value.setVolume(effectiveMusicVolume.value)
     }
     return _audioTransport.value
   }
@@ -201,8 +225,7 @@ export const useEditorStore = defineStore('editor', () => {
   function _ensureMetronome(): MetronomeScheduler {
     if (!_metronome.value) {
       _metronome.value = _metronomeFactory()
-      // Sync initial SFX volume from project state
-      _metronome.value.setSfxVolume(project.value.audio.sfxVolume)
+      _metronome.value.setSfxVolume(effectiveSfxVolume.value)
     }
     return _metronome.value
   }
@@ -296,10 +319,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   function _syncAudioHardware() {
     if (_audioTransport.value) {
-      _audioTransport.value.setVolume(project.value.audio.musicVolume)
+      _audioTransport.value.setVolume(effectiveMusicVolume.value)
     }
     if (_metronome.value) {
-      _metronome.value.setSfxVolume(project.value.audio.sfxVolume)
+      _metronome.value.setSfxVolume(effectiveSfxVolume.value)
     }
   }
 
@@ -334,20 +357,63 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function _serializedProject(): string {
-    return JSON.stringify(project.value, null, 2)
+    return JSON.stringify(_normalizeProject(project.value), null, 2)
+  }
+
+  function _normalizeProject(input: ProjectDocument): ProjectDocument {
+    return {
+      version: 1,
+      title: input.title,
+      settings: {
+        locale: input.settings.locale,
+      },
+      lyrics: structuredClone(input.lyrics),
+      timingPoints: structuredClone(input.timingPoints),
+    }
   }
 
   function loadProject(
     nextProject: ProjectDocument,
     options: { dirty?: boolean; statusKey?: string } = {},
   ): void {
-    history.value = createCommandHistory<ProjectDocument>(structuredClone(nextProject))
+    history.value = createCommandHistory<ProjectDocument>(
+      _normalizeProject(nextProject),
+    )
     dirty.value = options.dirty ?? false
     triggerRef(history)
     showStatus(
       options.statusKey ??
         (options.dirty ? 'status.project.draftRestored' : 'status.project.openSuccess'),
     )
+  }
+
+  function applyLocalSettings(settings: LocalUserSettings): void {
+    _musicVolume.value = settings.musicVolume
+    _musicMuted.value = settings.musicMuted
+    _sfxVolume.value = settings.sfxVolume
+    _sfxMuted.value = settings.sfxMuted
+    _snapEnabled.value = settings.snapEnabled
+    _snapDivisor.value = settings.snapDivisor
+    _rhythmMode.value = settings.rhythmMode
+    _metronomeState.value = settings.metronomeEnabled ? 'on' : 'off'
+    _syncAudioHardware()
+    if (_metronome.value) {
+      _metronome.value.setEnabled(settings.metronomeEnabled)
+    }
+  }
+
+  function exportLocalSettingsBase(): LocalUserSettings {
+    return {
+      ...DEFAULT_LOCAL_USER_SETTINGS,
+      musicVolume: _musicVolume.value,
+      musicMuted: _musicMuted.value,
+      sfxVolume: _sfxVolume.value,
+      sfxMuted: _sfxMuted.value,
+      metronomeEnabled: _metronomeState.value === 'on',
+      snapEnabled: _snapEnabled.value,
+      snapDivisor: _snapDivisor.value,
+      rhythmMode: _rhythmMode.value,
+    }
   }
 
   function setProjectTitle(title: string): void {
@@ -652,24 +718,42 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setMusicVolume(value: number): void {
     const clamped = Math.max(0, Math.min(1, value))
-    execute(
-      createSetAudioVolumeCommand('music', clamped),
-      'status.settings.musicVolume',
-      {
-        value: Math.round(clamped * 100),
-      },
-    )
-    // Also apply to audio transport if loaded
-    _audioTransport.value?.setVolume(clamped)
+    _musicVolume.value = clamped
+    if (clamped > 0) _musicMuted.value = false
+    _audioTransport.value?.setVolume(effectiveMusicVolume.value)
+    showStatus('status.settings.musicVolume', {
+      value: Math.round(effectiveMusicVolume.value * 100),
+    })
   }
 
   function setSfxVolume(value: number): void {
     const clamped = Math.max(0, Math.min(1, value))
-    execute(createSetAudioVolumeCommand('sfx', clamped), 'status.settings.sfxVolume', {
-      value: Math.round(clamped * 100),
+    _sfxVolume.value = clamped
+    if (clamped > 0) _sfxMuted.value = false
+    _metronome.value?.setSfxVolume(effectiveSfxVolume.value)
+    showStatus('status.settings.sfxVolume', {
+      value: Math.round(effectiveSfxVolume.value * 100),
     })
-    // Also apply to metronome if loaded
-    _metronome.value?.setSfxVolume(clamped)
+  }
+
+  function setMusicMuted(muted: boolean): void {
+    _musicMuted.value = muted
+    _audioTransport.value?.setVolume(effectiveMusicVolume.value)
+    showStatus(muted ? 'status.settings.musicMuted' : 'status.settings.musicUnmuted')
+  }
+
+  function setSfxMuted(muted: boolean): void {
+    _sfxMuted.value = muted
+    _metronome.value?.setSfxVolume(effectiveSfxVolume.value)
+    showStatus(muted ? 'status.settings.sfxMuted' : 'status.settings.sfxUnmuted')
+  }
+
+  function toggleMusicMuted(): void {
+    setMusicMuted(!_musicMuted.value)
+  }
+
+  function toggleSfxMuted(): void {
+    setSfxMuted(!_sfxMuted.value)
   }
 
   function seekPlayback(time: number): void {
@@ -724,17 +808,18 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 3: Settings ----
 
   function setRhythmMode(mode: 'common' | 'triplets'): void {
-    execute(createSetRhythmModeCommand(mode), 'status.settings.rhythmMode', { mode })
+    _rhythmMode.value = mode
+    showStatus('status.settings.rhythmMode', { mode })
   }
 
-  function setSnapDivisor(divisor: 1 | 2 | 4 | 8 | 16): void {
-    execute(createSetSnapDivisorCommand(divisor), 'status.settings.snapDivisor', {
-      divisor,
-    })
+  function setSnapDivisor(divisor: LocalSnapDivisor): void {
+    _snapDivisor.value = divisor
+    showStatus('status.settings.snapDivisor', { divisor })
   }
 
   function setSnapEnabled(enabled: boolean): void {
-    execute(createSetSnapEnabledCommand(enabled), 'status.settings.snapEnabled', {
+    _snapEnabled.value = enabled
+    showStatus('status.settings.snapEnabled', {
       enabled,
       state: enabled ? '开启' : '关闭',
     })
@@ -867,6 +952,8 @@ export const useEditorStore = defineStore('editor', () => {
     redo,
     markClean,
     loadProject,
+    applyLocalSettings,
+    exportLocalSettingsBase,
     setProjectTitle,
     saveProject,
     saveProjectAs,
@@ -882,6 +969,15 @@ export const useEditorStore = defineStore('editor', () => {
     tapCount,
     tapSampleCount,
     tapEstimatedBpm,
+    musicVolume,
+    musicMuted,
+    effectiveMusicVolume,
+    sfxVolume,
+    sfxMuted,
+    effectiveSfxVolume,
+    snapEnabled,
+    snapDivisor,
+    rhythmMode,
     duration,
     hasAudio,
     progressRatio,
@@ -911,6 +1007,10 @@ export const useEditorStore = defineStore('editor', () => {
     // Phase 2: volume
     setMusicVolume,
     setSfxVolume,
+    setMusicMuted,
+    setSfxMuted,
+    toggleMusicMuted,
+    toggleSfxMuted,
 
     // Phase 3: audio file reference (for WaveSurfer)
     audioFile: computed(() => _audioFile.value),

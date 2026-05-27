@@ -285,7 +285,7 @@ describe('editor store (phase 1)', () => {
     expect(store.dirty).toBe(false)
   })
 
-  it('saveProject serializes project and calls saveAs', async () => {
+  it('saveProject serializes only project data and calls saveAs', async () => {
     const save = vi.fn(async (_content: string) => ({
       ok: false as const,
       reason: 'no_cached_handle' as const,
@@ -304,6 +304,9 @@ describe('editor store (phase 1)', () => {
     expect(parsed.version).toBe(1)
     expect(parsed.lyrics).toHaveLength(1)
     expect(parsed.lyrics[0].words[0].text).toBe('hello world')
+    expect(parsed.audio).toBeUndefined()
+    expect(parsed.settings.snapEnabled).toBeUndefined()
+    expect(parsed.settings.snapDivisor).toBeUndefined()
     expect(store.dirty).toBe(false)
     expect(store.statusMessage?.key).toBe('status.project.saveSuccess')
   })
@@ -351,6 +354,33 @@ describe('editor store (phase 1)', () => {
     expect(store.dirty).toBe(false)
     expect(store.canUndo).toBe(false)
     expect(store.statusMessage?.key).toBe('status.project.openSuccess')
+  })
+
+  it('strips legacy preference fields when loading old project data', async () => {
+    const save = vi.fn(async (_content: string) => ({ ok: true as const }))
+    const saveAs = vi.fn()
+    const service = { save, saveAs, hasCachedHandle: () => true }
+    const store = useEditorStore()
+
+    store.loadProject({
+      ...store.project,
+      settings: {
+        ...store.project.settings,
+        snapEnabled: false,
+        snapDivisor: 16,
+      },
+      audio: {
+        musicVolume: 0.2,
+        sfxVolume: 0.4,
+      },
+    } as never)
+
+    await store.saveProject(service)
+
+    const parsed = JSON.parse(save.mock.calls[0][0])
+    expect(parsed.audio).toBeUndefined()
+    expect(parsed.settings.snapEnabled).toBeUndefined()
+    expect(parsed.settings.snapDivisor).toBeUndefined()
   })
 
   it('loads a restored draft as dirty', () => {
@@ -488,33 +518,22 @@ describe('editor store (phase 2 - timing points)', () => {
   })
 })
 
-describe('editor store (phase 2 - volume)', () => {
+describe('editor store (phase 5 plus part 6 - local preference hardware sync)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('updates musicVolume and sfxVolume independently', () => {
+  it('updates music and sfx volumes without dirtying project history', () => {
     const store = useEditorStore()
 
     store.setMusicVolume(0.2)
     store.setSfxVolume(0.7)
 
-    expect(store.project.audio.musicVolume).toBe(0.2)
-    expect(store.project.audio.sfxVolume).toBe(0.7)
+    expect(store.musicVolume).toBe(0.2)
+    expect(store.sfxVolume).toBe(0.7)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
   })
 
-  it('volume commands go through command history (undo/redo works)', () => {
-    const store = useEditorStore()
-
-    store.setMusicVolume(0.3)
-    expect(store.project.audio.musicVolume).toBe(0.3)
-
-    store.undo()
-    expect(store.project.audio.musicVolume).toBe(1) // default
-
-    store.redo()
-    expect(store.project.audio.musicVolume).toBe(0.3)
-  })
-
-  it('undo/redo re-syncs volume to audio hardware', () => {
+  it('applies local volume preferences to audio hardware', async () => {
     const mockAudio = createMockAudioTransport()
     __overrideAudioTransportFactory(() => mockAudio.transport)
     const mockMetronome = createMockMetronome()
@@ -523,47 +542,32 @@ describe('editor store (phase 2 - volume)', () => {
 
     const store = useEditorStore()
 
-    // Import audio to create the transport (which initializes volume=1)
-    store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
-    // Toggle metronome to create the metronome instance
-    store.toggleMetronome()
-
-    // Change volumes
     store.setMusicVolume(0.3)
     store.setSfxVolume(0.5)
 
-    // Undo music volume — transport should be notified
-    store.undo()
-    expect(mockAudio.transport.setVolume).toHaveBeenCalledWith(1) // restored to default
-    // SFX volume should still be 0.5 (only music volume was undone)
-    expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.5)
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.toggleMetronome()
 
-    // Undo sfx volume — metronome should be notified
-    store.undo()
-    expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.8) // restored to default
+    expect(mockAudio.transport.setVolume).toHaveBeenCalledWith(0.3)
+    expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.5)
   })
 })
 
 describe('editor store (phase 5 plus part 2 - settings)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('updates snapEnabled through command history and reports status', () => {
+  it('updates snapEnabled as a local preference without command history', () => {
     const store = useEditorStore()
 
-    expect(store.project.settings.snapEnabled).toBe(true)
+    expect(store.snapEnabled).toBe(true)
 
     store.setSnapEnabled(false)
 
-    expect(store.project.settings.snapEnabled).toBe(false)
+    expect(store.snapEnabled).toBe(false)
     expect(store.statusMessage?.key).toBe('status.settings.snapEnabled')
     expect(store.statusMessage?.params?.enabled).toBe(false)
-
-    store.undo()
-    expect(store.project.settings.snapEnabled).toBe(true)
-    expect(store.canRedo).toBe(true)
-
-    store.redo()
-    expect(store.project.settings.snapEnabled).toBe(false)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
   })
 })
 
@@ -1131,8 +1135,8 @@ describe('editor store (phase 2 - metronome)', () => {
     const store = useEditorStore()
 
     store.setMusicVolume(0.3)
-    expect(store.project.audio.musicVolume).toBe(0.3)
-    expect(store.project.audio.sfxVolume).toBe(0.8) // unchanged default
+    expect(store.musicVolume).toBe(0.3)
+    expect(store.sfxVolume).toBe(0.8) // unchanged default
   })
 
   it('turns metronome off silently while not playing', () => {

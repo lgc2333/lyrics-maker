@@ -55,12 +55,12 @@ export function useTimelineView(
 
   // ---- Project-persisted state (via store/commands) ----
   const divisor = computed({
-    get: () => store.project.settings.snapDivisor,
+    get: () => store.snapDivisor,
     set: (v: 1 | 2 | 4 | 8 | 16) => store.setSnapDivisor(v),
   })
 
   const rhythmMode = computed({
-    get: () => store.project.settings.rhythmMode,
+    get: () => store.rhythmMode,
     set: (v: 'common' | 'triplets') => store.setRhythmMode(v),
   })
 
@@ -75,7 +75,7 @@ export function useTimelineView(
   let playheadPlugin: PlayheadOverlayPlugin | null = null
   let lastUserScrollAt = 0
   let resizeObserver: ResizeObserver | null = null
-  const USER_SCROLL_COOLDOWN_MS = 500
+  const USER_SCROLL_COOLDOWN_MS = 1000
 
   function _buildOverlayParams() {
     return {

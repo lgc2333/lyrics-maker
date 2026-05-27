@@ -37,6 +37,7 @@ const emit = defineEmits<{
   addLyricLine: []
   undo: []
   redo: []
+  openPreferences: []
   updateProjectTitle: [title: string]
 }>()
 
@@ -196,8 +197,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-preferences"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @click="(emit('openPreferences'), closeMenu())"
           >
             {{ t('shell.menu.preferences') }}
           </button>

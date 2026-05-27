@@ -41,6 +41,22 @@ function toggleRhythmMode(): void {
   timeline.rhythmMode.value =
     timeline.rhythmMode.value === 'triplets' ? 'common' : 'triplets'
 }
+
+function onViewModeToggle(): void {
+  if (!timeline) return
+  const nextMode = timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform'
+  timeline.setViewMode(nextMode)
+  store.showStatus('status.settings.viewMode', { mode: nextMode })
+}
+
+function onAutoFollowToggle(): void {
+  if (!timeline) return
+  const enabled = !timeline.autoFollowPlayback.value
+  timeline.setAutoFollowPlayback(enabled)
+  store.showStatus('status.settings.autoFollowPlayback', {
+    state: enabled ? '开启' : '关闭',
+  })
+}
 </script>
 
 <template>
@@ -58,11 +74,7 @@ function toggleRhythmMode(): void {
       :slider-step="0.1"
       :wheel-step="0.1"
       :popover-enabled="timeline.viewMode.value === 'spectrogram'"
-      @click="
-        timeline.setViewMode(
-          timeline.viewMode.value === 'waveform' ? 'spectrogram' : 'waveform',
-        )
-      "
+      @click="onViewModeToggle"
       @update:model-value="setVerticalZoom"
     >
       <template #icon>
@@ -88,9 +100,9 @@ function toggleRhythmMode(): void {
     <button
       data-testid="snap-toggle"
       class="btn btn-ghost btn-sm btn-square"
-      :class="{ 'btn-active text-primary': store.project.settings.snapEnabled }"
+      :class="{ 'btn-active text-primary': store.snapEnabled }"
       :title="t('transport.snap')"
-      @click="store.setSnapEnabled(!store.project.settings.snapEnabled)"
+      @click="store.setSnapEnabled(!store.snapEnabled)"
     >
       <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
@@ -101,7 +113,7 @@ function toggleRhythmMode(): void {
       class="btn btn-ghost btn-sm btn-square"
       :class="{ 'btn-active text-primary': timeline.autoFollowPlayback.value }"
       :title="t('transport.autoFollowPlayback')"
-      @click="timeline.setAutoFollowPlayback(!timeline.autoFollowPlayback.value)"
+      @click="onAutoFollowToggle"
     >
       <Icon icon="material-symbols:filter-center-focus-rounded" class="h-5 w-5" />
     </button>
@@ -206,23 +218,41 @@ function toggleRhythmMode(): void {
 
     <VerticalSliderPopover
       data-testid="music-volume"
-      :model-value="store.project.audio.musicVolume"
+      button-testid="music-volume-button"
+      :model-value="store.musicVolume"
       :label="t('transport.musicVolume')"
       @update:model-value="store.setMusicVolume"
+      @click="store.toggleMusicMuted()"
     >
       <template #icon>
-        <Icon icon="material-symbols:music-note-rounded" class="h-5 w-5" />
+        <Icon
+          :icon="
+            store.musicMuted || store.musicVolume === 0
+              ? 'material-symbols:music-off-rounded'
+              : 'material-symbols:music-note-rounded'
+          "
+          class="h-5 w-5"
+        />
       </template>
     </VerticalSliderPopover>
 
     <VerticalSliderPopover
       data-testid="sfx-volume"
-      :model-value="store.project.audio.sfxVolume"
+      button-testid="sfx-volume-button"
+      :model-value="store.sfxVolume"
       :label="t('transport.sfxVolume')"
       @update:model-value="store.setSfxVolume"
+      @click="store.toggleSfxMuted()"
     >
       <template #icon>
-        <Icon icon="mdi:bell-outline" class="h-5 w-5" />
+        <Icon
+          :icon="
+            store.sfxMuted || store.sfxVolume === 0
+              ? 'material-symbols:volume-off-outline-rounded'
+              : 'material-symbols:volume-up-outline-rounded'
+          "
+          class="h-5 w-5"
+        />
       </template>
     </VerticalSliderPopover>
   </section>

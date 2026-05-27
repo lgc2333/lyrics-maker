@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  provide,
-  ref,
-  shallowRef,
-  watch,
-} from 'vue'
+import { computed, provide, ref, shallowRef, watch } from 'vue'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
+import { useLocalSettings } from '../../composables/useLocalSettings'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
@@ -21,11 +14,13 @@ import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
+import PreferencesModal from './PreferencesModal.vue'
 import StatusBar from './StatusBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
 import UnsavedChangesDialog from './UnsavedChangesDialog.vue'
 import {
+  LOCAL_SETTINGS_KEY,
   LYRICS_EDITOR_KEY,
   MAIN_VIEW_HEIGHT_KEY,
   TIMELINE_CONTAINER_REF_KEY,
@@ -38,10 +33,10 @@ const editorMode = ref<'timing' | 'lyrics'>('timing')
 const lyricsEditor = useLyricsEditor()
 provide(LYRICS_EDITOR_KEY, lyricsEditor)
 const theme = ref<'light' | 'dark'>('light')
-const followSystemTheme = ref(true)
 const audioInput = ref<HTMLInputElement | null>(null)
 const showPasteModal = ref(false)
 const showUnsavedOpenDialog = ref(false)
+const showPreferencesModal = ref(false)
 
 // ---- Timeline view ----
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
@@ -88,13 +83,23 @@ function onResizePointerUp() {
 
 provide(MAIN_VIEW_HEIGHT_KEY, mainViewHeight)
 
-function detectSystemTheme(): 'light' | 'dark' {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
+const localSettings = useLocalSettings({
+  theme,
+  mainViewHeight,
+  timeline,
+})
+provide(LOCAL_SETTINGS_KEY, localSettings)
 
 function toggleTheme(): void {
-  followSystemTheme.value = false
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
+}
+
+function onExportSettings(): void {
+  localSettings.reportExportSuccess()
+}
+
+function onImportSettings(content: string): void {
+  localSettings.importFromText(content)
 }
 
 function openAudioPicker(): void {
@@ -161,25 +166,6 @@ function onAddLyricLine(): void {
     },
   ])
 }
-
-let mediaQuery: MediaQueryList | null = null
-let mediaQueryHandler: ((event: MediaQueryListEvent) => void) | null = null
-
-onMounted(() => {
-  theme.value = detectSystemTheme()
-  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQueryHandler = (event: MediaQueryListEvent) => {
-    if (!followSystemTheme.value) return
-    theme.value = event.matches ? 'dark' : 'light'
-  }
-  mediaQuery.addEventListener('change', mediaQueryHandler)
-})
-
-onBeforeUnmount(() => {
-  if (mediaQuery && mediaQueryHandler) {
-    mediaQuery.removeEventListener('change', mediaQueryHandler)
-  }
-})
 
 watch(
   theme,
@@ -255,6 +241,7 @@ useEditorShortcuts({
       @redo="store.redo"
       @openAudioFile="openAudioPicker"
       @pasteLyrics="showPasteModal = true"
+      @openPreferences="showPreferencesModal = true"
       @importLyricsFile="() => {}"
       @addLyricLine="onAddLyricLine"
     />
@@ -268,6 +255,13 @@ useEditorShortcuts({
       @saveAndOpen="saveAndOpenProject"
       @discardAndOpen="discardAndOpenProject"
       @cancel="cancelOpenProject"
+    />
+    <PreferencesModal
+      v-if="showPreferencesModal"
+      :export-text="localSettings.exportToText()"
+      @close="showPreferencesModal = false"
+      @exportSettings="onExportSettings"
+      @importSettings="onImportSettings"
     />
     <input
       ref="audioInput"

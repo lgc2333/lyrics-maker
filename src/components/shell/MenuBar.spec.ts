@@ -139,7 +139,18 @@ describe('menuBar', () => {
     expect(
       (wrapper.get('[data-testid="menu-preferences"]').element as HTMLButtonElement)
         .disabled,
-    ).toBe(true)
+    ).toBe(false)
+  })
+
+  it('emits openPreferences from the file menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-preferences"]').trigger('click')
+
+    expect(wrapper.emitted('openPreferences')).toHaveLength(1)
   })
 
   it('emits project file actions from the file menu', async () => {

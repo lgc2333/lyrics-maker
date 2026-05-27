@@ -9,9 +9,6 @@ describe('createEmptyProject', () => {
       title: 'Untitled Project',
       settings: {
         locale: 'zh-CN',
-        snapDivisor: 4,
-        rhythmMode: 'common',
-        snapEnabled: true,
       },
       lyrics: [],
       timingPoints: [
@@ -23,28 +20,15 @@ describe('createEmptyProject', () => {
           timeSignatureDenominator: 4,
         },
       ],
-      audio: {
-        musicVolume: 1,
-        sfxVolume: 0.8,
-      },
     })
   })
 
-  it('includes phase-2 timing and volume defaults', () => {
+  it('includes phase-2 timing defaults without user preference fields', () => {
     const project = createEmptyProject()
     expect(project.timingPoints).toHaveLength(1)
     expect(project.timingPoints[0].time).toBe(0)
-    expect(project.audio.musicVolume).toBe(1)
-    expect(project.audio.sfxVolume).toBe(0.8)
-  })
-
-  it('has snapDivisor defaulting to 4', () => {
-    const p = createEmptyProject()
-    expect(p.settings.snapDivisor).toBe(4)
-  })
-
-  it('has rhythmMode defaulting to common', () => {
-    const p = createEmptyProject()
-    expect(p.settings.rhythmMode).toBe('common')
+    expect('audio' in project).toBe(false)
+    expect('snapDivisor' in project.settings).toBe(false)
+    expect('snapEnabled' in project.settings).toBe(false)
   })
 })

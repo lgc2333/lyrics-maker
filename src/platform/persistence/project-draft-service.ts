@@ -25,9 +25,9 @@ export function isProjectDocument(value: unknown): value is ProjectDocument {
   if (value.version !== 1) return false
   if (typeof value.title !== 'string') return false
   if (!isObject(value.settings)) return false
+  if (value.settings.locale !== 'zh-CN') return false
   if (!Array.isArray(value.lyrics)) return false
   if (!Array.isArray(value.timingPoints)) return false
-  if (!isObject(value.audio)) return false
   return true
 }
 
