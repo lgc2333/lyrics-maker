@@ -40,11 +40,11 @@ describe('project draft service', () => {
     expect(result.reason).toBe('invalid')
   })
 
-  it('returns invalid when stored draft is not a project document', () => {
+  it('returns invalid when stored draft has an unsupported project version', () => {
     const service = createProjectDraftService(localStorage)
     localStorage.setItem(
       'lyrics-maker.project-draft.v1',
-      JSON.stringify({ version: 1 }),
+      JSON.stringify({ version: 2 }),
     )
 
     const result = service.loadDraft()
@@ -68,6 +68,29 @@ describe('project draft service', () => {
 
     expect(result.ok).toBe(false)
     expect(result.reason).toBe('invalid')
+  })
+
+  it('loads old drafts with legacy preference fields and strips them from the parsed project', () => {
+    const service = createProjectDraftService(localStorage)
+    const project = createEmptyProject()
+    localStorage.setItem(
+      'lyrics-maker.project-draft.v1',
+      JSON.stringify({
+        ...project,
+        audio: { musicVolume: 0.25, sfxVolume: 0.5 },
+        settings: {
+          ...project.settings,
+          snapEnabled: false,
+          snapDivisor: 8,
+        },
+      }),
+    )
+
+    const result = service.loadDraft()
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected legacy draft to load')
+    expect(result.project).toEqual(project)
   })
 
   it('clears saved drafts', () => {

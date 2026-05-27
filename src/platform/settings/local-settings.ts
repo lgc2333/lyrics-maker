@@ -7,47 +7,29 @@ export type LocalSnapDivisor = 1 | 2 | 4 | 8 | 16
 
 export const LOCAL_SETTINGS_STORAGE_KEY = 'lyrics-maker.local-settings.v1'
 
-const localUserSettingsSchema = z.strictObject({
-  version: z.literal(1),
-  theme: z.enum(['light', 'dark']),
-  musicVolume: z.number().min(0).max(1),
-  musicMuted: z.boolean(),
-  sfxVolume: z.number().min(0).max(1),
-  sfxMuted: z.boolean(),
-  viewMode: z.enum(['waveform', 'spectrogram']),
-  spectrogramVerticalZoom: z.number().min(0.5).max(10),
-  autoFollowPlayback: z.boolean(),
-  metronomeEnabled: z.boolean(),
-  snapEnabled: z.boolean(),
-  snapDivisor: z.union([
-    z.literal(1),
-    z.literal(2),
-    z.literal(4),
-    z.literal(8),
-    z.literal(16),
-  ]),
-  rhythmMode: z.enum(['common', 'triplets']),
-  mainViewHeight: z.number().min(180).max(520),
+const localUserSettingsSchema = z.object({
+  version: z.literal(1).default(1),
+  theme: z.enum(['light', 'dark']).default('light'),
+  musicVolume: z.number().min(0).max(1).default(1),
+  musicMuted: z.boolean().default(false),
+  sfxVolume: z.number().min(0).max(1).default(0.8),
+  sfxMuted: z.boolean().default(false),
+  viewMode: z.enum(['waveform', 'spectrogram']).default('waveform'),
+  spectrogramVerticalZoom: z.number().min(0.5).max(10).default(5),
+  autoFollowPlayback: z.boolean().default(true),
+  metronomeEnabled: z.boolean().default(false),
+  snapEnabled: z.boolean().default(true),
+  snapDivisor: z
+    .union([z.literal(1), z.literal(2), z.literal(4), z.literal(8), z.literal(16)])
+    .default(4),
+  rhythmMode: z.enum(['common', 'triplets']).default('common'),
+  mainViewHeight: z.number().min(180).max(520).default(250),
 })
 
 export type LocalUserSettings = z.infer<typeof localUserSettingsSchema>
 
-export const DEFAULT_LOCAL_USER_SETTINGS: LocalUserSettings = {
-  version: 1,
-  theme: 'light',
-  musicVolume: 1,
-  musicMuted: false,
-  sfxVolume: 0.8,
-  sfxMuted: false,
-  viewMode: 'waveform',
-  spectrogramVerticalZoom: 5,
-  autoFollowPlayback: true,
-  metronomeEnabled: false,
-  snapEnabled: true,
-  snapDivisor: 4,
-  rhythmMode: 'common',
-  mainViewHeight: 250,
-}
+export const DEFAULT_LOCAL_USER_SETTINGS: LocalUserSettings =
+  localUserSettingsSchema.parse({})
 
 export type LocalSettingsParseResult =
   | { ok: true; settings: LocalUserSettings }

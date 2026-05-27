@@ -48,7 +48,7 @@ describe('local settings validation', () => {
     expect(result.reason).toBe('invalid')
   })
 
-  it('rejects settings payloads with unknown fields', () => {
+  it('ignores unknown settings fields', () => {
     const result = parseLocalUserSettings({
       ...DEFAULT_LOCAL_USER_SETTINGS,
       audio: {
@@ -56,7 +56,26 @@ describe('local settings validation', () => {
       },
     })
 
-    expect(result.ok).toBe(false)
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected settings with unknown fields to parse')
+    expect('audio' in result.settings).toBe(false)
+  })
+
+  it('uses defaults for missing settings fields', () => {
+    const result = parseLocalUserSettings({
+      version: 1,
+      theme: 'dark',
+      musicVolume: 0.4,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected partial settings to parse')
+    expect(result.settings.theme).toBe('dark')
+    expect(result.settings.musicVolume).toBe(0.4)
+    expect(result.settings.sfxVolume).toBe(DEFAULT_LOCAL_USER_SETTINGS.sfxVolume)
+    expect(result.settings.spectrogramVerticalZoom).toBe(
+      DEFAULT_LOCAL_USER_SETTINGS.spectrogramVerticalZoom,
+    )
   })
 })
 

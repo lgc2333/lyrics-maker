@@ -52,6 +52,32 @@ describe('project file service', () => {
     expect(write).toHaveBeenCalledWith('changed')
   })
 
+  it('opens old project JSON files with legacy preference fields', async () => {
+    const project = createEmptyProject()
+    const legacyProject = {
+      ...project,
+      audio: { musicVolume: 0.25, sfxVolume: 0.5 },
+      settings: {
+        ...project.settings,
+        snapEnabled: false,
+        snapDivisor: 8,
+      },
+    }
+    const getFile = vi.fn(
+      async () => new File([JSON.stringify(legacyProject)], 'legacy.json'),
+    )
+    const createWritable = vi.fn()
+    const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
+    const service = createProjectFileService({ showOpenFilePicker })
+
+    const openResult = await service.openProject()
+
+    expect(openResult.ok).toBe(true)
+    expect(service.hasCachedHandle()).toBe(true)
+    expect(openResult.project).toEqual(project)
+    expect(openResult.content).toBe(JSON.stringify(project))
+  })
+
   it('returns unsupported when opening is unavailable', async () => {
     const service = createProjectFileService({})
 
@@ -61,8 +87,8 @@ describe('project file service', () => {
     expect(result.reason).toBe('unsupported')
   })
 
-  it('returns invalid and does not cache the file handle when opened JSON is not a project document', async () => {
-    const getFile = vi.fn(async () => new File(['{"version":1}'], 'bad.json'))
+  it('returns invalid and does not cache the file handle when opened JSON has an unsupported project version', async () => {
+    const getFile = vi.fn(async () => new File(['{"version":2}'], 'bad.json'))
     const createWritable = vi.fn()
     const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
     const service = createProjectFileService({ showOpenFilePicker })

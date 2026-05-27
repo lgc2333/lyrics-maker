@@ -48,6 +48,16 @@ const RHYTHM_MODE_LABEL_KEYS: Record<string, string> = {
   triplets: 'transport.rhythmTriplets',
 }
 
+const REASON_LABEL_KEYS: Record<string, string> = {
+  cancelled: 'status.reason.cancelled',
+  failed: 'status.reason.failed',
+  invalid: 'status.reason.invalid',
+  no_cached_handle: 'status.reason.noCachedHandle',
+  no_draft: 'status.reason.noDraft',
+  unknown: 'status.reason.unknown',
+  unsupported: 'status.reason.unsupported',
+}
+
 function translateMappedValue(
   value: string | number | boolean,
   map: Record<string, string>,
@@ -71,6 +81,9 @@ const messageText = computed(() => {
   }
   if (params.mode !== undefined) {
     params.mode = translateMappedValue(params.mode, RHYTHM_MODE_LABEL_KEYS)
+  }
+  if (params.reason !== undefined) {
+    params.reason = translateMappedValue(params.reason, REASON_LABEL_KEYS)
   }
 
   return te(message.key) ? t(message.key, params) : message.key

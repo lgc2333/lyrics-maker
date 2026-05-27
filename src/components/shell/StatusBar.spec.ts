@@ -96,4 +96,16 @@ describe('statusBar', () => {
       '临时切换节奏模式：三连音',
     )
   })
+
+  it('renders localized persistence failure reasons', async () => {
+    const store = useEditorStore()
+    const wrapper = mount(StatusBar)
+
+    store.showStatus('status.project.openFailed', { reason: 'invalid' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '打开工程失败：数据格式无效',
+    )
+  })
 })

@@ -44,11 +44,23 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
     options.mainViewHeight.value = nextSettings.mainViewHeight
   }
 
+  function logLocalSettingsFailure(
+    operation: 'load' | 'save' | 'import',
+    reason: string,
+    errorMessage?: string,
+  ): void {
+    console.warn(
+      `[settings] Failed to ${operation} local settings:`,
+      errorMessage ?? reason,
+    )
+  }
+
   onMounted(() => {
     const result = service.load()
     if (result.ok) {
       applySettings(result.settings)
     } else {
+      logLocalSettingsFailure('load', result.reason, result.errorMessage)
       store.showStatus('status.localSettings.loadFailed', {
         reason: result.reason,
       })
@@ -78,8 +90,9 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
       settings.value = nextSettings
       const result = service.save(nextSettings)
       if (!result.ok) {
+        logLocalSettingsFailure('save', result.reason, result.errorMessage)
         store.showStatus('status.localSettings.saveFailed', {
-          reason: result.errorMessage ?? result.reason,
+          reason: result.reason,
         })
       }
     },
@@ -92,8 +105,9 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   function importFromText(content: string): boolean {
     const result = service.importFromText(content)
     if (!result.ok) {
+      logLocalSettingsFailure('import', result.reason, result.errorMessage)
       store.showStatus('status.localSettings.importFailed', {
-        reason: result.errorMessage ?? result.reason,
+        reason: result.reason,
       })
       return false
     }

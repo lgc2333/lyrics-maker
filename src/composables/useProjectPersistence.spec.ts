@@ -116,6 +116,7 @@ describe('useProjectPersistence', () => {
   })
 
   it('openProject reports invalid opened project files', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockOpenProject.mockResolvedValue({
       ok: false,
       reason: 'invalid',
@@ -128,6 +129,27 @@ describe('useProjectPersistence', () => {
     const store = useEditorStore()
     expect(store.statusMessage?.key).toBe('status.project.openFailed')
     expect(store.statusMessage?.params?.reason).toBe('invalid')
+    expect(warn).toHaveBeenCalledWith(
+      '[project] Failed to open project:',
+      'invalid project',
+    )
+    warn.mockRestore()
+  })
+
+  it('openProject loads normalized project data from the file service', async () => {
+    const opened = { ...createEmptyProject(), title: 'Normalized' }
+    mockOpenProject.mockResolvedValue({
+      ok: true,
+      content: JSON.stringify({ ...opened, title: 'Raw' }),
+      project: opened,
+      fileName: 'opened.json',
+    })
+    const wrapper = mountHarness()
+
+    await wrapper.vm.openProject()
+
+    const store = useEditorStore()
+    expect(store.project.title).toBe('Normalized')
   })
 
   it('restores a valid browser draft on mount and marks it dirty', async () => {

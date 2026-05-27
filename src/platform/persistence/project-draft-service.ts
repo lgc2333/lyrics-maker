@@ -1,5 +1,5 @@
+import { parseProjectDocument } from '../../core/domain/project'
 import type { ProjectDocument } from '../../core/domain/project'
-import { parseProjectDocument } from './project-json-schema'
 
 export const PROJECT_DRAFT_STORAGE_KEY = 'lyrics-maker.project-draft.v1'
 

@@ -183,6 +183,15 @@
       "importFailed": "本地设置导入失败：{reason}",
       "exportSuccess": "本地设置已导出"
     },
+    "reason": {
+      "cancelled": "操作已取消",
+      "failed": "操作失败",
+      "invalid": "数据格式无效",
+      "noCachedHandle": "没有已打开的文件",
+      "noDraft": "没有浏览器草稿",
+      "unknown": "未知原因",
+      "unsupported": "当前浏览器不支持"
+    },
     "lyrics": {
       "addLine": "已添加歌词行",
       "insertLines": "已导入 {count} 行歌词",

@@ -22,6 +22,10 @@ export function useProjectPersistence() {
     draftService.saveDraft(JSON.stringify(store.project, null, 2))
   }
 
+  function logProjectOpenFailure(reason: string, errorMessage?: string): void {
+    console.warn('[project] Failed to open project:', errorMessage ?? reason)
+  }
+
   onMounted(() => {
     const draft = draftService.loadDraft()
     if (draft.ok && draft.project) {
@@ -66,19 +70,27 @@ export function useProjectPersistence() {
 
     openProject: async () => {
       const result = await service.openProject()
-      if (result.ok && result.content) {
+      if (result.ok && result.project) {
+        store.loadProject(result.project, { dirty: false })
+      } else if (result.ok && result.content) {
         try {
           store.loadProject(JSON.parse(result.content), { dirty: false })
-        } catch {
+        } catch (error) {
+          logProjectOpenFailure(
+            'invalid',
+            error instanceof Error ? error.message : undefined,
+          )
           store.showStatus('status.project.openFailed', { reason: 'invalid' })
         }
       } else if (result.reason === 'unsupported') {
         store.showStatus('status.project.unsupportedFileApi')
       } else if (result.reason === 'failed') {
+        logProjectOpenFailure(result.reason, result.errorMessage)
         store.showStatus('status.project.openFailed', {
-          reason: result.errorMessage ?? result.reason,
+          reason: result.reason,
         })
       } else if (result.reason === 'invalid') {
+        logProjectOpenFailure(result.reason, result.errorMessage)
         store.showStatus('status.project.openFailed', { reason: result.reason })
       } else if (result.reason === 'cancelled') {
         store.showStatus('status.project.openCancelled')
