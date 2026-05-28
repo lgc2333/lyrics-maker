@@ -14,6 +14,8 @@
 - **`@vueuse/core` is available as a dependency.** Use `watchDebounced`, `useDebounceFn`, `useEventListener`, etc. from `@vueuse/core` instead of rolling manual debounce/throttle helpers.
 - **Conditional hover popovers:** gate `@mouseenter` with a mode check (e.g. `verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'`) instead of using `v-if` on the whole wrapper - keeps the button always present but only opens the popover in the relevant mode.
 - **Auto-focus after state change:** set the reactive flag -> `await nextTick()` -> call `.focus()` on a typed template ref (`ref<HTMLInputElement | null>(null)`). The `nextTick` ensures the DOM element exists before focusing. In tests, use `attachTo: document.body` so `document.activeElement` resolves.
+- **Theme mode vs effective theme:** keep saved user preference as `LocalTheme` (`light | dark | system`), derive `effectiveTheme` in `AppShell`, and apply only the effective `light | dark` value to DaisyUI/timeline rendering.
+- **Preferences modal boundary:** keep `PreferencesModal` presentational/event-only; `AppShell`/local-settings composables own local settings export/import, validation, persistence, and status feedback.
 
 ## CSS / Tailwind / Template
 
@@ -22,6 +24,7 @@
 - **CSS `rotate` does not change the layout box.** For vertical sliders with `-rotate-90`, pair with `absolute` positioning and set `w-{N}` equal to the container's `h-{N}` to prevent flex/grid from collapsing the element to its content width.
 - **Global shortcut target filtering:** block shortcuts only for text-editing targets (`textarea`, `select`, `contenteditable`, text-like inputs); non-text controls such as `input[type="range"]` should still allow editor shortcuts.
 - **Menu popup sizing:** use `w-max` plus `min-w-*` on absolute menu popups and `whitespace-nowrap` on menu items so translated undo/redo labels do not wrap.
+- **Nested menu hover triggers:** attach `@mouseenter` to the actual submenu trigger element, not only an outer wrapper; `mouseenter` does not bubble, so tests and real pointer movement may not open the submenu if the handler is on the wrong element.
 - **Tailwind mutually-exclusive utilities must use conditional binding, not `class` + `:class` together.** When `border-l-transparent` and `border-l-success` both appear on an element, the generated CSS order determines precedence - HTML class order is irrelevant. Use `:class="{ 'border-l-success': active, 'border-l-transparent': !active }"` to keep them mutually exclusive. Apply a shared `border-l-[3px]` for consistent alignment across all rows.
 - **Multi-line `@click` handlers crash the Vue template parser.** Newlines inside `@click="..."` cause the compiler-core tokenizer to fail at build time. Use comma expressions: `@click="(emit('foo'), (bar = null))"`.
 - **`setPointerCapture` for drag handles.** Call `(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)` on `pointerdown` - routes all subsequent pointer events to that element without needing window-level `pointermove`/`pointerup` listeners.

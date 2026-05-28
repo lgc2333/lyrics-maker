@@ -17,17 +17,23 @@ pnpm lint             # ESLint check
 pnpm lint:fix         # ESLint auto-fix
 pnpm format           # Prettier format check + write
 pnpm check            # vue-tsc -b (same strictness as build, no bundle)
+pnpm coverage         # Run Vitest coverage
+pnpm deploy:cf        # Build and deploy with Wrangler
 ```
 
 Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its package manager.
 
 Use plain `pnpm` first, if not found, fall back to: `fnm exec --using default pnpm.cmd`
 
-For Codex: Git index writes (`git add`, `git restore --staged`, `git commit`) may require escalation if `.git/index.lock` is permission-denied by the sandbox.
+## For Codex
+
+- Git index writes (e.g. `git add`, `git commit`) may require escalation, `.git/index.lock` is permission-denied by the sandbox.
+- If you need to install dependencies, DO NOT do this by yourself. Ask the user to do it; sandboxed pnpm may not be able to access its store.
 
 ## Tooling
 
-Use **Context7** MCP to get up-to-date documentation of dependencies. Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
+- Use **Context7** MCP to get up-to-date documentation of dependencies.
+- Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
 
 ## Workflow Skills
 
@@ -45,7 +51,7 @@ If a required skill cannot be found in the workspace, stop the current operation
 ```txt
 src/
 ├── core/                  # Pure business logic (no Vue dependency)
-│   ├── domain/project.ts  # Data model: ProjectDocument, LyricLine, LyricWord
+│   ├── domain/project.ts  # Project schema/defaults + ProjectDocument, LyricLine, LyricWord
 │   ├── timing/             # Timing engine (no Vue dependency)
 │   │   ├── timing-engine.ts    # Beat/bar computation from timing points
 │   │   ├── timing-point.ts     # Sort + validate timing points
@@ -54,6 +60,7 @@ src/
 │   ├── lyrics/             # Lyrics processing (no Vue dependency)
 │   │   ├── auto-split.ts       # Text → word array splitting
 │   │   └── snap-time.ts        # Snap time to nearest grid point
+│   ├── lyrics-io/          # Lyrics import/export adapters + format registry (no Vue dependency)
 │   ├── utils/              # format-timestamp.ts
 │   └── commands/          # Command pattern for undo/redo
 │       ├── command.ts     # Command<TState> interface {label, do, undo}
@@ -65,17 +72,22 @@ src/
 ├── platform/              # Platform adapters (strictly Vue-free)
 │   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
 │   ├── persistence/       # File System Access API adapter + save service
+│   ├── settings/          # Local user settings persisted in browser storage
+│   ├── ids/               # Runtime-safe ID generation
 │   ├── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
 │   └── waveform/          # WaveSurfer.js lifecycle + overlay plugins
 │       ├── wavesurfer-view.ts       # WaveSurfer lifecycle management
 │       ├── grid-overlay-plugin.ts   # Beat/bar grid lines on timeline
 │       ├── line-overlay-plugin.ts   # Lyrics sentence/word visualization on timeline
+│       ├── playhead-overlay-plugin.ts # Lightweight playhead rendering
+│       ├── overlay-style-tokens.ts  # Theme/view-mode overlay colors
 │       └── worker-threads-shim.ts   # Web Worker compatibility shim
 ├── stores/                # Pinia stores — UI state orchestration
 │   └── editor-store.ts    # Central editor session: project, undo/redo, save
 ├── composables/           # Vue composables
 │   ├── useEditorShortcuts.ts    # Keyboard → action dispatch (accepts {onAction})
 │   ├── useLyricsEditor.ts       # Lyrics timing state machine (D/Enter/Shift+D key handlers)
+│   ├── useLocalSettings.ts      # Local user settings orchestration
 │   ├── useProjectPersistence.ts # Ctrl+S save pipeline (wires store to file service)
 │   └── useTimelineView.ts       # WaveSurfer orchestration (view mode, zoom, scroll sync)
 ├── components/shell/      # Editor shell — layout, transport, mode controls
@@ -91,6 +103,10 @@ src/
 │   ├── VerticalSliderPopover.vue # Reusable icon button + vertical slider popover
 │   ├── MenuBar.vue        # Top menu bar
 │   ├── MainView.vue       # Main content area
+│   ├── StatusBar.vue      # Shared operation/status feedback channel
+│   ├── PreferencesModal.vue # Local settings UI
+│   ├── ImportConfirmModal.vue # Lyrics import confirmation
+│   ├── UnsavedChangesDialog.vue # Dirty-project confirmation
 │   └── injection-keys.ts  # Symbol-based InjectionKey<T> definitions
 ├── test/setup.ts          # Global test setup (Iconify mock, etc.)
 ├── pages/index.vue        # Route page — renders AppShell
@@ -100,10 +116,9 @@ src/
 
 ## Current Phase
 
-Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus Part 1 (status bar + no-audio editing boundaries), Part 2 (timing menu/WordSplitBar UI fixes), Part 3 (timeline scrolling, seek-follow, and zoom behavior), Part 3.5 (timeline overlay coordinate system and playback performance), and Part 4 (overlay partial timing display and pointer preview) are complete. Remaining:
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus is implemented through the project persistence, local settings/preferences, import/export, and LRC subtype follow-up work represented in the current codebase. Remaining larger areas:
 
-- Phase 5: Import/export plugins + shortcut rebinding UI.
-- Phase 5 Plus: Part 5+ project saving, local settings, import/export, shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
+- Phase 5 Plus: shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
 
 Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
 
@@ -129,6 +144,7 @@ Detailed project rules live in focused pattern docs:
 - [Architecture and command patterns](docs/patterns/architecture-and-commands.md): layer boundaries, command/undo rules, and TypeScript gotchas.
 - [Vue and UI patterns](docs/patterns/vue-and-ui.md): Vue reactivity, composables, Tailwind, DaisyUI, and template rules.
 - [Timeline, audio, and lyrics patterns](docs/patterns/timeline-audio-lyrics.md): WaveSurfer, metronome/audio, and lyrics timing rules.
+- [Lyrics import/export patterns](docs/patterns/lyrics-import-export.md): format registry, LRC/TTML/ASS/subtitle parsing and serialization rules.
 - [Testing patterns](docs/patterns/testing.md): test environment, Vue/store/composable test setup, and testing gotchas.
 
 When starting work, proactively read the linked pattern docs relevant to the files or domain you will touch. When adding new durable project rules, update the relevant linked `docs/patterns/*` file instead of appending them under this section.

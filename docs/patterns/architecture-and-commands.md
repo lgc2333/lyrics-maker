@@ -6,6 +6,9 @@
 - **Time is always seconds (float).** Snap-to-grid is a UI-layer concern only.
 - **`core/` and `platform/` are Vue-free.** `src/i18n/` is the standalone exception (requires `vue-i18n`). Only `stores/`, `composables/`, and `i18n/` import Vue APIs.
 - **Persistence is decoupled from business logic.** The save pipeline (`project-file-service.ts` -> `editor-store.saveProject` -> `useProjectPersistence`) exchanges JSON strings. Replace the backend without touching `core/`.
+- **Persisted JSON is lenient-in, strict-out.** Project/settings Zod schemas should use `z.object()` with defaults so unknown fields are stripped, missing compatible fields defaulted, and type/version mismatches rejected.
+- **Keep schema ownership aligned with data ownership.** Project schema/defaults live in `core/domain/project.ts`; browser-local settings schema/defaults live in `platform/settings/local-settings.ts`.
+- **Persistence failures use stable reason codes in UI.** Localize `reason` values in `StatusBar`, and log detailed parse/storage errors to the browser console.
 - **File autosave must never open a picker.** It should only write through an existing cached file handle. Browser draft restore loads project state as dirty; opening a project file loads it as clean.
 - **Public API array parameters should use `readonly` when not mutated.** Inconsistent signatures (e.g. mutable `TimingPoint[]` where peers use `readonly`) are a type-safety regression.
 - **Core timing error messages are English constants in `core/timing/errors.ts`.** Never import locale JSON from `platform/` or `i18n/` into `core/`. Add new error strings to `TIMING_ERRORS`.

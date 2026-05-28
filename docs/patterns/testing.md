@@ -14,6 +14,7 @@
 - **Run Vitest verification serially.** Running `pnpm test:run` concurrently with other `pnpm` tasks can produce `Vitest failed to find the current suite` from `src/test/setup.ts`; rerun tests by themselves before treating it as a code failure.
 - **Pinia setup store closure variables are invisible to DevTools `evaluate_script`.** Internal `_audioTransport`, `_rafId`, `_isPlaying` are not in `$state` or any public API. To debug, add temporary `console.log` in source - HMR won't reload Pinia stores, so use a full page refresh.
 - **Icon tests can inspect the Icon stub prop.** For controls rendered with `@iconify/vue`, prefer `findComponent({ name: 'Icon' }).props('icon')` when asserting which icon is shown.
+- **Hidden file input tests:** assign `input.files` with `Object.defineProperty(..., { configurable: true, value: [new File(...)] })`, then dispatch a `change` event on the input; clicking the visible button only proves `.click()` was invoked.
 
 ## Store Testing
 
