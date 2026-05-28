@@ -431,6 +431,34 @@ export function createInsertLyricLinesCommand(
   }
 }
 
+export function createReplaceLyricsCommand(
+  lines: readonly LyricLine[],
+): Command<ProjectDocument> {
+  for (const line of lines) {
+    if (line.words.length === 0) {
+      throw new Error('LyricLine words array must not be empty')
+    }
+  }
+  let previousLyrics: ProjectDocument['lyrics'] | null = null
+  return {
+    label: 'lyrics.replaceAll',
+    do: (state) => {
+      if (previousLyrics === null) previousLyrics = state.lyrics
+      return {
+        ...state,
+        lyrics: [...lines],
+      }
+    },
+    undo: (state) => {
+      if (previousLyrics === null) return state
+      return {
+        ...state,
+        lyrics: previousLyrics,
+      }
+    },
+  }
+}
+
 export function createRemoveLyricLineCommand(lineId: string): Command<ProjectDocument> {
   let removedLine: LyricLine | null = null
   let removedIndex: number | null = null

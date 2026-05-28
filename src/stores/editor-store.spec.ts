@@ -393,6 +393,52 @@ describe('editor store (phase 1)', () => {
     expect(store.statusMessage?.key).toBe('status.project.draftRestored')
   })
 
+  it('creates a clean empty project and clears undo history', () => {
+    const store = useEditorStore()
+    store.addLyricLine('dirty')
+
+    store.createNewProject()
+
+    expect(store.project.title).toBe('Untitled Project')
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.project.newSuccess')
+  })
+
+  it('replaces lyrics from imported drafts and generates project ids in the store', () => {
+    const store = useEditorStore()
+    store.addLyricLine('old')
+
+    store.replaceLyricsFromImport(
+      [
+        {
+          startTime: 1,
+          words: [
+            { text: 'hello ', endTime: 2 },
+            { text: 'world', endTime: 3 },
+          ],
+        },
+      ],
+      { format: 'lrc', fileName: 'song.lrc' },
+    )
+
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(store.project.lyrics[0].id).toMatch(/^line-/)
+    expect(store.project.lyrics[0].startTime).toBe(1)
+    expect(store.project.lyrics[0].words[0]).toMatchObject({
+      text: 'hello ',
+      endTime: 2,
+    })
+    expect(store.project.lyrics[0].words[0].id).toMatch(/^word-/)
+    expect(store.dirty).toBe(true)
+    expect(store.statusMessage?.key).toBe('status.lyrics.importSuccess')
+    expect(store.statusMessage?.params?.count).toBe(1)
+
+    store.undo()
+    expect(store.project.lyrics[0].words[0].text).toBe('old')
+  })
+
   it('saveProject falls back to saveAs only when no cached handle exists', async () => {
     const save = vi.fn(async (_content: string) => ({
       ok: false as const,

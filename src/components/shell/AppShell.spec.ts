@@ -11,10 +11,22 @@ import {
 } from '../../stores/editor-store'
 import AppShell from './AppShell.vue'
 
-const { mockSaveByShortcut, mockSaveAs, mockOpenProject } = vi.hoisted(() => ({
+const {
+  mockSaveByShortcut,
+  mockSaveAs,
+  mockOpenProject,
+  mockPickLyricsImport,
+  mockConfirmLyricsImport,
+  mockExportLyrics,
+  mockReadAnyFile,
+} = vi.hoisted(() => ({
   mockSaveByShortcut: vi.fn(),
   mockSaveAs: vi.fn(),
   mockOpenProject: vi.fn(),
+  mockPickLyricsImport: vi.fn(),
+  mockConfirmLyricsImport: vi.fn(),
+  mockExportLyrics: vi.fn(),
+  mockReadAnyFile: vi.fn(),
 }))
 
 vi.mock('../../composables/useProjectPersistence', () => ({
@@ -23,6 +35,10 @@ vi.mock('../../composables/useProjectPersistence', () => ({
     saveByShortcut: mockSaveByShortcut,
     saveAs: mockSaveAs,
     openProject: mockOpenProject,
+    pickLyricsImport: mockPickLyricsImport,
+    confirmLyricsImport: mockConfirmLyricsImport,
+    exportLyrics: mockExportLyrics,
+    readDroppedFile: mockReadAnyFile,
   })),
 }))
 
@@ -98,9 +114,17 @@ describe('appShell', () => {
     mockSaveByShortcut.mockReset()
     mockSaveAs.mockReset()
     mockOpenProject.mockReset()
+    mockPickLyricsImport.mockReset()
+    mockConfirmLyricsImport.mockReset()
+    mockExportLyrics.mockReset()
+    mockReadAnyFile.mockReset()
     mockSaveByShortcut.mockResolvedValue({ ok: true })
     mockSaveAs.mockResolvedValue({ ok: true })
     mockOpenProject.mockResolvedValue(undefined)
+    mockPickLyricsImport.mockResolvedValue(null)
+    mockConfirmLyricsImport.mockResolvedValue(true)
+    mockExportLyrics.mockResolvedValue({ ok: true })
+    mockReadAnyFile.mockResolvedValue({ ok: false, reason: 'unsupported' })
   })
 
   it('renders all phase-1 shell sections', () => {
@@ -263,11 +287,10 @@ describe('appShell', () => {
       value: undefined,
     })
     try {
-      const wrapper = mount(AppShell)
+      mount(AppShell)
       const store = useEditorStore()
 
-      await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
-      await wrapper.get('[data-testid="menu-add-lyric-line"]').trigger('click')
+      store.addLyricLine('')
 
       expect(store.project.lyrics).toHaveLength(1)
       expect(store.project.lyrics[0].id).toBeTruthy()
@@ -290,8 +313,8 @@ describe('appShell', () => {
       const wrapper = mount(AppShell)
       const store = useEditorStore()
 
-      await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
-      await wrapper.get('[data-testid="menu-paste-lyrics"]').trigger('click')
+      ;(wrapper.vm as unknown as { showPasteModal: boolean }).showPasteModal = true
+      await wrapper.vm.$nextTick()
       await wrapper
         .get('[data-testid="lyrics-paste-textarea"]')
         .setValue('hello world\nsecond line')
@@ -338,6 +361,61 @@ describe('appShell', () => {
     await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
     await wrapper.get('[data-testid="menu-open-project"]').trigger('click')
     expect(mockOpenProject).toHaveBeenCalledOnce()
+  })
+
+  it('opens import confirmation before replacing lyrics from a selected file', async () => {
+    mockPickLyricsImport.mockResolvedValue({
+      content: '[00:01.000]hello',
+      fileName: 'song.lrc',
+      format: 'lrc',
+      displayFormat: 'lrc-line',
+    })
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-import-lyrics"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="import-confirm-modal"]').exists()).toBe(true)
+    expect(mockConfirmLyricsImport).not.toHaveBeenCalled()
+    expect(store.project.lyrics).toHaveLength(0)
+
+    await wrapper.get('[data-testid="import-confirm"]').trigger('click')
+    expect(mockConfirmLyricsImport).toHaveBeenCalledWith({
+      content: '[00:01.000]hello',
+      fileName: 'song.lrc',
+      format: 'lrc',
+      displayFormat: 'lrc-line',
+    })
+  })
+
+  it('cancels a pending lyrics import without confirming', async () => {
+    mockPickLyricsImport.mockResolvedValue({
+      content: 'hello',
+      fileName: 'song.txt',
+      format: 'txt',
+      displayFormat: 'txt',
+    })
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-import-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="import-cancel"]').trigger('click')
+
+    expect(mockConfirmLyricsImport).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="import-confirm-modal"]').exists()).toBe(false)
+  })
+
+  it('exports lyrics as LRC from the file menu', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    await wrapper
+      .get('[data-testid="menu-export-lyrics-lrc-enhanced"]')
+      .trigger('click')
+
+    expect(mockExportLyrics).toHaveBeenCalledWith('lrc-enhanced')
   })
 
   it('opens a project immediately when the current project is clean', async () => {
@@ -419,6 +497,93 @@ describe('appShell', () => {
     expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
       '已取消打开工程',
     )
+  })
+
+  it('creates a clean new project immediately when current project is clean', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('will be reset')
+    store.markClean()
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-new-project"]').trigger('click')
+
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(store.dirty).toBe(false)
+  })
+
+  it('asks for confirmation before creating a new project when dirty', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-new-project"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="unsaved-discard-open"]').trigger('click')
+    expect(store.project.lyrics).toHaveLength(0)
+  })
+
+  it('rejects multiple dropped files with a status message', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+
+    await wrapper.trigger('drop', {
+      dataTransfer: {
+        files: [new File(['a'], 'a.lrc'), new File(['b'], 'b.lrc')],
+      },
+    })
+
+    expect(store.statusMessage?.key).toBe('status.lyrics.dropMultipleUnsupported')
+  })
+
+  it('opens import confirmation for a dropped lyrics file', async () => {
+    mockReadAnyFile.mockResolvedValue({
+      ok: true,
+      kind: 'lyrics',
+      content: 'hello',
+      fileName: 'song.txt',
+      format: 'txt',
+      displayFormat: 'txt',
+    })
+    const wrapper = mount(AppShell)
+
+    await wrapper.trigger('drop', {
+      dataTransfer: {
+        files: [new File(['hello'], 'song.txt')],
+      },
+    })
+
+    expect(mockReadAnyFile).toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="import-confirm-modal"]').exists()).toBe(true)
+  })
+
+  it('loads a dropped project after dirty confirmation without opening the picker', async () => {
+    const droppedProject = { ...useEditorStore().project, title: 'Dropped' }
+    mockReadAnyFile.mockResolvedValue({
+      ok: true,
+      kind: 'project',
+      content: JSON.stringify(droppedProject),
+      fileName: 'dropped.json',
+      project: droppedProject,
+    })
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addLyricLine('unsaved')
+
+    await wrapper.trigger('drop', {
+      dataTransfer: {
+        files: [new File([JSON.stringify(droppedProject)], 'dropped.json')],
+      },
+    })
+
+    expect(wrapper.find('[data-testid="unsaved-changes-dialog"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="unsaved-discard-open"]').trigger('click')
+
+    expect(mockOpenProject).not.toHaveBeenCalled()
+    expect(store.project.title).toBe('Dropped')
+    expect(store.dirty).toBe(false)
   })
 
   it('updates project title from menu title editor', async () => {

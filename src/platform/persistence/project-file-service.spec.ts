@@ -174,4 +174,94 @@ describe('project file service', () => {
     expect(result.reason).toBe('cancelled')
     expect(result.errorMessage).toBeUndefined()
   })
+
+  it('opens a lyrics file and detects its format', async () => {
+    const getFile = vi.fn(async () => new File(['WEBVTT\n\n'], 'song.txt'))
+    const createWritable = vi.fn()
+    const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
+    const service = createProjectFileService({ showOpenFilePicker })
+
+    const result = await service.openLyricsFile()
+
+    expect(result).toEqual({
+      ok: true,
+      content: 'WEBVTT\n\n',
+      fileName: 'song.txt',
+      format: 'vtt',
+      displayFormat: 'vtt',
+    })
+  })
+
+  it('opens a lyrics file and reports the detected LRC display format', async () => {
+    const getFile = vi.fn(
+      async () => new File(['[00:01.000]<00:01.000>你'], 'song.lrc'),
+    )
+    const createWritable = vi.fn()
+    const showOpenFilePicker = vi.fn(async () => [{ getFile, createWritable }])
+    const service = createProjectFileService({ showOpenFilePicker })
+
+    const result = await service.openLyricsFile()
+
+    expect(result).toEqual({
+      ok: true,
+      content: '[00:01.000]<00:01.000>你',
+      fileName: 'song.lrc',
+      format: 'lrc',
+      displayFormat: 'lrc-enhanced',
+    })
+  })
+
+  it('classifies dropped project files without caching a handle', async () => {
+    const service = createProjectFileService({})
+
+    const result = await service.readAnyFile(
+      new File([JSON.stringify(createEmptyProject())], 'project.json'),
+    )
+
+    expect(result.ok).toBe(true)
+    expect(result.kind).toBe('project')
+    if (!result.ok || result.kind !== 'project') {
+      throw new Error('expected project file')
+    }
+    expect(result.project).toEqual(createEmptyProject())
+    expect(service.hasCachedHandle()).toBe(false)
+  })
+
+  it('saves lyrics with the target format extension', async () => {
+    const write = vi.fn()
+    const close = vi.fn()
+    const createWritable = vi.fn(async () => ({ write, close }))
+    const showSaveFilePicker = vi.fn(async () => ({ createWritable }))
+    const service = createProjectFileService({ showSaveFilePicker })
+
+    const result = await service.saveLyrics('lyrics', {
+      format: 'lrc',
+      projectTitle: 'My Song',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(showSaveFilePicker).toHaveBeenCalledWith(
+      expect.objectContaining({ suggestedName: 'My Song.lrc' }),
+    )
+    expect(write).toHaveBeenCalledWith('lyrics')
+  })
+
+  it('saves all LRC export targets with the lrc extension', async () => {
+    for (const target of ['lrc-line', 'lrc-enhanced', 'lrc-eslyric'] as const) {
+      const write = vi.fn()
+      const close = vi.fn()
+      const createWritable = vi.fn(async () => ({ write, close }))
+      const showSaveFilePicker = vi.fn(async () => ({ createWritable }))
+      const service = createProjectFileService({ showSaveFilePicker })
+
+      await service.saveLyrics('lyrics', {
+        target,
+        projectTitle: 'My Song',
+      })
+
+      expect(showSaveFilePicker).toHaveBeenCalledWith(
+        expect.objectContaining({ suggestedName: 'My Song.lrc' }),
+      )
+    }
+  })
 })

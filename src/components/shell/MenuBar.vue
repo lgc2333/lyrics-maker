@@ -3,6 +3,7 @@ import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import type { LyricsExportTargetId } from '../../core/lyrics-io/types'
 import type { LocalTheme } from '../../platform/settings/local-settings'
 
 const props = withDefaults(
@@ -33,12 +34,14 @@ const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
   toggleTheme: []
   updateThemeMode: [theme: LocalTheme]
+  newProject: []
   openProject: []
   openAudioFile: []
   saveProject: []
   saveProjectAs: []
   pasteLyrics: []
   importLyricsFile: []
+  exportLyricsFile: [target: LyricsExportTargetId]
   addLyricLine: []
   undo: []
   redo: []
@@ -48,8 +51,9 @@ const emit = defineEmits<{
 
 const { t, te } = useI18n()
 
-type MenuName = 'file' | 'edit' | 'help' | 'lyrics'
+type MenuName = 'file' | 'edit' | 'help'
 const openMenu = ref<MenuName | null>(null)
+const openFileSubmenu = ref<'exportLyrics' | null>(null)
 const themeMenuOpen = ref(false)
 const editingTitle = ref(false)
 const titleDraft = ref('')
@@ -71,6 +75,37 @@ const themeOptions: Array<{ value: LocalTheme; labelKey: string; testid: string 
     value: 'system',
     labelKey: 'preferences.theme.system',
     testid: 'theme-option-system',
+  },
+]
+
+const lyricExportTargets: Array<{
+  id: LyricsExportTargetId
+  labelKey: string
+  warningKey?: string
+}> = [
+  {
+    id: 'txt',
+    labelKey: 'lyrics.export.formats.txt',
+    warningKey: 'lyrics.export.loss.allTiming',
+  },
+  {
+    id: 'lrc-line',
+    labelKey: 'lyrics.export.formats.lrcLine',
+    warningKey: 'lyrics.export.loss.wordTiming',
+  },
+  { id: 'lrc-enhanced', labelKey: 'lyrics.export.formats.lrcEnhanced' },
+  { id: 'lrc-eslyric', labelKey: 'lyrics.export.formats.lrcEslyric' },
+  { id: 'ttml', labelKey: 'lyrics.export.formats.ttml' },
+  { id: 'ass', labelKey: 'lyrics.export.formats.ass' },
+  {
+    id: 'srt',
+    labelKey: 'lyrics.export.formats.srt',
+    warningKey: 'lyrics.export.loss.wordTiming',
+  },
+  {
+    id: 'vtt',
+    labelKey: 'lyrics.export.formats.vtt',
+    warningKey: 'lyrics.export.loss.wordTiming',
   },
 ]
 
@@ -113,6 +148,7 @@ const COMMAND_LABEL_KEYS: Record<string, string> = {
 
 function toggleMenu(name: MenuName): void {
   themeMenuOpen.value = false
+  openFileSubmenu.value = null
   openMenu.value = openMenu.value === name ? null : name
 }
 
@@ -129,6 +165,7 @@ function onMenuHover(name: MenuName): void {
 
 function closeMenu(): void {
   openMenu.value = null
+  openFileSubmenu.value = null
   themeMenuOpen.value = false
 }
 
@@ -140,6 +177,14 @@ function toggleThemeMenu(): void {
 function selectThemeMode(nextThemeMode: LocalTheme): void {
   emit('updateThemeMode', nextThemeMode)
   themeMenuOpen.value = false
+}
+
+function openExportSubmenu(): void {
+  openFileSubmenu.value = 'exportLyrics'
+}
+
+function closeFileSubmenu(): void {
+  openFileSubmenu.value = null
 }
 
 async function startTitleEdit(): Promise<void> {
@@ -176,6 +221,7 @@ function onDocumentClick(event: MouseEvent): void {
     !target.closest('[data-testid^="menu-popup-"]')
   ) {
     openMenu.value = null
+    openFileSubmenu.value = null
     themeMenuOpen.value = false
   }
 }
@@ -209,8 +255,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-new-project"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
+            @click="(emit('newProject'), closeMenu())"
           >
             {{ t('shell.menu.newProject') }}
           </button>
@@ -218,6 +265,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-open-project"
             role="menuitem"
             class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
             @click="(emit('openProject'), closeMenu())"
           >
             {{ t('shell.menu.openProject') }}
@@ -226,15 +274,59 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-open-audio"
             role="menuitem"
             class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
             @click="(emit('openAudioFile'), closeMenu())"
           >
             {{ t('shell.menu.openAudio') }}
           </button>
+          <button
+            data-testid="menu-import-lyrics"
+            role="menuitem"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
+            @click="(emit('importLyricsFile'), closeMenu())"
+          >
+            {{ t('shell.menu.importLyrics') }}
+          </button>
+          <div class="relative">
+            <button
+              data-testid="menu-export-lyrics"
+              role="menuitem"
+              aria-haspopup="true"
+              :aria-expanded="openFileSubmenu === 'exportLyrics'"
+              class="flex w-full cursor-pointer items-center justify-between gap-4 whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+              @mouseenter="openExportSubmenu"
+            >
+              <span>{{ t('shell.menu.exportLyrics') }}</span>
+              <Icon icon="material-symbols:chevron-right-rounded" class="text-sm" />
+            </button>
+            <div
+              v-if="openFileSubmenu === 'exportLyrics'"
+              data-testid="menu-popup-export-lyrics"
+              role="menu"
+              class="absolute left-full top-0 z-50 ml-0.5 w-max min-w-[180px] rounded border border-base-300 bg-base-100 shadow"
+            >
+              <button
+                v-for="target in lyricExportTargets"
+                :key="target.id"
+                :data-testid="`menu-export-lyrics-${target.id}`"
+                role="menuitem"
+                class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+                @click="(emit('exportLyricsFile', target.id), closeMenu())"
+              >
+                {{ t(target.labelKey) }}
+                <span v-if="target.warningKey" class="text-warning">
+                  （{{ t(target.warningKey) }}）
+                </span>
+              </button>
+            </div>
+          </div>
           <div class="my-0.5 border-t border-base-300" />
           <button
             data-testid="menu-save-project"
             role="menuitem"
             class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
             @click="(emit('saveProject'), closeMenu())"
           >
             {{ t('shell.menu.saveProject') }}
@@ -243,6 +335,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-save-as"
             role="menuitem"
             class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
             @click="(emit('saveProjectAs'), closeMenu())"
           >
             {{ t('shell.menu.saveAs') }}
@@ -252,6 +345,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-preferences"
             role="menuitem"
             class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
             @click="(emit('openPreferences'), closeMenu())"
           >
             {{ t('shell.menu.preferences') }}
@@ -337,50 +431,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
           >
             {{ t('shell.menu.about') }}
-          </button>
-        </div>
-      </div>
-
-      <div class="relative">
-        <button
-          data-testid="menu-trigger-lyrics"
-          aria-haspopup="true"
-          :aria-expanded="openMenu === 'lyrics'"
-          class="rounded px-1.5 py-0.5 hover:bg-base-300"
-          @click="toggleMenu('lyrics')"
-          @mouseenter="onMenuHover('lyrics')"
-        >
-          {{ t('shell.menu.lyrics') }}
-        </button>
-        <div
-          v-if="openMenu === 'lyrics'"
-          data-testid="menu-popup-lyrics"
-          role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
-        >
-          <button
-            data-testid="menu-paste-lyrics"
-            role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="(emit('pasteLyrics'), (openMenu = null))"
-          >
-            {{ t('shell.menu.pasteLyrics') }}
-          </button>
-          <button
-            role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="(emit('importLyricsFile'), (openMenu = null))"
-          >
-            {{ t('shell.menu.importLyricsFile') }}
-          </button>
-          <div class="my-0.5 border-t border-base-300" />
-          <button
-            data-testid="menu-add-lyric-line"
-            role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
-            @click="(emit('addLyricLine'), (openMenu = null))"
-          >
-            {{ t('shell.menu.addLyricLine') }}
           </button>
         </div>
       </div>

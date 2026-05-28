@@ -10,6 +10,7 @@ import {
   createRemoveLyricLineCommand,
   createRemoveWordCommand,
   createReplaceLineWordsCommand,
+  createReplaceLyricsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
   createSplitWordCommand,
@@ -477,6 +478,48 @@ describe('createReplaceLineWordsCommand', () => {
     const result = cmd.undo(state)
     // Should return state unchanged (previousWords still null)
     expect(result.lyrics[0].words[0].text).toBe('old')
+  })
+})
+
+describe('createReplaceLyricsCommand', () => {
+  it('replaces every lyric line and undo restores the previous lyrics', () => {
+    const state: ProjectDocument = {
+      ...createEmptyProject(),
+      lyrics: [
+        {
+          id: 'old-line',
+          startTime: 1,
+          words: [{ id: 'old-word', text: 'old', endTime: 2 }],
+        },
+      ],
+    }
+    const cmd = createReplaceLyricsCommand([
+      {
+        id: 'new-line',
+        startTime: 3,
+        words: [{ id: 'new-word', text: 'new', endTime: 4 }],
+      },
+    ])
+
+    const next = cmd.do(state)
+    expect(next.lyrics).toEqual([
+      {
+        id: 'new-line',
+        startTime: 3,
+        words: [{ id: 'new-word', text: 'new', endTime: 4 }],
+      },
+    ])
+    expect(next.title).toBe(state.title)
+    expect(next.timingPoints).toEqual(state.timingPoints)
+
+    const undone = cmd.undo(next)
+    expect(undone.lyrics).toEqual(state.lyrics)
+  })
+
+  it('rejects imported lyric lines without words', () => {
+    expect(() => createReplaceLyricsCommand([{ id: 'line', words: [] }])).toThrow(
+      'LyricLine words array must not be empty',
+    )
   })
 })
 

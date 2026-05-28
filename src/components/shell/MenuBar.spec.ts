@@ -149,7 +149,7 @@ describe('menuBar', () => {
     expect(
       (wrapper.get('[data-testid="menu-new-project"]').element as HTMLButtonElement)
         .disabled,
-    ).toBe(true)
+    ).toBe(false)
     expect(
       (wrapper.get('[data-testid="menu-open-project"]').element as HTMLButtonElement)
         .disabled,
@@ -187,6 +187,94 @@ describe('menuBar', () => {
     await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
     await wrapper.get('[data-testid="menu-save-as"]').trigger('click')
     expect(wrapper.emitted('saveProjectAs')).toHaveLength(1)
+  })
+
+  it('emits new project and lyric import/export actions from the file menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-new-project"]').trigger('click')
+    expect(wrapper.emitted('newProject')).toHaveLength(1)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-import-lyrics"]').trigger('click')
+    expect(wrapper.emitted('importLyricsFile')).toHaveLength(1)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    await wrapper
+      .get('[data-testid="menu-export-lyrics-lrc-enhanced"]')
+      .trigger('click')
+    expect(wrapper.emitted('exportLyricsFile')?.[0]).toEqual(['lrc-enhanced'])
+  })
+
+  it('offers every supported lyric export target from a nested file menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    expect(wrapper.find('[data-testid="menu-export-lyrics-txt"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    expect(wrapper.find('[data-testid="menu-popup-export-lyrics"]').exists()).toBe(true)
+
+    for (const format of [
+      'txt',
+      'lrc-line',
+      'lrc-enhanced',
+      'lrc-eslyric',
+      'ttml',
+      'ass',
+      'srt',
+      'vtt',
+    ]) {
+      expect(
+        wrapper.find(`[data-testid="menu-export-lyrics-${format}"]`).exists(),
+      ).toBe(true)
+    }
+  })
+
+  it('closes the export submenu when hovering another file menu item', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    expect(wrapper.find('[data-testid="menu-popup-export-lyrics"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="menu-open-project"]').trigger('mouseenter')
+
+    expect(wrapper.find('[data-testid="menu-popup-export-lyrics"]').exists()).toBe(
+      false,
+    )
+  })
+
+  it('shows export timing loss warnings', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+
+    expect(wrapper.get('[data-testid="menu-export-lyrics-txt"]').text()).toContain(
+      '会损失所有时间轴信息',
+    )
+    expect(wrapper.get('[data-testid="menu-export-lyrics-lrc-line"]').text()).toContain(
+      '会损失逐词时间轴信息',
+    )
+    expect(wrapper.get('[data-testid="menu-export-lyrics-srt"]').text()).toContain(
+      '会损失逐词时间轴信息',
+    )
+    expect(wrapper.get('[data-testid="menu-export-lyrics-vtt"]').text()).toContain(
+      '会损失逐词时间轴信息',
+    )
+    expect(
+      wrapper.get('[data-testid="menu-export-lyrics-lrc-enhanced"]').text(),
+    ).not.toContain('会损失')
   })
 
   it('shows dirty project title with leading star', () => {
@@ -326,36 +414,11 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="menu-shortcuts"]').exists()).toBe(false)
   })
 
-  it('lyrics menu trigger button exists', () => {
+  it('does not render the old top-level lyrics menu', () => {
     const wrapper = mount(MenuBar, {
       props: { mode: 'timing', theme: 'light', audioLoaded: true },
     })
-    expect(wrapper.find('[data-testid="menu-trigger-lyrics"]').exists()).toBe(true)
-  })
-
-  it('clicking lyrics trigger opens the lyrics popup', async () => {
-    const wrapper = mount(MenuBar, {
-      props: { mode: 'timing', theme: 'light', audioLoaded: true },
-    })
-    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
-    expect(wrapper.find('[data-testid="menu-popup-lyrics"]').exists()).toBe(true)
-  })
-
-  it('paste lyrics button emits pasteLyrics', async () => {
-    const wrapper = mount(MenuBar, {
-      props: { mode: 'timing', theme: 'light', audioLoaded: true },
-    })
-    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
-    await wrapper.get('[data-testid="menu-paste-lyrics"]').trigger('click')
-    expect(wrapper.emitted('pasteLyrics')).toHaveLength(1)
-  })
-
-  it('add lyric line button emits addLyricLine', async () => {
-    const wrapper = mount(MenuBar, {
-      props: { mode: 'timing', theme: 'light', audioLoaded: true },
-    })
-    await wrapper.get('[data-testid="menu-trigger-lyrics"]').trigger('click')
-    await wrapper.get('[data-testid="menu-add-lyric-line"]').trigger('click')
-    expect(wrapper.emitted('addLyricLine')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="menu-trigger-lyrics"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="menu-popup-lyrics"]').exists()).toBe(false)
   })
 })

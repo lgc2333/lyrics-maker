@@ -17,9 +17,12 @@
     "deploy:cf": "pnpm run build && wrangler deploy"
   },
   "dependencies": {
+    "@applemusic-like-lyrics/ttml": "^1.0.1",
     "@iconify/vue": "^5.0.1",
     "@libraz/libsonare": "^1.2.1",
     "@vueuse/core": "^14.3.0",
+    "@xmldom/xmldom": "^0.9.10",
+    "ass-compiler": "^0.1.16",
     "pinia": "^3.0.4",
     "vue": "^3.5.35",
     "vue-i18n": "^11.4.4",

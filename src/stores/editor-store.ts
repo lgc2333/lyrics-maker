@@ -10,6 +10,7 @@ import {
   createRemoveLyricLineCommand,
   createRemoveWordCommand,
   createReplaceLineWordsCommand,
+  createReplaceLyricsCommand,
   createSetLineStartTimeCommand,
   createSetWordEndTimeCommand,
   createSplitWordCommand,
@@ -24,6 +25,7 @@ import {
 } from '../core/commands/project-commands'
 import { createEmptyProject } from '../core/domain/project'
 import type { LyricLine, ProjectDocument, TimingPoint } from '../core/domain/project'
+import type { ImportedLyricLine, LyricsFormatId } from '../core/lyrics-io/types'
 import { createTapBpmEstimator } from '../core/timing/tap-bpm'
 import {
   getActiveTimingPoint,
@@ -385,6 +387,13 @@ export const useEditorStore = defineStore('editor', () => {
       options.statusKey ??
         (options.dirty ? 'status.project.draftRestored' : 'status.project.openSuccess'),
     )
+  }
+
+  function createNewProject(): void {
+    history.value = createCommandHistory<ProjectDocument>(createEmptyProject())
+    dirty.value = false
+    triggerRef(history)
+    showStatus('status.project.newSuccess')
   }
 
   function applyLocalSettings(settings: LocalUserSettings): void {
@@ -865,6 +874,26 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  function replaceLyricsFromImport(
+    importedLines: readonly ImportedLyricLine[],
+    source: { format: LyricsFormatId; fileName: string },
+  ): void {
+    const lines: LyricLine[] = importedLines.map((line) => ({
+      id: makeId('line'),
+      startTime: line.startTime,
+      words: line.words.map((word) => ({
+        id: makeId('word'),
+        text: word.text,
+        endTime: word.endTime,
+      })),
+    }))
+    execute(createReplaceLyricsCommand(lines), 'status.lyrics.importSuccess', {
+      count: lines.length,
+      format: source.format,
+      fileName: source.fileName,
+    })
+  }
+
   function removeLyricLine(lineId: string): void {
     execute(createRemoveLyricLineCommand(lineId), 'status.lyrics.removeLine')
   }
@@ -952,6 +981,7 @@ export const useEditorStore = defineStore('editor', () => {
     redo,
     markClean,
     loadProject,
+    createNewProject,
     applyLocalSettings,
     exportLocalSettingsBase,
     setProjectTitle,
@@ -1026,6 +1056,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Phase 4: lyrics
     insertLyricLines,
+    replaceLyricsFromImport,
     removeLyricLine,
     setLineStartTime,
     setWordEndTime,

@@ -7,10 +7,16 @@ import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import type { LyricLine, LyricWord } from '../../core/domain/project'
+import type {
+  LyricsDisplayFormatId,
+  LyricsExportTargetId,
+  LyricsFormatId,
+} from '../../core/lyrics-io/types'
 import { autoSplitText } from '../../core/lyrics/auto-split'
 import { createPrefixedId } from '../../platform/ids/create-id'
 import type { LocalTheme } from '../../platform/settings/local-settings'
 import { useEditorStore } from '../../stores/editor-store'
+import ImportConfirmModal from './ImportConfirmModal.vue'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
@@ -40,6 +46,17 @@ const restoreSettingsInput = ref<HTMLInputElement | null>(null)
 const showPasteModal = ref(false)
 const showUnsavedOpenDialog = ref(false)
 const showPreferencesModal = ref(false)
+const pendingDirtyAction = shallowRef<{
+  kind: 'open' | 'new'
+  run: () => void | Promise<void>
+} | null>(null)
+const pendingLyricsImport = ref<{
+  content: string
+  fileName: string
+  format: LyricsFormatId
+  displayFormat?: LyricsDisplayFormatId
+} | null>(null)
+const isDragHovering = ref(false)
 
 // ---- Timeline view ----
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
@@ -164,25 +181,49 @@ async function requestOpenProject(): Promise<void> {
     await openProjectNow()
     return
   }
+  pendingDirtyAction.value = { kind: 'open', run: openProjectNow }
   showUnsavedOpenDialog.value = true
+}
+
+function createNewProjectNow(): void {
+  store.createNewProject()
+}
+
+function requestNewProject(): void {
+  if (!store.dirty) {
+    createNewProjectNow()
+    return
+  }
+  pendingDirtyAction.value = { kind: 'new', run: createNewProjectNow }
+  showUnsavedOpenDialog.value = true
+}
+
+async function runPendingDirtyAction(): Promise<void> {
+  await pendingDirtyAction.value?.run()
+  pendingDirtyAction.value = null
 }
 
 async function saveAndOpenProject(): Promise<void> {
   showUnsavedOpenDialog.value = false
   const result = await persistence.saveByShortcut()
   if (result?.ok) {
-    await openProjectNow()
+    await runPendingDirtyAction()
   }
 }
 
 async function discardAndOpenProject(): Promise<void> {
   showUnsavedOpenDialog.value = false
-  await openProjectNow()
+  await runPendingDirtyAction()
 }
 
 function cancelOpenProject(): void {
   showUnsavedOpenDialog.value = false
-  store.showStatus('status.project.openCancelled')
+  const statusKey =
+    pendingDirtyAction.value?.kind === 'new'
+      ? 'status.project.newCancelled'
+      : 'status.project.openCancelled'
+  pendingDirtyAction.value = null
+  store.showStatus(statusKey)
 }
 
 async function onAudioSelected(event: Event): Promise<void> {
@@ -214,6 +255,65 @@ function onAddLyricLine(): void {
       words: [{ id: createPrefixedId('word'), text: '' }],
     },
   ])
+}
+
+async function requestLyricsImport(): Promise<void> {
+  const pending = await persistence.pickLyricsImport()
+  if (pending) pendingLyricsImport.value = pending
+}
+
+async function confirmLyricsImport(): Promise<void> {
+  const pending = pendingLyricsImport.value
+  if (!pending) return
+  pendingLyricsImport.value = null
+  await persistence.confirmLyricsImport(pending)
+}
+
+function cancelLyricsImport(): void {
+  pendingLyricsImport.value = null
+  store.showStatus('status.lyrics.importCancelled')
+}
+
+function onDragOver(event: DragEvent): void {
+  event.preventDefault()
+  isDragHovering.value = true
+}
+
+function onDragLeave(): void {
+  isDragHovering.value = false
+}
+
+async function onDrop(event: DragEvent): Promise<void> {
+  event.preventDefault()
+  isDragHovering.value = false
+  const files = Array.from(event.dataTransfer?.files ?? [])
+  if (files.length > 1) {
+    store.showStatus('status.lyrics.dropMultipleUnsupported')
+    return
+  }
+  const file = files[0]
+  if (!file) return
+  const result = await persistence.readDroppedFile(file)
+  if (result.ok && result.kind === 'lyrics') {
+    pendingLyricsImport.value = {
+      content: result.content,
+      fileName: result.fileName,
+      format: result.format,
+      displayFormat: result.displayFormat,
+    }
+  } else if (result.ok && result.kind === 'project') {
+    if (store.dirty) {
+      pendingDirtyAction.value = {
+        kind: 'open',
+        run: () => store.loadProject(result.project, { dirty: false }),
+      }
+      showUnsavedOpenDialog.value = true
+    } else {
+      store.loadProject(result.project, { dirty: false })
+    }
+  } else {
+    store.showStatus('status.lyrics.unsupportedFormat')
+  }
 }
 
 watch(
@@ -265,7 +365,13 @@ useEditorShortcuts({
 </script>
 
 <template>
-  <div class="flex h-screen flex-col overflow-hidden">
+  <div
+    class="flex h-screen flex-col overflow-hidden"
+    :class="{ 'ring-2 ring-primary/40': isDragHovering }"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <MenuBar
       data-testid="menu-bar"
       :mode="editorMode"
@@ -287,12 +393,16 @@ useEditorShortcuts({
       @saveProject="persistence.saveByShortcut"
       @saveProjectAs="persistence.saveAs"
       @updateProjectTitle="store.setProjectTitle"
+      @newProject="requestNewProject"
       @undo="store.undo"
       @redo="store.redo"
       @openAudioFile="openAudioPicker"
       @pasteLyrics="showPasteModal = true"
       @openPreferences="showPreferencesModal = true"
-      @importLyricsFile="() => {}"
+      @importLyricsFile="requestLyricsImport"
+      @exportLyricsFile="
+        (target: LyricsExportTargetId) => persistence.exportLyrics(target)
+      "
       @addLyricLine="onAddLyricLine"
     />
     <LyricsPasteModal
@@ -305,6 +415,14 @@ useEditorShortcuts({
       @saveAndOpen="saveAndOpenProject"
       @discardAndOpen="discardAndOpenProject"
       @cancel="cancelOpenProject"
+    />
+    <ImportConfirmModal
+      v-if="pendingLyricsImport"
+      :file-name="pendingLyricsImport.fileName"
+      :format="pendingLyricsImport.format"
+      :display-format="pendingLyricsImport.displayFormat"
+      @confirm="confirmLyricsImport"
+      @cancel="cancelLyricsImport"
     />
     <PreferencesModal
       v-if="showPreferencesModal"

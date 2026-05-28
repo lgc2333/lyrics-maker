@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
+    ImportConfirmModal: typeof import('./components/shell/ImportConfirmModal.vue')['default']
     LyricsLineList: typeof import('./components/shell/LyricsLineList.vue')['default']
     LyricsPanel: typeof import('./components/shell/LyricsPanel.vue')['default']
     LyricsPasteModal: typeof import('./components/shell/LyricsPasteModal.vue')['default']
