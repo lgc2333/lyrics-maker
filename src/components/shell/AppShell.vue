@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useLocalSettings } from '../../composables/useLocalSettings'
@@ -9,6 +9,7 @@ import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelin
 import type { LyricLine, LyricWord } from '../../core/domain/project'
 import { autoSplitText } from '../../core/lyrics/auto-split'
 import { createPrefixedId } from '../../platform/ids/create-id'
+import type { LocalTheme } from '../../platform/settings/local-settings'
 import { useEditorStore } from '../../stores/editor-store'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
@@ -32,8 +33,10 @@ const persistence = useProjectPersistence()
 const editorMode = ref<'timing' | 'lyrics'>('timing')
 const lyricsEditor = useLyricsEditor()
 provide(LYRICS_EDITOR_KEY, lyricsEditor)
-const theme = ref<'light' | 'dark'>('light')
+const themeMode = ref<LocalTheme>('light')
+const systemPrefersDark = ref(false)
 const audioInput = ref<HTMLInputElement | null>(null)
+const restoreSettingsInput = ref<HTMLInputElement | null>(null)
 const showPasteModal = ref(false)
 const showUnsavedOpenDialog = ref(false)
 const showPreferencesModal = ref(false)
@@ -84,22 +87,68 @@ function onResizePointerUp() {
 provide(MAIN_VIEW_HEIGHT_KEY, mainViewHeight)
 
 const localSettings = useLocalSettings({
-  theme,
+  theme: themeMode,
   mainViewHeight,
   timeline,
 })
 provide(LOCAL_SETTINGS_KEY, localSettings)
 
-function toggleTheme(): void {
-  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+const effectiveTheme = computed<'light' | 'dark'>(() => {
+  if (themeMode.value === 'system') return systemPrefersDark.value ? 'dark' : 'light'
+  return themeMode.value
+})
+
+const colorSchemeQuery =
+  typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null
+
+if (colorSchemeQuery) {
+  systemPrefersDark.value = colorSchemeQuery.matches
+  colorSchemeQuery.addEventListener('change', onSystemColorSchemeChange)
+}
+
+function onSystemColorSchemeChange(event: MediaQueryListEvent): void {
+  systemPrefersDark.value = event.matches
+}
+
+onBeforeUnmount(() => {
+  colorSchemeQuery?.removeEventListener('change', onSystemColorSchemeChange)
+})
+
+function setThemeMode(nextThemeMode: LocalTheme): void {
+  themeMode.value = nextThemeMode
 }
 
 function onExportSettings(): void {
+  const blob = new Blob([localSettings.exportToText()], {
+    type: 'application/json',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'lyrics-maker-settings.json'
+  link.click()
+  URL.revokeObjectURL(url)
   localSettings.reportExportSuccess()
 }
 
-function onImportSettings(content: string): void {
-  localSettings.importFromText(content)
+function openSettingsRestorePicker(): void {
+  restoreSettingsInput.value?.click()
+}
+
+async function onSettingsRestoreSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    localSettings.reportImportCancelled()
+    return
+  }
+  try {
+    localSettings.importFromText(await file.text())
+  } finally {
+    input.value = ''
+  }
 }
 
 function openAudioPicker(): void {
@@ -168,7 +217,7 @@ function onAddLyricLine(): void {
 }
 
 watch(
-  theme,
+  effectiveTheme,
   (nextTheme) => {
     document.documentElement.setAttribute('data-theme', nextTheme)
     timeline.setTheme(nextTheme)
@@ -220,7 +269,8 @@ useEditorShortcuts({
     <MenuBar
       data-testid="menu-bar"
       :mode="editorMode"
-      :theme="theme"
+      :theme-mode="themeMode"
+      :effective-theme="effectiveTheme"
       :can-undo="store.canUndo"
       :can-redo="store.canRedo"
       :next-undo-label="store.nextUndoLabel"
@@ -232,7 +282,7 @@ useEditorShortcuts({
           editorMode = mode
         }
       "
-      @toggleTheme="toggleTheme"
+      @updateThemeMode="setThemeMode"
       @openProject="requestOpenProject"
       @saveProject="persistence.saveByShortcut"
       @saveProjectAs="persistence.saveAs"
@@ -258,10 +308,12 @@ useEditorShortcuts({
     />
     <PreferencesModal
       v-if="showPreferencesModal"
-      :export-text="localSettings.exportToText()"
+      :theme-mode="themeMode"
+      :effective-theme="effectiveTheme"
       @close="showPreferencesModal = false"
-      @exportSettings="onExportSettings"
-      @importSettings="onImportSettings"
+      @updateThemeMode="setThemeMode"
+      @backupSettings="onExportSettings"
+      @restoreSettings="openSettingsRestorePicker"
     />
     <input
       ref="audioInput"
@@ -270,6 +322,14 @@ useEditorShortcuts({
       accept="audio/*"
       class="hidden"
       @change="onAudioSelected"
+    />
+    <input
+      ref="restoreSettingsInput"
+      data-testid="settings-restore-input"
+      type="file"
+      accept="application/json,.json"
+      class="hidden"
+      @change="onSettingsRestoreSelected"
     />
     <MainView data-testid="main-view" />
     <TransportBar data-testid="transport-bar" />

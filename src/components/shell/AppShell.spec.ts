@@ -220,10 +220,15 @@ describe('appShell', () => {
     })
   })
 
-  it('theme toggle updates html data-theme attribute', async () => {
+  it('theme menu updates html data-theme attribute and local settings', async () => {
     const wrapper = mount(AppShell)
     await wrapper.get('[data-testid="theme-toggle"]').trigger('click')
-    expect(document.documentElement.getAttribute('data-theme')).toBeTruthy()
+    await wrapper.get('[data-testid="theme-option-dark"]').trigger('click')
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(localStorage.getItem('lyrics-maker.local-settings.v1')).toContain(
+      '"theme": "dark"',
+    )
   })
 
   it('does not issue network requests while mounting shell icons', async () => {
@@ -434,5 +439,76 @@ describe('appShell', () => {
     const wrapper = mount(AppShell)
     await wrapper.vm.$nextTick()
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+  })
+
+  it('follows system theme when local setting is system', async () => {
+    const listeners = new Set<(event: MediaQueryListEvent) => void>()
+    let systemPrefersDark = true
+    const matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
+      () =>
+        ({
+          matches: systemPrefersDark,
+          media: '(prefers-color-scheme: dark)',
+          onchange: null,
+          addEventListener: vi.fn((_event, listener) => {
+            listeners.add(listener as (event: MediaQueryListEvent) => void)
+          }),
+          removeEventListener: vi.fn((_event, listener) => {
+            listeners.delete(listener as (event: MediaQueryListEvent) => void)
+          }),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as MediaQueryList,
+    )
+    localStorage.setItem(
+      'lyrics-maker.local-settings.v1',
+      JSON.stringify({ version: 1, theme: 'system' }),
+    )
+
+    try {
+      const wrapper = mount(AppShell)
+      await wrapper.vm.$nextTick()
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+
+      systemPrefersDark = false
+      listeners.forEach((listener) =>
+        listener({ matches: false } as MediaQueryListEvent),
+      )
+      await wrapper.vm.$nextTick()
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    } finally {
+      matchMediaSpy.mockRestore()
+    }
+  })
+
+  it('opens preferences and restores settings from a selected json file', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-preferences"]').trigger('click')
+    await wrapper.get('[data-testid="preferences-tab-backup"]').trigger('click')
+
+    const restoreInput = wrapper.get('[data-testid="settings-restore-input"]')
+      .element as HTMLInputElement
+    Object.defineProperty(restoreInput, 'files', {
+      configurable: true,
+      value: [
+        new File([JSON.stringify({ version: 1, theme: 'dark' })], 'settings.json', {
+          type: 'application/json',
+        }),
+      ],
+    })
+
+    await wrapper.get('[data-testid="preferences-restore"]').trigger('click')
+    await restoreInput.dispatchEvent(new Event('change'))
+
+    await vi.waitFor(() => {
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    })
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '本地设置导入成功',
+    )
   })
 })

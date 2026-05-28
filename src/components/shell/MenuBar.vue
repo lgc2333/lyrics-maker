@@ -3,10 +3,14 @@ import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import type { LocalTheme } from '../../platform/settings/local-settings'
+
 const props = withDefaults(
   defineProps<{
     mode: 'timing' | 'lyrics'
-    theme: 'light' | 'dark'
+    theme?: 'light' | 'dark'
+    themeMode?: LocalTheme
+    effectiveTheme?: 'light' | 'dark'
     audioLoaded?: boolean
     canUndo?: boolean
     canRedo?: boolean
@@ -28,6 +32,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   switchMode: [mode: 'timing' | 'lyrics']
   toggleTheme: []
+  updateThemeMode: [theme: LocalTheme]
   openProject: []
   openAudioFile: []
   saveProject: []
@@ -45,6 +50,7 @@ const { t, te } = useI18n()
 
 type MenuName = 'file' | 'edit' | 'help' | 'lyrics'
 const openMenu = ref<MenuName | null>(null)
+const themeMenuOpen = ref(false)
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInput = ref<HTMLInputElement | null>(null)
@@ -52,6 +58,35 @@ const titleInput = ref<HTMLInputElement | null>(null)
 const displayedProjectTitle = computed(
   () => `${props.dirty ? '*' : ''}${props.projectTitle} - ${t('shell.appTitle')}`,
 )
+
+const themeMode = computed<LocalTheme>(() => props.themeMode ?? props.theme ?? 'light')
+const effectiveTheme = computed<'light' | 'dark'>(
+  () => props.effectiveTheme ?? props.theme ?? 'light',
+)
+
+const themeOptions: Array<{ value: LocalTheme; labelKey: string; testid: string }> = [
+  { value: 'light', labelKey: 'preferences.theme.light', testid: 'theme-option-light' },
+  { value: 'dark', labelKey: 'preferences.theme.dark', testid: 'theme-option-dark' },
+  {
+    value: 'system',
+    labelKey: 'preferences.theme.system',
+    testid: 'theme-option-system',
+  },
+]
+
+const themeButtonTitle = computed(() => {
+  if (themeMode.value !== 'system') {
+    return t(`preferences.theme.${themeMode.value}`)
+  }
+  return `${t('preferences.theme.system')} (${t(`preferences.theme.${effectiveTheme.value}`)})`
+})
+
+const themeIcon = computed(() => {
+  if (themeMode.value === 'system') return 'material-symbols:desktop-windows-rounded'
+  return effectiveTheme.value === 'dark'
+    ? 'material-symbols:dark-mode-rounded'
+    : 'material-symbols:light-mode-rounded'
+})
 
 const COMMAND_LABEL_KEYS: Record<string, string> = {
   'audio.setMusicVolume': 'status.command.audio.setMusicVolume',
@@ -77,10 +112,16 @@ const COMMAND_LABEL_KEYS: Record<string, string> = {
 }
 
 function toggleMenu(name: MenuName): void {
+  themeMenuOpen.value = false
   openMenu.value = openMenu.value === name ? null : name
 }
 
 function onMenuHover(name: MenuName): void {
+  if (themeMenuOpen.value) {
+    themeMenuOpen.value = false
+    openMenu.value = name
+    return
+  }
   if (openMenu.value !== null && openMenu.value !== name) {
     openMenu.value = name
   }
@@ -88,6 +129,17 @@ function onMenuHover(name: MenuName): void {
 
 function closeMenu(): void {
   openMenu.value = null
+  themeMenuOpen.value = false
+}
+
+function toggleThemeMenu(): void {
+  openMenu.value = null
+  themeMenuOpen.value = !themeMenuOpen.value
+}
+
+function selectThemeMode(nextThemeMode: LocalTheme): void {
+  emit('updateThemeMode', nextThemeMode)
+  themeMenuOpen.value = false
 }
 
 async function startTitleEdit(): Promise<void> {
@@ -120,9 +172,11 @@ function onDocumentClick(event: MouseEvent): void {
   if (!target || typeof target.closest !== 'function') return
   if (
     !target.closest('[data-testid^="menu-trigger-"]') &&
+    !target.closest('[data-testid="theme-toggle"]') &&
     !target.closest('[data-testid^="menu-popup-"]')
   ) {
     openMenu.value = null
+    themeMenuOpen.value = false
   }
 }
 
@@ -359,18 +413,33 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
     >
       <button
         data-testid="theme-toggle"
+        aria-haspopup="true"
+        :aria-expanded="themeMenuOpen"
+        :title="themeButtonTitle"
         class="btn btn-ghost btn-xs btn-square"
-        @click="emit('toggleTheme')"
+        @click="toggleThemeMenu"
       >
-        <Icon
-          :icon="
-            theme === 'dark'
-              ? 'material-symbols:dark-mode-rounded'
-              : 'material-symbols:light-mode-rounded'
-          "
-          class="text-sm"
-        />
+        <Icon :icon="themeIcon" class="text-sm" />
       </button>
+      <div
+        v-if="themeMenuOpen"
+        data-testid="menu-popup-theme"
+        role="menu"
+        class="absolute top-7 right-2 z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
+      >
+        <button
+          v-for="option in themeOptions"
+          :key="option.value"
+          :data-testid="option.testid"
+          role="menuitemradio"
+          :aria-checked="themeMode === option.value"
+          class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          :class="{ 'bg-base-200 font-semibold': themeMode === option.value }"
+          @click="selectThemeMode(option.value)"
+        >
+          {{ t(option.labelKey) }}
+        </button>
+      </div>
 
       <div
         data-testid="mode-switch-group"

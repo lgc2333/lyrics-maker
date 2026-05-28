@@ -35,9 +35,14 @@ describe('menuBar', () => {
     expect(wrapper.emitted('switchMode')?.[0]).toEqual(['timing'])
   })
 
-  it('has theme toggle button', () => {
+  it('has theme menu button', () => {
     const wrapper = mount(MenuBar, {
-      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+      props: {
+        mode: 'timing',
+        themeMode: 'light',
+        effectiveTheme: 'light',
+        audioLoaded: true,
+      },
     })
     expect(wrapper.find('[data-testid="theme-toggle"]').exists()).toBe(true)
   })
@@ -58,12 +63,25 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="mode-switch-group"]').exists()).toBe(true)
   })
 
-  it('emits toggleTheme when theme button clicked', async () => {
+  it('opens theme menu and emits selected theme mode', async () => {
     const wrapper = mount(MenuBar, {
-      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+      props: {
+        mode: 'timing',
+        themeMode: 'system',
+        effectiveTheme: 'dark',
+        audioLoaded: true,
+      },
     })
     await wrapper.get('[data-testid="theme-toggle"]').trigger('click')
-    expect(wrapper.emitted('toggleTheme')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="menu-popup-theme"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="theme-option-system"]').classes()).toContain(
+      'bg-base-200',
+    )
+
+    await wrapper.get('[data-testid="theme-option-light"]').trigger('click')
+
+    expect(wrapper.emitted('updateThemeMode')?.[0]).toEqual(['light'])
+    expect(wrapper.find('[data-testid="menu-popup-theme"]').exists()).toBe(false)
   })
 
   it('closes open menu when clicking another menu trigger', async () => {

@@ -105,9 +105,25 @@
   "preferences": {
     "title": "首选项",
     "close": "关闭",
-    "import": "导入本地设置",
-    "export": "导出本地设置",
-    "importPlaceholder": "粘贴本地设置 JSON"
+    "categories": {
+      "general": "常规",
+      "shortcuts": "快捷键",
+      "backup": "备份/恢复"
+    },
+    "theme": {
+      "title": "主题模式",
+      "description": "选择界面亮暗主题。跟随系统会在系统偏好变化时自动同步。",
+      "light": "亮",
+      "dark": "暗",
+      "system": "跟随系统",
+      "systemEffective": "当前系统偏好：{theme}"
+    },
+    "shortcutsPlaceholder": "快捷键设置将在后续版本中实现。",
+    "backup": {
+      "description": "备份会导出完整本地用户设置；恢复会读取 JSON 备份并应用。",
+      "export": "备份设置",
+      "restore": "恢复设置"
+    }
   },
   "errors": {
     "unsupportedFsApi": "当前浏览器不支持实时写盘",
@@ -180,6 +196,7 @@
       "loadFailed": "本地设置读取失败：{reason}",
       "saveFailed": "本地设置保存失败：{reason}",
       "importSuccess": "本地设置导入成功",
+      "importCancelled": "已取消恢复本地设置",
       "importFailed": "本地设置导入失败：{reason}",
       "exportSuccess": "本地设置已导出"
     },

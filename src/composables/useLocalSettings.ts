@@ -5,12 +5,12 @@ import {
   DEFAULT_LOCAL_USER_SETTINGS,
   createLocalSettingsService,
 } from '../platform/settings/local-settings'
-import type { LocalUserSettings } from '../platform/settings/local-settings'
+import type { LocalTheme, LocalUserSettings } from '../platform/settings/local-settings'
 import { useEditorStore } from '../stores/editor-store'
 import type { TimelineViewContext } from './useTimelineView'
 
 interface UseLocalSettingsOptions {
-  theme: Ref<'light' | 'dark'>
+  theme: Ref<LocalTheme>
   mainViewHeight: Ref<number>
   timeline: TimelineViewContext
 }
@@ -120,10 +120,15 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
     store.showStatus('status.localSettings.exportSuccess')
   }
 
+  function reportImportCancelled(): void {
+    store.showStatus('status.localSettings.importCancelled')
+  }
+
   return {
     settings,
     exportToText,
     importFromText,
     reportExportSuccess,
+    reportImportCancelled,
   }
 }

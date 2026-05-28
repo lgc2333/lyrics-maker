@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export type LocalTheme = 'light' | 'dark'
+export type LocalTheme = 'light' | 'dark' | 'system'
 export type LocalViewMode = 'waveform' | 'spectrogram'
 export type LocalRhythmMode = 'common' | 'triplets'
 export type LocalSnapDivisor = 1 | 2 | 4 | 8 | 16
@@ -9,7 +9,7 @@ export const LOCAL_SETTINGS_STORAGE_KEY = 'lyrics-maker.local-settings.v1'
 
 const localUserSettingsSchema = z.object({
   version: z.literal(1).default(1),
-  theme: z.enum(['light', 'dark']).default('light'),
+  theme: z.enum(['light', 'dark', 'system']).default('system'),
   musicVolume: z.number().min(0).max(1).default(1),
   musicMuted: z.boolean().default(false),
   sfxVolume: z.number().min(0).max(1).default(0.8),

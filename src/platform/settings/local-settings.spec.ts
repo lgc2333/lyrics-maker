@@ -35,6 +35,17 @@ describe('local settings validation', () => {
     expect(result.settings.snapDivisor).toBe(8)
   })
 
+  it('accepts system theme mode for following the OS preference', () => {
+    const result = parseLocalUserSettings({
+      version: 1,
+      theme: 'system',
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected system theme to parse')
+    expect(result.settings.theme).toBe('system')
+  })
+
   it('rejects imported settings with invalid structure', () => {
     const result = parseLocalUserSettings({
       version: 1,
