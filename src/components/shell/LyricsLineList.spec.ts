@@ -268,6 +268,32 @@ describe('lyricsLineList', () => {
       const row = wrapper.find('[data-testid="lyrics-line-row"]')
       expect(row.classes()).not.toContain('bg-primary/10')
     })
+
+    it('scrolls the selected line into view when activeLineId changes', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        { id: 'line-1', words: [{ id: 'w1', text: 'A' }] },
+        { id: 'line-2', words: [{ id: 'w2', text: 'B' }] },
+      ])
+      const activeLineId = ref<string | null>(null)
+      const lyricsEditor = createMockLyricsEditor({ activeLineId })
+      const scrollIntoView = vi.fn()
+      const originalScrollIntoView = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scrollIntoView
+      try {
+        mountComponent(lyricsEditor)
+
+        activeLineId.value = 'line-2'
+        await vi.waitFor(() => {
+          expect(scrollIntoView).toHaveBeenCalledWith({
+            block: 'nearest',
+            inline: 'nearest',
+          })
+        })
+      } finally {
+        Element.prototype.scrollIntoView = originalScrollIntoView
+      }
+    })
   })
 
   describe('active state (playback cursor)', () => {

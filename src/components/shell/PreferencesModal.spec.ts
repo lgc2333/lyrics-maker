@@ -6,7 +6,7 @@ import PreferencesModal from './PreferencesModal.vue'
 describe('preferencesModal', () => {
   it('opens on general category with only theme mode controls', () => {
     const wrapper = mount(PreferencesModal, {
-      props: { themeMode: 'system', effectiveTheme: 'dark' },
+      props: { localeMode: 'system', themeMode: 'system', effectiveTheme: 'dark' },
     })
 
     expect(wrapper.get('[data-testid="preferences-tab-general"]').text()).toContain(
@@ -18,6 +18,15 @@ describe('preferencesModal', () => {
     expect(wrapper.get('[data-testid="preferences-theme-system"]').classes()).toContain(
       'btn-active',
     )
+    expect(wrapper.find('[data-testid="preferences-locale-select"]').exists()).toBe(
+      true,
+    )
+    expect(
+      wrapper.get<HTMLSelectElement>('[data-testid="preferences-locale-select"]')
+        .element.value,
+    ).toBe('system')
+    expect(wrapper.text()).toContain('系统默认')
+    expect(wrapper.text()).toContain('简体中文')
     expect(wrapper.text()).toContain('跟随系统')
     expect(wrapper.text()).not.toContain('音乐音量')
     expect(wrapper.text()).not.toContain('节拍器')
@@ -27,7 +36,7 @@ describe('preferencesModal', () => {
 
   it('switches categories and shows placeholders for shortcuts and backup restore', async () => {
     const wrapper = mount(PreferencesModal, {
-      props: { themeMode: 'light', effectiveTheme: 'light' },
+      props: { localeMode: 'zh-CN', themeMode: 'light', effectiveTheme: 'light' },
     })
 
     await wrapper.get('[data-testid="preferences-tab-shortcuts"]').trigger('click')
@@ -43,7 +52,7 @@ describe('preferencesModal', () => {
 
   it('emits close only from close button and emits theme and backup actions', async () => {
     const wrapper = mount(PreferencesModal, {
-      props: { themeMode: 'light', effectiveTheme: 'light' },
+      props: { localeMode: 'system', themeMode: 'light', effectiveTheme: 'light' },
     })
 
     await wrapper.get('[data-testid="preferences-modal"]').trigger('click')
@@ -51,6 +60,9 @@ describe('preferencesModal', () => {
 
     await wrapper.get('[data-testid="preferences-theme-dark"]').trigger('click')
     expect(wrapper.emitted('updateThemeMode')?.[0]).toEqual(['dark'])
+
+    await wrapper.get('[data-testid="preferences-locale-select"]').setValue('zh-CN')
+    expect(wrapper.emitted('updateLocaleMode')?.[0]).toEqual(['zh-CN'])
 
     await wrapper.get('[data-testid="preferences-tab-backup"]').trigger('click')
     await wrapper.get('[data-testid="preferences-backup"]').trigger('click')

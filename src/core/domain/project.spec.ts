@@ -7,9 +7,6 @@ describe('createEmptyProject', () => {
     expect(createEmptyProject()).toEqual({
       version: 1,
       title: 'Untitled Project',
-      settings: {
-        locale: 'zh-CN',
-      },
       lyrics: [],
       timingPoints: [
         {
@@ -28,8 +25,7 @@ describe('createEmptyProject', () => {
     expect(project.timingPoints).toHaveLength(1)
     expect(project.timingPoints[0].time).toBe(0)
     expect('audio' in project).toBe(false)
-    expect('snapDivisor' in project.settings).toBe(false)
-    expect('snapEnabled' in project.settings).toBe(false)
+    expect('settings' in project).toBe(false)
   })
 
   it('returns fresh default project instances', () => {
@@ -40,9 +36,6 @@ describe('createEmptyProject', () => {
     expect(createEmptyProject()).toEqual({
       version: 1,
       title: 'Untitled Project',
-      settings: {
-        locale: 'zh-CN',
-      },
       lyrics: [],
       timingPoints: [
         {
@@ -64,7 +57,7 @@ describe('parseProjectDocument', () => {
       ...project,
       audio: { musicVolume: 0.25, sfxVolume: 0.5 },
       settings: {
-        ...project.settings,
+        locale: 'zh-CN',
         snapEnabled: false,
         snapDivisor: 8,
       },

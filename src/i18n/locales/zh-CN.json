@@ -155,6 +155,12 @@
       "system": "跟随系统",
       "systemEffective": "当前系统偏好：{theme}"
     },
+    "locale": {
+      "title": "界面语言",
+      "description": "选择界面显示语言。系统默认会跟随浏览器偏好。",
+      "system": "系统默认",
+      "zhCN": "简体中文"
+    },
     "shortcutsPlaceholder": "快捷键设置将在后续版本中实现。",
     "backup": {
       "description": "备份会导出完整本地用户设置；恢复会读取 JSON 备份并应用。",

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, nextTick, watch } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { LyricLine } from '../../core/domain/project'
@@ -11,6 +12,30 @@ import { LYRICS_EDITOR_KEY } from './injection-keys'
 const { t } = useI18n()
 const store = useEditorStore()
 const lyricsEditor = inject(LYRICS_EDITOR_KEY) as LyricsEditorContext
+const lineElements = new Map<string, HTMLElement>()
+
+function setLineElement(
+  lineId: string,
+  el: Element | ComponentPublicInstance | null,
+): void {
+  if (el instanceof HTMLElement) {
+    lineElements.set(lineId, el)
+  } else {
+    lineElements.delete(lineId)
+  }
+}
+
+watch(
+  () => lyricsEditor.activeLineId.value,
+  async (lineId) => {
+    if (!lineId) return
+    await nextTick()
+    lineElements.get(lineId)?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    })
+  },
+)
 
 function isActive(lineId: string): boolean {
   const lyrics = store.project.lyrics
@@ -77,6 +102,7 @@ function hasIncompleteWordStatus(line: {
       <li
         v-for="(line, index) in store.project.lyrics"
         :key="line.id"
+        :ref="(el) => setLineElement(line.id, el)"
         data-testid="lyrics-line-row"
         role="option"
         :aria-selected="lyricsEditor.activeLineId.value === line.id"

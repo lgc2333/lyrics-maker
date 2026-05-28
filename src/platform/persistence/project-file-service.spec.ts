@@ -58,7 +58,7 @@ describe('project file service', () => {
       ...project,
       audio: { musicVolume: 0.25, sfxVolume: 0.5 },
       settings: {
-        ...project.settings,
+        locale: 'zh-CN',
         snapEnabled: false,
         snapDivisor: 8,
       },

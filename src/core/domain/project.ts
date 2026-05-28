@@ -20,14 +20,9 @@ const timingPointSchema = z.object({
   timeSignatureDenominator: z.number(),
 })
 
-const projectSettingsSchema = z.object({
-  locale: z.literal('zh-CN').default('zh-CN'),
-})
-
 export const projectDocumentSchema = z.object({
   version: z.literal(1).default(1),
   title: z.string().default('Untitled Project'),
-  settings: projectSettingsSchema.default({ locale: 'zh-CN' }),
   lyrics: z.array(lyricLineSchema).default(() => []),
   timingPoints: z.array(timingPointSchema).default(() => [
     {
@@ -40,8 +35,6 @@ export const projectDocumentSchema = z.object({
   ]),
 })
 
-export type LocaleCode = z.infer<typeof projectSettingsSchema>['locale']
-export type ProjectSettings = z.infer<typeof projectSettingsSchema>
 export type LyricWord = z.infer<typeof lyricWordSchema>
 export type LyricLine = z.infer<typeof lyricLineSchema>
 export type TimingPoint = z.infer<typeof timingPointSchema>

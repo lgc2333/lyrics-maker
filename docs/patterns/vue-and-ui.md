@@ -16,6 +16,7 @@
 - **Auto-focus after state change:** set the reactive flag -> `await nextTick()` -> call `.focus()` on a typed template ref (`ref<HTMLInputElement | null>(null)`). The `nextTick` ensures the DOM element exists before focusing. In tests, use `attachTo: document.body` so `document.activeElement` resolves.
 - **Theme mode vs effective theme:** keep saved user preference as `LocalTheme` (`light | dark | system`), derive `effectiveTheme` in `AppShell`, and apply only the effective `light | dark` value to DaisyUI/timeline rendering.
 - **Preferences modal boundary:** keep `PreferencesModal` presentational/event-only; `AppShell`/local-settings composables own local settings export/import, validation, persistence, and status feedback.
+- **Lyrics line selection auto-scroll lives in `LyricsLineList`.** Watch `lyricsEditor.activeLineId`, wait for `nextTick()`, then call `scrollIntoView({ block: 'nearest', inline: 'nearest' })` on the row so all selection sources share the behavior.
 
 ## CSS / Tailwind / Template
 

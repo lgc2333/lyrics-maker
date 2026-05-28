@@ -305,8 +305,7 @@ describe('editor store (phase 1)', () => {
     expect(parsed.lyrics).toHaveLength(1)
     expect(parsed.lyrics[0].words[0].text).toBe('hello world')
     expect(parsed.audio).toBeUndefined()
-    expect(parsed.settings.snapEnabled).toBeUndefined()
-    expect(parsed.settings.snapDivisor).toBeUndefined()
+    expect(parsed.settings).toBeUndefined()
     expect(store.dirty).toBe(false)
     expect(store.statusMessage?.key).toBe('status.project.saveSuccess')
   })
@@ -365,7 +364,7 @@ describe('editor store (phase 1)', () => {
     store.loadProject({
       ...store.project,
       settings: {
-        ...store.project.settings,
+        locale: 'zh-CN',
         snapEnabled: false,
         snapDivisor: 16,
       },
@@ -379,8 +378,7 @@ describe('editor store (phase 1)', () => {
 
     const parsed = JSON.parse(save.mock.calls[0][0])
     expect(parsed.audio).toBeUndefined()
-    expect(parsed.settings.snapEnabled).toBeUndefined()
-    expect(parsed.settings.snapDivisor).toBeUndefined()
+    expect(parsed.settings).toBeUndefined()
   })
 
   it('loads a restored draft as dirty', () => {

@@ -42,11 +42,11 @@ import type { MetronomeScheduler } from '../platform/audio/metronome'
 import { createMetronome } from '../platform/audio/metronome'
 import { createPrefixedId } from '../platform/ids/create-id'
 import type { SaveResult } from '../platform/persistence/project-file-service'
-import { DEFAULT_LOCAL_USER_SETTINGS } from '../platform/settings/local-settings'
+import { DEFAULT_LOCAL_USER_STATE } from '../platform/settings/local-settings'
 import type {
   LocalRhythmMode,
   LocalSnapDivisor,
-  LocalUserSettings,
+  LocalUserState,
 } from '../platform/settings/local-settings'
 
 function makeId(prefix: string) {
@@ -124,17 +124,15 @@ export const useEditorStore = defineStore('editor', () => {
   const _tapCount = shallowRef(0) // incremented on every tap call, reset after idle timeout
   const _tapSampleCount = shallowRef(0)
   const _tapEstimatedBpm = shallowRef<number | null>(null)
-  const _musicVolume = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.musicVolume)
-  const _musicMuted = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.musicMuted)
-  const _sfxVolume = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.sfxVolume)
-  const _sfxMuted = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.sfxMuted)
-  const _snapEnabled = shallowRef(DEFAULT_LOCAL_USER_SETTINGS.snapEnabled)
+  const _musicVolume = shallowRef(DEFAULT_LOCAL_USER_STATE.musicVolume)
+  const _musicMuted = shallowRef(DEFAULT_LOCAL_USER_STATE.musicMuted)
+  const _sfxVolume = shallowRef(DEFAULT_LOCAL_USER_STATE.sfxVolume)
+  const _sfxMuted = shallowRef(DEFAULT_LOCAL_USER_STATE.sfxMuted)
+  const _snapEnabled = shallowRef(DEFAULT_LOCAL_USER_STATE.snapEnabled)
   const _snapDivisor = shallowRef<LocalSnapDivisor>(
-    DEFAULT_LOCAL_USER_SETTINGS.snapDivisor,
+    DEFAULT_LOCAL_USER_STATE.snapDivisor,
   )
-  const _rhythmMode = shallowRef<LocalRhythmMode>(
-    DEFAULT_LOCAL_USER_SETTINGS.rhythmMode,
-  )
+  const _rhythmMode = shallowRef<LocalRhythmMode>(DEFAULT_LOCAL_USER_STATE.rhythmMode)
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -366,9 +364,6 @@ export const useEditorStore = defineStore('editor', () => {
     return {
       version: 1,
       title: input.title,
-      settings: {
-        locale: input.settings.locale,
-      },
       lyrics: structuredClone(input.lyrics),
       timingPoints: structuredClone(input.timingPoints),
     }
@@ -396,24 +391,24 @@ export const useEditorStore = defineStore('editor', () => {
     showStatus('status.project.newSuccess')
   }
 
-  function applyLocalSettings(settings: LocalUserSettings): void {
-    _musicVolume.value = settings.musicVolume
-    _musicMuted.value = settings.musicMuted
-    _sfxVolume.value = settings.sfxVolume
-    _sfxMuted.value = settings.sfxMuted
-    _snapEnabled.value = settings.snapEnabled
-    _snapDivisor.value = settings.snapDivisor
-    _rhythmMode.value = settings.rhythmMode
-    _metronomeState.value = settings.metronomeEnabled ? 'on' : 'off'
+  function applyLocalState(state: LocalUserState): void {
+    _musicVolume.value = state.musicVolume
+    _musicMuted.value = state.musicMuted
+    _sfxVolume.value = state.sfxVolume
+    _sfxMuted.value = state.sfxMuted
+    _snapEnabled.value = state.snapEnabled
+    _snapDivisor.value = state.snapDivisor
+    _rhythmMode.value = state.rhythmMode
+    _metronomeState.value = state.metronomeEnabled ? 'on' : 'off'
     _syncAudioHardware()
     if (_metronome.value) {
-      _metronome.value.setEnabled(settings.metronomeEnabled)
+      _metronome.value.setEnabled(state.metronomeEnabled)
     }
   }
 
-  function exportLocalSettingsBase(): LocalUserSettings {
+  function exportLocalStateBase(): LocalUserState {
     return {
-      ...DEFAULT_LOCAL_USER_SETTINGS,
+      ...DEFAULT_LOCAL_USER_STATE,
       musicVolume: _musicVolume.value,
       musicMuted: _musicMuted.value,
       sfxVolume: _sfxVolume.value,
@@ -982,8 +977,8 @@ export const useEditorStore = defineStore('editor', () => {
     markClean,
     loadProject,
     createNewProject,
-    applyLocalSettings,
-    exportLocalSettingsBase,
+    applyLocalState,
+    exportLocalStateBase,
     setProjectTitle,
     saveProject,
     saveProjectAs,

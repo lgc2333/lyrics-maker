@@ -3,17 +3,19 @@ import { Icon } from '@iconify/vue'
 import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { LocalTheme } from '../../platform/settings/local-settings'
+import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
 
 type Category = 'general' | 'shortcuts' | 'backup'
 
 const props = defineProps<{
+  localeMode: LocalLocale
   themeMode: LocalTheme
   effectiveTheme: 'light' | 'dark'
 }>()
 
 const emit = defineEmits<{
   close: []
+  updateLocaleMode: [locale: LocalLocale]
   updateThemeMode: [theme: LocalTheme]
   backupSettings: []
   restoreSettings: []
@@ -56,6 +58,11 @@ const themeOptions: Array<{ value: LocalTheme; labelKey: string; testid: string 
     labelKey: 'preferences.theme.system',
     testid: 'preferences-theme-system',
   },
+]
+
+const localeOptions: Array<{ value: LocalLocale; labelKey: string }> = [
+  { value: 'system', labelKey: 'preferences.locale.system' },
+  { value: 'zh-CN', labelKey: 'preferences.locale.zhCN' },
 ]
 
 const effectiveThemeLabel = computed(() =>
@@ -114,6 +121,34 @@ const effectiveThemeLabel = computed(() =>
             data-testid="preferences-panel-general"
             class="max-w-xl"
           >
+            <label class="mb-6 block max-w-xs">
+              <span class="mb-1 block text-sm font-semibold">
+                {{ t('preferences.locale.title') }}
+              </span>
+              <span class="mb-3 block text-sm text-base-content/70">
+                {{ t('preferences.locale.description') }}
+              </span>
+              <select
+                data-testid="preferences-locale-select"
+                class="select select-sm w-full"
+                :value="props.localeMode"
+                @change="
+                  emit(
+                    'updateLocaleMode',
+                    ($event.target as HTMLSelectElement).value as LocalLocale,
+                  )
+                "
+              >
+                <option
+                  v-for="option in localeOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ t(option.labelKey) }}
+                </option>
+              </select>
+            </label>
+
             <h3 class="mb-1 text-sm font-semibold">
               {{ t('preferences.theme.title') }}
             </h3>

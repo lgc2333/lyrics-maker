@@ -8,6 +8,8 @@
 - **Persistence is decoupled from business logic.** The save pipeline (`project-file-service.ts` -> `editor-store.saveProject` -> `useProjectPersistence`) exchanges JSON strings. Replace the backend without touching `core/`.
 - **Persisted JSON is lenient-in, strict-out.** Project/settings Zod schemas should use `z.object()` with defaults so unknown fields are stripped, missing compatible fields defaulted, and type/version mismatches rejected.
 - **Keep schema ownership aligned with data ownership.** Project schema/defaults live in `core/domain/project.ts`; browser-local settings schema/defaults live in `platform/settings/local-settings.ts`.
+- **Project files must not store user settings.** `ProjectDocument` has no `settings`; locale and other user preferences belong in browser-local settings/state, while project JSON remains song data only.
+- **Local settings vs local state are separate.** `LocalUserSettings` contains only Preferences-visible exported settings; hidden UI/session values live in `LocalUserState` and must not be included in exported settings JSON.
 - **Persistence failures use stable reason codes in UI.** Localize `reason` values in `StatusBar`, and log detailed parse/storage errors to the browser console.
 - **File autosave must never open a picker.** It should only write through an existing cached file handle. Browser draft restore loads project state as dirty; opening a project file loads it as clean.
 - **Public API array parameters should use `readonly` when not mutated.** Inconsistent signatures (e.g. mutable `TimingPoint[]` where peers use `readonly`) are a type-safety regression.

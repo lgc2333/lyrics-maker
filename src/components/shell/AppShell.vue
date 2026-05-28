@@ -14,7 +14,7 @@ import type {
 } from '../../core/lyrics-io/types'
 import { autoSplitText } from '../../core/lyrics/auto-split'
 import { createPrefixedId } from '../../platform/ids/create-id'
-import type { LocalTheme } from '../../platform/settings/local-settings'
+import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
 import { useEditorStore } from '../../stores/editor-store'
 import ImportConfirmModal from './ImportConfirmModal.vue'
 import LyricsPanel from './LyricsPanel.vue'
@@ -39,6 +39,7 @@ const persistence = useProjectPersistence()
 const editorMode = ref<'timing' | 'lyrics'>('timing')
 const lyricsEditor = useLyricsEditor()
 provide(LYRICS_EDITOR_KEY, lyricsEditor)
+const localeMode = ref<LocalLocale>('system')
 const themeMode = ref<LocalTheme>('light')
 const systemPrefersDark = ref(false)
 const audioInput = ref<HTMLInputElement | null>(null)
@@ -104,6 +105,7 @@ function onResizePointerUp() {
 provide(MAIN_VIEW_HEIGHT_KEY, mainViewHeight)
 
 const localSettings = useLocalSettings({
+  locale: localeMode,
   theme: themeMode,
   mainViewHeight,
   timeline,
@@ -135,6 +137,10 @@ onBeforeUnmount(() => {
 
 function setThemeMode(nextThemeMode: LocalTheme): void {
   themeMode.value = nextThemeMode
+}
+
+function setLocaleMode(nextLocaleMode: LocalLocale): void {
+  localeMode.value = nextLocaleMode
 }
 
 function onExportSettings(): void {
@@ -426,9 +432,11 @@ useEditorShortcuts({
     />
     <PreferencesModal
       v-if="showPreferencesModal"
+      :locale-mode="localeMode"
       :theme-mode="themeMode"
       :effective-theme="effectiveTheme"
       @close="showPreferencesModal = false"
+      @updateLocaleMode="setLocaleMode"
       @updateThemeMode="setThemeMode"
       @backupSettings="onExportSettings"
       @restoreSettings="openSettingsRestorePicker"

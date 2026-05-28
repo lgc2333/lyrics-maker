@@ -3,13 +3,20 @@ import type { Ref } from 'vue'
 
 import {
   DEFAULT_LOCAL_USER_SETTINGS,
+  DEFAULT_LOCAL_USER_STATE,
   createLocalSettingsService,
 } from '../platform/settings/local-settings'
-import type { LocalTheme, LocalUserSettings } from '../platform/settings/local-settings'
+import type {
+  LocalLocale,
+  LocalTheme,
+  LocalUserSettings,
+  LocalUserState,
+} from '../platform/settings/local-settings'
 import { useEditorStore } from '../stores/editor-store'
 import type { TimelineViewContext } from './useTimelineView'
 
 interface UseLocalSettingsOptions {
+  locale: Ref<LocalLocale>
   theme: Ref<LocalTheme>
   mainViewHeight: Ref<number>
   timeline: TimelineViewContext
@@ -21,12 +28,20 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   const store = useEditorStore()
   const service = createLocalSettingsService()
   const settings = ref<LocalUserSettings>(structuredClone(DEFAULT_LOCAL_USER_SETTINGS))
+  const state = ref<LocalUserState>(structuredClone(DEFAULT_LOCAL_USER_STATE))
   let hydrated = false
 
   function buildSettings(): LocalUserSettings {
     return {
-      ...store.exportLocalSettingsBase(),
+      ...DEFAULT_LOCAL_USER_SETTINGS,
+      locale: options.locale.value,
       theme: options.theme.value,
+    }
+  }
+
+  function buildState(): LocalUserState {
+    return {
+      ...store.exportLocalStateBase(),
       viewMode: options.timeline.viewMode.value,
       spectrogramVerticalZoom: options.timeline.verticalZoom.value,
       autoFollowPlayback: options.timeline.autoFollowPlayback.value,
@@ -34,14 +49,19 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
     }
   }
 
-  function applySettings(nextSettings: LocalUserSettings): void {
+  function applySettings(
+    nextSettings: LocalUserSettings,
+    nextState: LocalUserState = structuredClone(DEFAULT_LOCAL_USER_STATE),
+  ): void {
     settings.value = structuredClone(nextSettings)
-    store.applyLocalSettings(nextSettings)
+    state.value = structuredClone(nextState)
+    store.applyLocalState(nextState)
+    options.locale.value = nextSettings.locale
     options.theme.value = nextSettings.theme
-    options.timeline.setViewMode(nextSettings.viewMode)
-    options.timeline.setVerticalZoom(nextSettings.spectrogramVerticalZoom)
-    options.timeline.setAutoFollowPlayback(nextSettings.autoFollowPlayback)
-    options.mainViewHeight.value = nextSettings.mainViewHeight
+    options.timeline.setViewMode(nextState.viewMode)
+    options.timeline.setVerticalZoom(nextState.spectrogramVerticalZoom)
+    options.timeline.setAutoFollowPlayback(nextState.autoFollowPlayback)
+    options.mainViewHeight.value = nextState.mainViewHeight
   }
 
   function logLocalSettingsFailure(
@@ -58,7 +78,7 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   onMounted(() => {
     const result = service.load()
     if (result.ok) {
-      applySettings(result.settings)
+      applySettings(result.settings, result.state)
     } else {
       logLocalSettingsFailure('load', result.reason, result.errorMessage)
       store.showStatus('status.localSettings.loadFailed', {
@@ -71,6 +91,7 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   watch(
     [
       () => options.theme.value,
+      () => options.locale.value,
       () => store.musicVolume,
       () => store.musicMuted,
       () => store.sfxVolume,
@@ -87,8 +108,10 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
     () => {
       if (!hydrated) return
       const nextSettings = buildSettings()
+      const nextState = buildState()
       settings.value = nextSettings
-      const result = service.save(nextSettings)
+      state.value = nextState
+      const result = service.save(nextSettings, nextState)
       if (!result.ok) {
         logLocalSettingsFailure('save', result.reason, result.errorMessage)
         store.showStatus('status.localSettings.saveFailed', {
@@ -99,11 +122,11 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   )
 
   function exportToText(): string {
-    return service.exportToText(buildSettings())
+    return service.exportToText(buildSettings(), buildState())
   }
 
   function importFromText(content: string): boolean {
-    const result = service.importFromText(content)
+    const result = service.importFromText(content, buildState())
     if (!result.ok) {
       logLocalSettingsFailure('import', result.reason, result.errorMessage)
       store.showStatus('status.localSettings.importFailed', {
@@ -111,7 +134,7 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
       })
       return false
     }
-    applySettings(result.settings)
+    applySettings(result.settings, result.state)
     store.showStatus('status.localSettings.importSuccess')
     return true
   }
@@ -126,6 +149,7 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
 
   return {
     settings,
+    state,
     exportToText,
     importFromText,
     reportExportSuccess,
