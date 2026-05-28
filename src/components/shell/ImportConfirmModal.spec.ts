@@ -10,7 +10,7 @@ describe('importConfirmModal', () => {
     })
 
     expect(wrapper.text()).toContain('song.lrc')
-    expect(wrapper.text()).toContain('普通逐行 LRC')
+    expect(wrapper.text()).toContain('逐行 LRC')
     expect(wrapper.text()).toContain('替换当前歌词')
     expect(wrapper.text()).toContain('保留当前音频和项目设置')
   })

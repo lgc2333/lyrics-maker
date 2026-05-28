@@ -1,13 +1,6 @@
 import type { LyricsExportTarget, LyricsExportTargetId } from './types'
 
 const exportTargets: Record<LyricsExportTargetId, LyricsExportTarget> = {
-  txt: { id: 'txt', format: 'txt', extension: 'txt' },
-  'lrc-line': {
-    id: 'lrc-line',
-    format: 'lrc',
-    extension: 'lrc',
-    options: { lrcWordTiming: 'line' },
-  },
   'lrc-enhanced': {
     id: 'lrc-enhanced',
     format: 'lrc',
@@ -22,8 +15,15 @@ const exportTargets: Record<LyricsExportTargetId, LyricsExportTarget> = {
   },
   ttml: { id: 'ttml', format: 'ttml', extension: 'ttml' },
   ass: { id: 'ass', format: 'ass', extension: 'ass' },
+  'lrc-line': {
+    id: 'lrc-line',
+    format: 'lrc',
+    extension: 'lrc',
+    options: { lrcWordTiming: 'line' },
+  },
   srt: { id: 'srt', format: 'srt', extension: 'srt' },
   vtt: { id: 'vtt', format: 'vtt', extension: 'vtt' },
+  txt: { id: 'txt', format: 'txt', extension: 'txt' },
 }
 
 export function getLyricsExportTarget(id: LyricsExportTargetId): LyricsExportTarget {

@@ -83,20 +83,15 @@ const lyricExportTargets: Array<{
   labelKey: string
   warningKey?: string
 }> = [
-  {
-    id: 'txt',
-    labelKey: 'lyrics.export.formats.txt',
-    warningKey: 'lyrics.export.loss.allTiming',
-  },
+  { id: 'lrc-enhanced', labelKey: 'lyrics.export.formats.lrcEnhanced' },
+  { id: 'lrc-eslyric', labelKey: 'lyrics.export.formats.lrcEslyric' },
+  { id: 'ttml', labelKey: 'lyrics.export.formats.ttml' },
+  { id: 'ass', labelKey: 'lyrics.export.formats.ass' },
   {
     id: 'lrc-line',
     labelKey: 'lyrics.export.formats.lrcLine',
     warningKey: 'lyrics.export.loss.wordTiming',
   },
-  { id: 'lrc-enhanced', labelKey: 'lyrics.export.formats.lrcEnhanced' },
-  { id: 'lrc-eslyric', labelKey: 'lyrics.export.formats.lrcEslyric' },
-  { id: 'ttml', labelKey: 'lyrics.export.formats.ttml' },
-  { id: 'ass', labelKey: 'lyrics.export.formats.ass' },
   {
     id: 'srt',
     labelKey: 'lyrics.export.formats.srt',
@@ -106,6 +101,11 @@ const lyricExportTargets: Array<{
     id: 'vtt',
     labelKey: 'lyrics.export.formats.vtt',
     warningKey: 'lyrics.export.loss.wordTiming',
+  },
+  {
+    id: 'txt',
+    labelKey: 'lyrics.export.formats.txt',
+    warningKey: 'lyrics.export.loss.allTiming',
   },
 ]
 
