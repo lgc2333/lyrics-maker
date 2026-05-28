@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+coverage
 dist
 dist-ssr
 *.local
@@ -24,11 +25,13 @@ dist-ssr
 *.sw?
 
 .agents/skills/*
-!.agents/skills/revise-claude-md/
+!.agents/skills/revise-claude-md
+!.agents/skills/code-quality
 
 .claude/settings.local.json
 .claude/skills/*
 !.claude/skills/revise-claude-md
+!.claude/skills/code-quality
 
 !.vscode/mcp.json
 
