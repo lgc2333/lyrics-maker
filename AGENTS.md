@@ -31,6 +31,7 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 
 - Git index writes (e.g. `git add`, `git commit`) may require escalation, `.git/index.lock` is permission-denied by the sandbox.
 - If you need to install dependencies, DO NOT do this by yourself. Ask the user to do it; sandboxed pnpm may not be able to access its store.
+- In the Codex sandbox, `rg` may resolve to a WinGet Links shim and fail to launch even though ripgrep works in the user's normal shell. If this happens, run `Get-Command rg -All` and `where.exe rg` to find another working `rg.exe`, then call that executable directly, or fall back to PowerShell search.
 
 ## Tooling
 
@@ -49,6 +50,8 @@ Do not invoke skills that are not named in this section unless the user explicit
   - **Vue test work**: Before touching Vue-related tests, invoke `vue-testing-best-practices`.
 
 If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
+
+When the user or a skill instructs you to use `writing-plans`, write plans without embedded code. After the plan is written and the user has reviewed it, do not ask which execution mode to use; always proceed with inline execution.
 
 ## Architecture: Three-Layer Design
 

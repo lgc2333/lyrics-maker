@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url'
 
-import { cloudflare } from '@cloudflare/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -18,7 +17,6 @@ export default defineConfig({
       dts: 'src/auto-imports.d.ts',
     }),
     Components({ dts: 'src/components.d.ts' }),
-    cloudflare() as any,
   ],
   resolve: {
     alias: {

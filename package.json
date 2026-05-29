@@ -1,7 +1,7 @@
 {
   "name": "lyrics-maker",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@11.1.2",
   "scripts": {
@@ -27,13 +27,12 @@
     "pinia": "^3.0.4",
     "vue": "^3.5.35",
     "vue-i18n": "^11.4.4",
-    "vue-router": "^5.0.7",
+    "vue-router": "^5.1.0",
     "wavesurfer.js": "^7.12.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
-    "@cloudflare/vite-plugin": "^1.39.0",
     "@tailwindcss/vite": "^4.3.0",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^25.9.1",

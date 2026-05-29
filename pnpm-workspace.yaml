@@ -1,5 +1,8 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
 minimumReleaseAgeExclude:
-  - '@cloudflare/vite-plugin@1.39.0'
   - '@libraz/libsonare@1.2.1'
   - '@vue/compiler-core@3.5.35'
   - '@vue/compiler-dom@3.5.35'
@@ -14,12 +17,8 @@ minimumReleaseAgeExclude:
   - miniflare@4.20260526.0
   - vue@3.5.35
   - wrangler@4.95.0
-
 shellEmulator: true
-
 trustPolicy: no-downgrade
-
-allowBuilds:
-  esbuild: true
-  sharp: true
-  workerd: true
+trustPolicyExclude:
+  - 'ast-v8-to-istanbul@1.0.2'
+  - 'tinyexec@1.2.2'
