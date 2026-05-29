@@ -1,12 +1,25 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
+import { DEFAULT_SHORTCUT_BINDINGS } from '../../platform/shortcuts/defaults'
+import type { ShortcutAction } from '../../platform/shortcuts/registry'
 import PreferencesModal from './PreferencesModal.vue'
+
+const baseShortcutProps = {
+  shortcutBindings: DEFAULT_SHORTCUT_BINDINGS,
+  shortcutOverriddenActions: new Set<ShortcutAction>(),
+  capturingAction: null as ShortcutAction | null,
+}
 
 describe('preferencesModal', () => {
   it('opens on general category with only theme mode controls', () => {
     const wrapper = mount(PreferencesModal, {
-      props: { localeMode: 'system', themeMode: 'system', effectiveTheme: 'dark' },
+      props: {
+        localeMode: 'system',
+        themeMode: 'system',
+        effectiveTheme: 'dark',
+        ...baseShortcutProps,
+      },
     })
 
     expect(wrapper.get('[data-testid="preferences-tab-general"]').text()).toContain(
@@ -34,15 +47,25 @@ describe('preferencesModal', () => {
     expect(wrapper.find('[data-testid="preferences-export-text"]').exists()).toBe(false)
   })
 
-  it('switches categories and shows placeholders for shortcuts and backup restore', async () => {
+  it('switches categories and renders shortcut list plus backup panel', async () => {
     const wrapper = mount(PreferencesModal, {
-      props: { localeMode: 'zh-CN', themeMode: 'light', effectiveTheme: 'light' },
+      props: {
+        localeMode: 'zh-CN',
+        themeMode: 'light',
+        effectiveTheme: 'light',
+        ...baseShortcutProps,
+      },
     })
 
     await wrapper.get('[data-testid="preferences-tab-shortcuts"]').trigger('click')
-    expect(wrapper.get('[data-testid="preferences-panel-shortcuts"]').text()).toContain(
-      '快捷键设置将在后续版本中实现',
+    expect(wrapper.find('[data-testid="preferences-shortcuts-list"]').exists()).toBe(
+      true,
     )
+    expect(
+      wrapper.find('[data-testid="preferences-shortcuts-reset-all"]').exists(),
+    ).toBe(true)
+    // Confirm at least one known action row renders
+    expect(wrapper.text()).toContain('歌词打轴')
 
     await wrapper.get('[data-testid="preferences-tab-backup"]').trigger('click')
     expect(wrapper.find('[data-testid="preferences-panel-backup"]').exists()).toBe(true)
@@ -52,7 +75,12 @@ describe('preferencesModal', () => {
 
   it('emits close only from close button and emits theme and backup actions', async () => {
     const wrapper = mount(PreferencesModal, {
-      props: { localeMode: 'system', themeMode: 'light', effectiveTheme: 'light' },
+      props: {
+        localeMode: 'system',
+        themeMode: 'light',
+        effectiveTheme: 'light',
+        ...baseShortcutProps,
+      },
     })
 
     await wrapper.get('[data-testid="preferences-modal"]').trigger('click')
@@ -72,5 +100,41 @@ describe('preferencesModal', () => {
 
     await wrapper.get('[data-testid="preferences-close"]').trigger('click')
     expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
+  it('emits resetAllShortcuts when the reset-all button is clicked', async () => {
+    const wrapper = mount(PreferencesModal, {
+      props: {
+        localeMode: 'system',
+        themeMode: 'light',
+        effectiveTheme: 'light',
+        ...baseShortcutProps,
+      },
+    })
+
+    await wrapper.get('[data-testid="preferences-tab-shortcuts"]').trigger('click')
+    await wrapper
+      .get('[data-testid="preferences-shortcuts-reset-all"]')
+      .trigger('click')
+    expect(wrapper.emitted('resetAllShortcuts')).toHaveLength(1)
+  })
+
+  it('forwards row events as shortcut emits', async () => {
+    const wrapper = mount(PreferencesModal, {
+      props: {
+        localeMode: 'system',
+        themeMode: 'light',
+        effectiveTheme: 'light',
+        shortcutBindings: DEFAULT_SHORTCUT_BINDINGS,
+        shortcutOverriddenActions: new Set<ShortcutAction>(['lyrics.mark']),
+        capturingAction: null,
+      },
+    })
+
+    await wrapper.get('[data-testid="preferences-tab-shortcuts"]').trigger('click')
+    // Click the first assign (capture) button; rows iterate over the default actions in
+    // insertion order, so the first row is `history.undo`.
+    await wrapper.get('[data-testid="shortcut-row-assign"]').trigger('click')
+    expect(wrapper.emitted('startCaptureShortcut')?.[0]).toEqual(['history.undo'])
   })
 })

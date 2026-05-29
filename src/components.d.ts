@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AboutModal: typeof import('./components/shell/AboutModal.vue')['default']
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
+    ConfirmDialog: typeof import('./components/shell/ConfirmDialog.vue')['default']
     ImportConfirmModal: typeof import('./components/shell/ImportConfirmModal.vue')['default']
     LyricsLineList: typeof import('./components/shell/LyricsLineList.vue')['default']
     LyricsPanel: typeof import('./components/shell/LyricsPanel.vue')['default']
@@ -23,6 +24,7 @@ declare module 'vue' {
     ProjectValidationModal: typeof import('./components/shell/ProjectValidationModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ShortcutBindingRow: typeof import('./components/shell/ShortcutBindingRow.vue')['default']
     StatusBar: typeof import('./components/shell/StatusBar.vue')['default']
     TimingPointControls: typeof import('./components/shell/TimingPointControls.vue')['default']
     TimingPointList: typeof import('./components/shell/TimingPointList.vue')['default']

@@ -10,6 +10,7 @@ export type ShortcutAction =
   | 'timing.tapBpm'
   | 'metronome.toggle'
   | 'lyrics.mark'
+  | 'lyrics.mark2'
   | 'lyrics.markNoAdvance'
   | 'lyrics.nextLine'
   | 'lyrics.playLineInterval'
@@ -31,11 +32,22 @@ export function createShortcutRegistry() {
     bindings.delete(keystroke)
   }
 
+  function rebuild(next: Map<string, ShortcutAction>): void {
+    bindings.clear()
+    for (const [keystroke, action] of next) {
+      if (bindings.has(keystroke)) {
+        console.warn(`[shortcuts] Duplicate keystroke during rebuild: ${keystroke}`)
+        continue
+      }
+      bindings.set(keystroke, action)
+    }
+  }
+
   function dispatch(keys: string, handler: (action: ShortcutAction) => void) {
     if (!keys) return
     const action = bindings.get(keys)
     if (action) handler(action)
   }
 
-  return { register, unregister, dispatch }
+  return { register, unregister, rebuild, dispatch }
 }

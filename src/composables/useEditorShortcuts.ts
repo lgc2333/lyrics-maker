@@ -1,4 +1,5 @@
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
+import type { ComputedRef } from 'vue'
 
 import { normalizeKeystroke } from '../platform/shortcuts/keystroke'
 import { createShortcutRegistry } from '../platform/shortcuts/registry'
@@ -20,32 +21,23 @@ const TEXT_INPUT_TYPES = new Set([
   'week',
 ])
 
-export function useEditorShortcuts(options: {
+export interface UseEditorShortcutsOptions {
+  bindings: ComputedRef<Map<string, ShortcutAction>>
+  paused: ComputedRef<boolean>
   onAction: (action: ShortcutAction) => void | Promise<void>
   onError?: (error: unknown, action: ShortcutAction) => void
-}) {
+}
+
+export function useEditorShortcuts(options: UseEditorShortcutsOptions): void {
   const registry = createShortcutRegistry()
 
-  registry.register('Ctrl+Z', 'history.undo')
-  registry.register('Ctrl+Y', 'history.redo')
-  registry.register('Ctrl+S', 'project.save')
-  registry.register('Space', 'transport.togglePlay')
-  registry.register('B', 'timing.tapBpm')
-  registry.register('M', 'metronome.toggle')
-  registry.register('ArrowLeft', 'transport.prevBeat')
-  registry.register('ArrowRight', 'transport.nextBeat')
-  registry.register('Shift+ArrowLeft', 'transport.prevBar')
-  registry.register('Shift+ArrowRight', 'transport.nextBar')
-
-  // Lyrics mode shortcuts
-  registry.register('D', 'lyrics.mark')
-  registry.register('Shift+D', 'lyrics.markNoAdvance')
-  registry.register('Enter', 'lyrics.nextLine')
-  registry.register('C', 'lyrics.playLineInterval')
-  registry.register('V', 'lyrics.playWordInterval')
-  registry.register('Delete', 'lyrics.deleteLine')
-  registry.register('Escape', 'lyrics.clearSelection')
-  registry.register('Tab', 'lyrics.editWholeLine')
+  watch(
+    options.bindings,
+    (next) => {
+      registry.rebuild(next)
+    },
+    { immediate: true },
+  )
 
   function reportActionError(error: unknown, action: ShortcutAction): void {
     if (options.onError) {
@@ -56,6 +48,7 @@ export function useEditorShortcuts(options: {
   }
 
   function onKeydown(event: KeyboardEvent) {
+    if (options.paused.value) return
     if (shouldIgnoreShortcutTarget(event.target)) return
 
     const key = normalizeKeystroke(event)

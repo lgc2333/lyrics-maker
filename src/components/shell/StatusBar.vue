@@ -34,6 +34,12 @@ const messageText = computed(() => {
   if (params.action !== undefined) {
     params.action = translateMappedValue(params.action, ACTION_LABEL_KEYS)
   }
+  if (params.fromAction !== undefined) {
+    params.fromAction = translateMappedValue(params.fromAction, ACTION_LABEL_KEYS)
+  }
+  if (params.toAction !== undefined) {
+    params.toAction = translateMappedValue(params.toAction, ACTION_LABEL_KEYS)
+  }
   if (params.mode !== undefined) {
     params.mode = translateMappedValue(params.mode, RHYTHM_MODE_LABEL_KEYS)
   }

@@ -24,6 +24,12 @@ export const COMMAND_LABEL_KEYS: Record<string, string> = {
 }
 
 export const ACTION_LABEL_KEYS: Record<string, string> = {
+  'history.undo': 'status.action.history.undo',
+  'history.redo': 'status.action.history.redo',
+  'project.save': 'status.action.project.save',
+  'timing.tapBpm': 'status.action.timing.tapBpm',
+  'metronome.toggle': 'status.action.metronome.toggle',
+  'transport.togglePlay': 'status.action.transport.togglePlay',
   'transport.nextBar': 'status.action.transport.nextBar',
   'transport.nextBeat': 'status.action.transport.nextBeat',
   'transport.playPause': 'status.action.transport.playPause',
@@ -32,9 +38,14 @@ export const ACTION_LABEL_KEYS: Record<string, string> = {
   'transport.prevBeat': 'status.action.transport.prevBeat',
   'transport.seek': 'status.action.transport.seek',
   'lyrics.mark': 'status.action.lyrics.mark',
+  'lyrics.mark2': 'status.action.lyrics.mark2',
+  'lyrics.markNoAdvance': 'status.action.lyrics.markNoAdvance',
   'lyrics.nextLine': 'status.action.lyrics.nextLine',
   'lyrics.playLineInterval': 'status.action.lyrics.playLineInterval',
   'lyrics.playWordInterval': 'status.action.lyrics.playWordInterval',
+  'lyrics.deleteLine': 'status.action.lyrics.deleteLine',
+  'lyrics.clearSelection': 'status.action.lyrics.clearSelection',
+  'lyrics.editWholeLine': 'status.action.lyrics.editWholeLine',
 }
 
 export const RHYTHM_MODE_LABEL_KEYS: Record<string, string> = {

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useLocalSettings } from '../../composables/useLocalSettings'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
+import { useShortcutBindings } from '../../composables/useShortcutBindings'
+import { useShortcutCapture } from '../../composables/useShortcutCapture'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import type { LyricLine, LyricWord } from '../../core/domain/project'
 import type { ProjectValidationIssue } from '../../core/domain/project-validation'
@@ -17,9 +20,11 @@ import type {
 import { autoSplitText } from '../../core/lyrics/auto-split'
 import { createPrefixedId } from '../../platform/ids/create-id'
 import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
+import type { ShortcutAction } from '../../platform/shortcuts/registry'
 import { useEditorStore } from '../../stores/editor-store'
 import { APP_COMMIT, APP_VERSION } from '../../version'
 import AboutModal from './AboutModal.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import ImportConfirmModal from './ImportConfirmModal.vue'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
@@ -40,6 +45,7 @@ import {
 
 const store = useEditorStore()
 const persistence = useProjectPersistence()
+const { t } = useI18n()
 
 const editorMode = ref<'timing' | 'lyrics'>('timing')
 const lyricsEditor = useLyricsEditor()
@@ -123,6 +129,47 @@ const localSettings = useLocalSettings({
   timeline,
 })
 provide(LOCAL_SETTINGS_KEY, localSettings)
+
+const shortcuts = useShortcutBindings({
+  initialOverrides: localSettings.shortcutOverrides,
+  onChange: (next) => {
+    localSettings.shortcutOverrides.value = next
+  },
+  onStatus: (key, params) => store.showStatus(key, params),
+})
+
+const capture = useShortcutCapture({
+  onCaptured: (action, keystroke) => {
+    shortcuts.assignBinding(action, keystroke)
+  },
+  onCancelled: () => {
+    // No-op: capture cancellation is silent.
+  },
+})
+
+const shortcutOverriddenActions = computed(
+  () => new Set(Object.keys(localSettings.shortcutOverrides.value) as ShortcutAction[]),
+)
+
+const showResetAllShortcutsDialog = ref(false)
+
+function onResetAllShortcuts(): void {
+  showResetAllShortcutsDialog.value = true
+}
+
+function confirmResetAllShortcuts(): void {
+  showResetAllShortcutsDialog.value = false
+  shortcuts.resetAll()
+}
+
+function cancelResetAllShortcuts(): void {
+  showResetAllShortcutsDialog.value = false
+}
+
+function closePreferencesModal(): void {
+  capture.cancel()
+  showPreferencesModal.value = false
+}
 
 const effectiveTheme = computed<'light' | 'dark'>(() => {
   if (themeMode.value === 'system') return systemPrefersDark.value ? 'dark' : 'light'
@@ -387,6 +434,8 @@ watch(
 )
 
 useEditorShortcuts({
+  bindings: shortcuts.bindingsByKeystroke,
+  paused: computed(() => capture.capturingAction.value !== null),
   onAction: async (action) => {
     if (action === 'history.undo') {
       store.undo()
@@ -408,7 +457,7 @@ useEditorShortcuts({
       store.seekToPreviousBar()
     } else if (action === 'transport.nextBar') {
       store.seekToNextBar()
-    } else if (action === 'lyrics.mark') {
+    } else if (action === 'lyrics.mark' || action === 'lyrics.mark2') {
       if (editorMode.value === 'lyrics') lyricsEditor.handleMarkKey()
     } else if (action === 'lyrics.markNoAdvance') {
       if (editorMode.value === 'lyrics') lyricsEditor.handleMarkNoAdvanceKey()
@@ -489,6 +538,15 @@ useEditorShortcuts({
       @discardAndOpen="discardAndOpenProject"
       @cancel="cancelOpenProject"
     />
+    <ConfirmDialog
+      v-if="showResetAllShortcutsDialog"
+      data-testid="reset-all-shortcuts-dialog"
+      :title="t('preferences.shortcuts.resetAllConfirmTitle')"
+      :message="t('preferences.shortcuts.resetAllConfirm')"
+      tone="danger"
+      @confirm="confirmResetAllShortcuts"
+      @cancel="cancelResetAllShortcuts"
+    />
     <ImportConfirmModal
       v-if="pendingLyricsImport"
       :file-name="pendingLyricsImport.fileName"
@@ -510,11 +568,19 @@ useEditorShortcuts({
       :locale-mode="localeMode"
       :theme-mode="themeMode"
       :effective-theme="effectiveTheme"
-      @close="showPreferencesModal = false"
+      :shortcut-bindings="shortcuts.effectiveBindings.value"
+      :shortcut-overridden-actions="shortcutOverriddenActions"
+      :capturing-action="capture.capturingAction.value"
+      @close="closePreferencesModal"
       @updateLocaleMode="setLocaleMode"
       @updateThemeMode="setThemeMode"
       @backupSettings="onExportSettings"
       @restoreSettings="openSettingsRestorePicker"
+      @startCaptureShortcut="capture.start"
+      @cancelCaptureShortcut="capture.cancel"
+      @resetShortcut="shortcuts.resetAction"
+      @clearShortcut="shortcuts.clearBinding"
+      @resetAllShortcuts="onResetAllShortcuts"
     />
     <AboutModal
       v-if="showAboutModal"

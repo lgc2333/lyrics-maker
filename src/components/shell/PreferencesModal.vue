@@ -4,6 +4,9 @@ import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
+import { DEFAULT_SHORTCUT_BINDINGS } from '../../platform/shortcuts/defaults'
+import type { ShortcutAction } from '../../platform/shortcuts/registry'
+import ShortcutBindingRow from './ShortcutBindingRow.vue'
 
 type Category = 'general' | 'shortcuts' | 'backup'
 
@@ -11,6 +14,9 @@ const props = defineProps<{
   localeMode: LocalLocale
   themeMode: LocalTheme
   effectiveTheme: 'light' | 'dark'
+  shortcutBindings: Record<ShortcutAction, string | null>
+  shortcutOverriddenActions: ReadonlySet<ShortcutAction>
+  capturingAction: ShortcutAction | null
 }>()
 
 const emit = defineEmits<{
@@ -19,10 +25,17 @@ const emit = defineEmits<{
   updateThemeMode: [theme: LocalTheme]
   backupSettings: []
   restoreSettings: []
+  startCaptureShortcut: [action: ShortcutAction]
+  cancelCaptureShortcut: []
+  resetShortcut: [action: ShortcutAction]
+  clearShortcut: [action: ShortcutAction]
+  resetAllShortcuts: []
 }>()
 
 const { t } = useI18n()
 const activeCategory = shallowRef<Category>('general')
+
+const shortcutActions = Object.keys(DEFAULT_SHORTCUT_BINDINGS) as ShortcutAction[]
 
 const categories: Array<{ key: Category; labelKey: string; testid: string }> = [
   {
@@ -182,9 +195,38 @@ const effectiveThemeLabel = computed(() =>
           <section
             v-else-if="activeCategory === 'shortcuts'"
             data-testid="preferences-panel-shortcuts"
-            class="flex h-full min-h-64 items-center justify-center text-center text-sm text-base-content/60"
+            class="flex h-full flex-col"
           >
-            {{ t('preferences.shortcutsPlaceholder') }}
+            <header class="mb-3 flex shrink-0 items-center justify-between">
+              <p class="text-sm text-base-content/70">
+                {{ t('preferences.shortcuts.description') }}
+              </p>
+              <button
+                data-testid="preferences-shortcuts-reset-all"
+                type="button"
+                class="btn btn-ghost btn-xs"
+                @click="emit('resetAllShortcuts')"
+              >
+                {{ t('preferences.shortcuts.resetAll') }}
+              </button>
+            </header>
+            <ul
+              data-testid="preferences-shortcuts-list"
+              class="flex-1 overflow-auto rounded border border-base-300 p-1"
+            >
+              <ShortcutBindingRow
+                v-for="action in shortcutActions"
+                :key="action"
+                :action="action"
+                :effective-keystroke="props.shortcutBindings[action]"
+                :is-overridden="props.shortcutOverriddenActions.has(action)"
+                :capturing="props.capturingAction === action"
+                @start-capture="(a) => emit('startCaptureShortcut', a)"
+                @cancel-capture="emit('cancelCaptureShortcut')"
+                @reset="(a) => emit('resetShortcut', a)"
+                @clear="(a) => emit('clearShortcut', a)"
+              />
+            </ul>
           </section>
 
           <section v-else data-testid="preferences-panel-backup" class="max-w-xl">

@@ -16,6 +16,10 @@ describe('local settings validation', () => {
     expect(DEFAULT_LOCAL_USER_STATE.gridVisible).toBe(true)
   })
 
+  it('defaults shortcutOverrides to an empty object', () => {
+    expect(DEFAULT_LOCAL_USER_STATE.shortcutOverrides).toEqual({})
+  })
+
   it('accepts a complete local settings payload', () => {
     const result = parseLocalUserSettings({
       version: 1,
@@ -128,6 +132,7 @@ describe('local settings service', () => {
         musicVolume: 0.25,
         snapDivisor: 8,
         gridVisible: false,
+        shortcutOverrides: { 'lyrics.mark2': 'Q', 'lyrics.editWholeLine': null },
       },
     )
 
@@ -142,6 +147,25 @@ describe('local settings service', () => {
     expect(result.state.musicVolume).toBe(0.25)
     expect(result.state.snapDivisor).toBe(8)
     expect(result.state.gridVisible).toBe(false)
+    expect(result.state.shortcutOverrides).toEqual({
+      'lyrics.mark2': 'Q',
+      'lyrics.editWholeLine': null,
+    })
+  })
+
+  it('accepts shortcutOverrides with null values', () => {
+    const service = createLocalSettingsService(localStorage)
+    localStorage.clear()
+
+    service.save(DEFAULT_LOCAL_USER_SETTINGS, {
+      ...DEFAULT_LOCAL_USER_STATE,
+      shortcutOverrides: { 'lyrics.mark': null },
+    })
+
+    const result = service.load()
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected load to succeed')
+    expect(result.state.shortcutOverrides).toEqual({ 'lyrics.mark': null })
   })
 
   it('validates import text before saving', () => {

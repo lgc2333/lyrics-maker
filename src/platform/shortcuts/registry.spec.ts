@@ -47,4 +47,37 @@ describe('shortcut registry', () => {
     registry.dispatch(null, onAction)
     expect(onAction).not.toHaveBeenCalled()
   })
+
+  it('rebuild replaces all bindings atomically', () => {
+    const onAction = vi.fn()
+    const registry = createShortcutRegistry()
+
+    registry.register('Ctrl+Z', 'history.undo')
+    registry.rebuild(
+      new Map<string, 'history.redo' | 'project.save'>([
+        ['Ctrl+Y', 'history.redo'],
+        ['Ctrl+S', 'project.save'],
+      ]),
+    )
+
+    registry.dispatch('Ctrl+Z', onAction)
+    expect(onAction).not.toHaveBeenCalled()
+
+    registry.dispatch('Ctrl+Y', onAction)
+    expect(onAction).toHaveBeenCalledWith('history.redo')
+
+    registry.dispatch('Ctrl+S', onAction)
+    expect(onAction).toHaveBeenCalledWith('project.save')
+  })
+
+  it('rebuild with an empty map clears all bindings', () => {
+    const onAction = vi.fn()
+    const registry = createShortcutRegistry()
+    registry.register('Ctrl+Z', 'history.undo')
+
+    registry.rebuild(new Map())
+
+    registry.dispatch('Ctrl+Z', onAction)
+    expect(onAction).not.toHaveBeenCalled()
+  })
 })

@@ -31,6 +31,7 @@ const localUserStateSchema = z.object({
   gridVisible: z.boolean().default(true),
   autoFollowPlayback: z.boolean().default(true),
   mainViewHeight: z.number().min(180).max(520).default(250),
+  shortcutOverrides: z.record(z.string(), z.string().nullable()).default({}),
 })
 
 export type LocalUserSettings = z.infer<typeof localUserSettingsSchema>

@@ -1,4 +1,8 @@
 {
+  "common": {
+    "confirm": "确定",
+    "cancel": "取消"
+  },
   "shell": {
     "menu": {
       "file": "文件",
@@ -201,6 +205,18 @@
       "zhCN": "简体中文"
     },
     "shortcutsPlaceholder": "快捷键设置将在后续版本中实现。",
+    "shortcuts": {
+      "description": "点击键位按钮后按下新组合即可分配；按 Esc 取消。",
+      "resetAll": "全部重置",
+      "resetAllConfirmTitle": "重置全部快捷键？",
+      "resetAllConfirm": "确定要重置所有快捷键到默认值吗？",
+      "reset": "重置",
+      "assign": "分配快捷键",
+      "cancelCapture": "取消",
+      "clear": "清空",
+      "unbound": "未绑定",
+      "capturing": "按下键位..."
+    },
     "backup": {
       "description": "备份会导出完整本地用户设置；恢复会读取 JSON 备份并应用。",
       "export": "备份设置",
@@ -287,6 +303,13 @@
       "importFailed": "本地设置导入失败：{reason}",
       "exportSuccess": "本地设置已导出"
     },
+    "shortcuts": {
+      "assigned": "已分配 {action} → {keystroke}",
+      "reassigned": "{keystroke} 已从 {fromAction} 重新分配给 {toAction}",
+      "cleared": "已清空 {action} 的快捷键",
+      "reset": "已重置 {action} 的快捷键",
+      "resetAll": "已重置全部快捷键"
+    },
     "reason": {
       "cancelled": "操作已取消",
       "failed": "操作失败",
@@ -320,7 +343,21 @@
       "dropMultipleUnsupported": "暂不支持一次拖拽多个文件"
     },
     "action": {
+      "history": {
+        "undo": "撤销",
+        "redo": "重做"
+      },
+      "project": {
+        "save": "保存项目"
+      },
+      "timing": {
+        "tapBpm": "Tap BPM"
+      },
+      "metronome": {
+        "toggle": "节拍器开关"
+      },
       "transport": {
+        "togglePlay": "播放/暂停",
         "playPause": "播放/暂停",
         "playInterval": "播放片段",
         "seek": "跳转进度",
@@ -331,9 +368,14 @@
       },
       "lyrics": {
         "mark": "歌词打轴",
+        "mark2": "歌词打轴（副）",
+        "markNoAdvance": "歌词打轴（不前进）",
         "nextLine": "切到下一句",
         "playLineInterval": "播放当前行",
-        "playWordInterval": "播放当前词"
+        "playWordInterval": "播放当前词",
+        "deleteLine": "删除当前行",
+        "clearSelection": "退出选择",
+        "editWholeLine": "编辑整行"
       }
     },
     "command": {

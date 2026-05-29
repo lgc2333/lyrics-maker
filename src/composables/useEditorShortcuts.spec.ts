@@ -1,18 +1,30 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
+import { computed, defineComponent, h, ref } from 'vue'
 
+import { DEFAULT_SHORTCUT_BINDINGS } from '../platform/shortcuts/defaults'
+import { bindingsByKeystroke } from '../platform/shortcuts/overrides'
 import type { ShortcutAction } from '../platform/shortcuts/registry'
 import { useEditorShortcuts } from './useEditorShortcuts'
+
+function defaultBindingsMap() {
+  return computed(() => bindingsByKeystroke(DEFAULT_SHORTCUT_BINDINGS))
+}
 
 function mountShortcutHarness(options: {
   onAction: (action: ShortcutAction) => void | Promise<void>
   onError?: (error: unknown, action: ShortcutAction) => void
+  paused?: () => boolean
 }) {
   return mount(
     defineComponent({
       setup() {
-        useEditorShortcuts(options)
+        useEditorShortcuts({
+          bindings: defaultBindingsMap(),
+          paused: computed(() => options.paused?.() ?? false),
+          onAction: options.onAction,
+          onError: options.onError,
+        })
         return () => h('div')
       },
     }),
@@ -60,7 +72,11 @@ describe('useEditorShortcuts', () => {
     const wrapper = mount(
       defineComponent({
         setup() {
-          useEditorShortcuts({ onAction })
+          useEditorShortcuts({
+            bindings: defaultBindingsMap(),
+            paused: computed(() => false),
+            onAction,
+          })
           return () => h('input', { type: 'range' })
         },
       }),
@@ -83,7 +99,11 @@ describe('useEditorShortcuts', () => {
     const wrapper = mount(
       defineComponent({
         setup() {
-          useEditorShortcuts({ onAction })
+          useEditorShortcuts({
+            bindings: defaultBindingsMap(),
+            paused: computed(() => false),
+            onAction,
+          })
           return () => h('input', { type: 'text' })
         },
       }),
@@ -96,6 +116,87 @@ describe('useEditorShortcuts', () => {
     )
 
     expect(onAction).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('rebuilds bindings when the reactive map changes', async () => {
+    const onAction = vi.fn()
+    const overrideKey = ref<string>('Ctrl+Z')
+    const bindings = computed(() => {
+      const map = new Map<string, ShortcutAction>()
+      map.set(overrideKey.value, 'history.undo')
+      return map
+    })
+
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          useEditorShortcuts({
+            bindings,
+            paused: computed(() => false),
+            onAction,
+          })
+          return () => h('div')
+        },
+      }),
+    )
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(onAction).toHaveBeenCalledWith('history.undo')
+    })
+
+    onAction.mockClear()
+    overrideKey.value = 'F1'
+    await vi.waitFor(() => {
+      // Wait for watch to flush.
+      expect(bindings.value.get('F1')).toBe('history.undo')
+    })
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
+    await new Promise((r) => setTimeout(r, 0))
+    expect(onAction).not.toHaveBeenCalled()
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1', bubbles: true }))
+    await vi.waitFor(() => {
+      expect(onAction).toHaveBeenCalledWith('history.undo')
+    })
+    wrapper.unmount()
+  })
+
+  it('does not dispatch while paused', async () => {
+    const onAction = vi.fn()
+    const paused = ref(true)
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          useEditorShortcuts({
+            bindings: defaultBindingsMap(),
+            paused: computed(() => paused.value),
+            onAction,
+          })
+          return () => h('div')
+        },
+      }),
+    )
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
+    await new Promise((r) => setTimeout(r, 0))
+    expect(onAction).not.toHaveBeenCalled()
+
+    paused.value = false
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(onAction).toHaveBeenCalledWith('history.undo')
+    })
     wrapper.unmount()
   })
 })

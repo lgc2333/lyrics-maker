@@ -1,0 +1,23 @@
+import type { ShortcutAction } from './registry'
+
+export const DEFAULT_SHORTCUT_BINDINGS: Record<ShortcutAction, string | null> = {
+  'history.undo': 'Ctrl+Z',
+  'history.redo': 'Ctrl+Y',
+  'project.save': 'Ctrl+S',
+  'transport.togglePlay': 'Space',
+  'transport.prevBeat': 'ArrowLeft',
+  'transport.nextBeat': 'ArrowRight',
+  'transport.prevBar': 'Shift+ArrowLeft',
+  'transport.nextBar': 'Shift+ArrowRight',
+  'timing.tapBpm': 'B',
+  'metronome.toggle': 'M',
+  'lyrics.mark': 'D',
+  'lyrics.mark2': 'S',
+  'lyrics.markNoAdvance': 'Shift+D',
+  'lyrics.nextLine': 'Enter',
+  'lyrics.playLineInterval': 'C',
+  'lyrics.playWordInterval': 'V',
+  'lyrics.deleteLine': 'Delete',
+  'lyrics.clearSelection': 'Escape',
+  'lyrics.editWholeLine': 'Tab',
+}
