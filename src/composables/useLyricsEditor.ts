@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue'
 
 import { clampWordTime, computeSnappedTime } from '../core/lyrics/snap-time'
+import { createPrefixedId } from '../platform/ids/create-id'
 import { useEditorStore } from '../stores/editor-store'
 
 export type LyricsEditorContext = ReturnType<typeof useLyricsEditor>
@@ -57,6 +58,44 @@ export function useLyricsEditor() {
     if (!activeLine.value) return
     splitBarMode.value = 'edit'
     wholeLineEditRequestId.value += 1
+  }
+
+  function insertEmptyLineAt(index: number): void {
+    const line = {
+      id: createPrefixedId('line'),
+      words: [{ id: createPrefixedId('word'), text: '' }],
+    }
+    _suppressWatchSync = true
+    store.insertLyricLinesAt(index, [line], 'status.lyrics.insertEmptyLine')
+    activeLineId.value = line.id
+    activeWordIndex.value = 0
+    requestWholeLineEdit()
+  }
+
+  function insertEmptyLineTop(): void {
+    insertEmptyLineAt(0)
+  }
+
+  function insertEmptyLineBottom(): void {
+    insertEmptyLineAt(store.project.lyrics.length)
+  }
+
+  function insertEmptyLineAboveActive(): void {
+    if (!activeLineId.value) return
+    const index = store.project.lyrics.findIndex(
+      (line) => line.id === activeLineId.value,
+    )
+    if (index === -1) return
+    insertEmptyLineAt(index)
+  }
+
+  function insertEmptyLineBelowActive(): void {
+    if (!activeLineId.value) return
+    const index = store.project.lyrics.findIndex(
+      (line) => line.id === activeLineId.value,
+    )
+    if (index === -1) return
+    insertEmptyLineAt(index + 1)
   }
 
   function selectTimedWordAt(time: number): void {
@@ -305,6 +344,11 @@ export function useLyricsEditor() {
     activateLine,
     clearSelection,
     requestWholeLineEdit,
+    insertEmptyLineAt,
+    insertEmptyLineTop,
+    insertEmptyLineBottom,
+    insertEmptyLineAboveActive,
+    insertEmptyLineBelowActive,
     selectTimedWordAt,
     handleMarkKey,
     handleNextLineKey,

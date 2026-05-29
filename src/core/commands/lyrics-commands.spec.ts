@@ -4,6 +4,7 @@ import type { LyricLine, ProjectDocument } from '../domain/project'
 import { createEmptyProject } from '../domain/project'
 import {
   createClearWordEndTimeCommand,
+  createInsertLyricLinesAtCommand,
   createInsertLyricLinesCommand,
   createInsertWordCommand,
   createMergeWordsCommand,
@@ -272,6 +273,14 @@ describe('createInsertLyricLinesCommand', () => {
     expect(after.lyrics[1].id).toBe('line-2')
   })
 
+  it('keeps the append command label', () => {
+    const cmd = createInsertLyricLinesCommand([
+      { id: 'line-1', words: [{ id: 'w-1', text: 'hello' }] },
+    ])
+
+    expect(cmd.label).toBe('lyrics.insertLines')
+  })
+
   it('appends to existing lyrics', () => {
     const existing: LyricLine = {
       id: 'line-0',
@@ -301,6 +310,78 @@ describe('createInsertLyricLinesCommand', () => {
     expect(() => createInsertLyricLinesCommand(lines)).toThrow(
       'LyricLine words array must not be empty',
     )
+  })
+})
+
+describe('createInsertLyricLinesAtCommand', () => {
+  const existingLines: LyricLine[] = [
+    { id: 'line-0', words: [{ id: 'w-0', text: 'first' }] },
+    { id: 'line-3', words: [{ id: 'w-3', text: 'last' }] },
+  ]
+
+  const insertedLines: LyricLine[] = [
+    { id: 'line-1', words: [{ id: 'w-1', text: 'hello' }] },
+    { id: 'line-2', words: [{ id: 'w-2', text: 'world' }] },
+  ]
+
+  it('inserts lines at the requested middle index', () => {
+    const state = { ...createEmptyProject(), lyrics: existingLines }
+    const cmd = createInsertLyricLinesAtCommand(1, insertedLines)
+    const after = cmd.do(state)
+
+    expect(after.lyrics.map((line) => line.id)).toEqual([
+      'line-0',
+      'line-1',
+      'line-2',
+      'line-3',
+    ])
+  })
+
+  it('uses the insert-at command label', () => {
+    const cmd = createInsertLyricLinesAtCommand(1, insertedLines)
+
+    expect(cmd.label).toBe('lyrics.insertLinesAt')
+  })
+
+  it('clamps a negative index to the top', () => {
+    const state = { ...createEmptyProject(), lyrics: existingLines }
+    const cmd = createInsertLyricLinesAtCommand(-5, insertedLines)
+    const after = cmd.do(state)
+
+    expect(after.lyrics.map((line) => line.id)).toEqual([
+      'line-1',
+      'line-2',
+      'line-0',
+      'line-3',
+    ])
+  })
+
+  it('clamps an index past the end to the bottom', () => {
+    const state = { ...createEmptyProject(), lyrics: existingLines }
+    const cmd = createInsertLyricLinesAtCommand(99, insertedLines)
+    const after = cmd.do(state)
+
+    expect(after.lyrics.map((line) => line.id)).toEqual([
+      'line-0',
+      'line-3',
+      'line-1',
+      'line-2',
+    ])
+  })
+
+  it('undo removes only the inserted line ids', () => {
+    const state = { ...createEmptyProject(), lyrics: existingLines }
+    const cmd = createInsertLyricLinesAtCommand(1, insertedLines)
+    const after = cmd.do(state)
+    const undone = cmd.undo(after)
+
+    expect(undone.lyrics).toEqual(existingLines)
+  })
+
+  it('throws if any inserted line has an empty words array', () => {
+    expect(() =>
+      createInsertLyricLinesAtCommand(0, [{ id: 'line-empty', words: [] }]),
+    ).toThrow('LyricLine words array must not be empty')
   })
 })
 

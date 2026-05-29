@@ -412,6 +412,16 @@ export function createReplaceLineWordsCommand(
 export function createInsertLyricLinesCommand(
   lines: readonly LyricLine[],
 ): Command<ProjectDocument> {
+  return {
+    ...createInsertLyricLinesAtCommand(Number.POSITIVE_INFINITY, lines),
+    label: 'lyrics.insertLines',
+  }
+}
+
+export function createInsertLyricLinesAtCommand(
+  insertIndex: number,
+  lines: readonly LyricLine[],
+): Command<ProjectDocument> {
   for (const line of lines) {
     if (line.words.length === 0) {
       throw new Error('LyricLine words array must not be empty')
@@ -419,11 +429,16 @@ export function createInsertLyricLinesCommand(
   }
   const lineIds = lines.map((l) => l.id)
   return {
-    label: 'lyrics.insertLines',
-    do: (state) => ({
-      ...state,
-      lyrics: [...state.lyrics, ...lines],
-    }),
+    label: 'lyrics.insertLinesAt',
+    do: (state) => {
+      const clampedIndex = Math.max(0, Math.min(state.lyrics.length, insertIndex))
+      const nextLyrics = [...state.lyrics]
+      nextLyrics.splice(clampedIndex, 0, ...lines)
+      return {
+        ...state,
+        lyrics: nextLyrics,
+      }
+    },
     undo: (state) => ({
       ...state,
       lyrics: state.lyrics.filter((l) => !lineIds.includes(l.id)),

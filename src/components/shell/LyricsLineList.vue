@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { inject, nextTick, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -93,71 +94,142 @@ function hasIncompleteWordStatus(line: {
     line.words.some((word) => word.endTime === undefined)
   )
 }
+
+function removeLine(lineId: string): void {
+  store.removeLyricLine(lineId)
+}
 </script>
 
 <template>
-  <div class="flex h-full min-w-0 flex-col">
-    <!-- Line list -->
-    <ul
-      data-testid="lyrics-line-list"
-      role="listbox"
-      tabindex="0"
-      class="min-h-0 flex-1 overflow-auto"
-      @click="lyricsEditor.clearSelection()"
+  <div class="flex h-full min-w-0">
+    <aside
+      data-testid="lyrics-line-toolbar"
+      class="flex w-10 shrink-0 flex-col items-center gap-1 border-r border-base-300 bg-base-200/35 py-2"
     >
-      <li
-        v-for="(line, index) in store.project.lyrics"
-        :key="line.id"
-        :ref="(el) => setLineElement(line.id, el)"
-        data-testid="lyrics-line-row"
-        role="option"
-        :aria-selected="lyricsEditor.activeLineId.value === line.id"
-        class="flex cursor-pointer items-center gap-3 border-b border-l-[3px] border-base-200 px-3 py-1.5 text-sm transition-colors hover:bg-base-200/80"
-        :class="{
-          'bg-primary/10': lyricsEditor.activeLineId.value === line.id,
-          'border-l-success': isActive(line.id),
-          'border-l-transparent': !isActive(line.id),
-        }"
-        @click.stop="lyricsEditor.activateLine(line.id)"
+      <button
+        data-testid="lyrics-insert-top"
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        :title="t('lyrics.lineList.toolbar.insertTop')"
+        :aria-label="t('lyrics.lineList.toolbar.insertTop')"
+        @click="lyricsEditor.insertEmptyLineTop()"
       >
-        <span class="w-6 text-xs opacity-40">{{ index + 1 }}</span>
-        <span class="w-16 tabular-nums text-xs opacity-60">
-          {{
-            line.startTime !== undefined
-              ? formatTimestamp(line.startTime)
-              : t('lyrics.lineList.noStartTime')
-          }}
-        </span>
-        <span class="flex min-w-0 flex-1 items-center truncate">
-          <template v-for="(word, wIdx) in line.words" :key="word.id">
-            <span v-if="wIdx > 0" class="mx-px text-[12px] text-base-content/25"
-              >|</span
-            >
-            <span
-              :class="{
-                'font-bold': getWordTimingState(line, wIdx) === 'playing',
-                'opacity-50': getWordTimingState(line, wIdx) === 'unplayed',
-              }"
-              ><template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
-                ><span v-if="part.isSpace" class="text-[10px] text-base-content/50">{{
-                  '␣'.repeat(part.text.length)
-                }}</span
-                ><template v-else>{{ part.text }}</template></template
-              ></span
-            >
-          </template>
-        </span>
-        <span
-          data-testid="lyrics-line-word-status"
-          class="w-10 text-right text-xs"
-          :class="
-            hasIncompleteWordStatus(line)
-              ? 'font-semibold text-warning opacity-100'
-              : 'opacity-40'
-          "
-          >{{ getWordStatus(line) }}</span
+        <Icon icon="lucide:arrow-up-to-line" class="h-4 w-4" />
+      </button>
+      <button
+        data-testid="lyrics-insert-above"
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        :disabled="!lyricsEditor.activeLineId.value"
+        :title="t('lyrics.lineList.toolbar.insertAbove')"
+        :aria-label="t('lyrics.lineList.toolbar.insertAbove')"
+        @click="lyricsEditor.insertEmptyLineAboveActive()"
+      >
+        <Icon icon="lucide:arrow-up" class="h-4 w-4" />
+      </button>
+      <button
+        data-testid="lyrics-insert-below"
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        :disabled="!lyricsEditor.activeLineId.value"
+        :title="t('lyrics.lineList.toolbar.insertBelow')"
+        :aria-label="t('lyrics.lineList.toolbar.insertBelow')"
+        @click="lyricsEditor.insertEmptyLineBelowActive()"
+      >
+        <Icon icon="lucide:arrow-down" class="h-4 w-4" />
+      </button>
+      <button
+        data-testid="lyrics-insert-bottom"
+        type="button"
+        class="btn btn-ghost btn-xs btn-square"
+        :title="t('lyrics.lineList.toolbar.insertBottom')"
+        :aria-label="t('lyrics.lineList.toolbar.insertBottom')"
+        @click="lyricsEditor.insertEmptyLineBottom()"
+      >
+        <Icon icon="lucide:arrow-down-to-line" class="h-4 w-4" />
+      </button>
+    </aside>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <div
+        v-if="store.project.lyrics.length === 0"
+        data-testid="lyrics-line-empty-state"
+        class="flex min-h-0 flex-1 items-center justify-center px-4 text-sm text-base-content/60"
+      >
+        {{ t('lyrics.lineList.emptyState') }}
+      </div>
+      <!-- Line list -->
+      <ul
+        v-else
+        data-testid="lyrics-line-list"
+        role="listbox"
+        tabindex="0"
+        class="min-h-0 flex-1 overflow-auto"
+        @click="lyricsEditor.clearSelection()"
+      >
+        <li
+          v-for="(line, index) in store.project.lyrics"
+          :key="line.id"
+          :ref="(el) => setLineElement(line.id, el)"
+          data-testid="lyrics-line-row"
+          role="option"
+          :aria-selected="lyricsEditor.activeLineId.value === line.id"
+          class="flex cursor-pointer items-center gap-3 border-b border-l-[3px] border-base-200 px-3 py-1.5 text-sm transition-colors hover:bg-base-200/80"
+          :class="{
+            'bg-primary/10': lyricsEditor.activeLineId.value === line.id,
+            'border-l-success': isActive(line.id),
+            'border-l-transparent': !isActive(line.id),
+          }"
+          @click.stop="lyricsEditor.activateLine(line.id)"
         >
-      </li>
-    </ul>
+          <span class="w-6 text-xs opacity-40">{{ index + 1 }}</span>
+          <span class="w-16 tabular-nums text-xs opacity-60">
+            {{
+              line.startTime !== undefined
+                ? formatTimestamp(line.startTime)
+                : t('lyrics.lineList.noStartTime')
+            }}
+          </span>
+          <span class="flex min-w-0 flex-1 items-center truncate">
+            <template v-for="(word, wIdx) in line.words" :key="word.id">
+              <span v-if="wIdx > 0" class="mx-px text-[12px] text-base-content/25"
+                >|</span
+              >
+              <span
+                :class="{
+                  'font-bold': getWordTimingState(line, wIdx) === 'playing',
+                  'opacity-50': getWordTimingState(line, wIdx) === 'unplayed',
+                }"
+                ><template v-for="(part, pIdx) in splitBySpaces(word.text)" :key="pIdx"
+                  ><span v-if="part.isSpace" class="text-[10px] text-base-content/50">{{
+                    '␣'.repeat(part.text.length)
+                  }}</span
+                  ><template v-else>{{ part.text }}</template></template
+                ></span
+              >
+            </template>
+          </span>
+          <span
+            data-testid="lyrics-line-word-status"
+            class="w-10 text-right text-xs"
+            :class="
+              hasIncompleteWordStatus(line)
+                ? 'font-semibold text-warning opacity-100'
+                : 'opacity-40'
+            "
+            >{{ getWordStatus(line) }}</span
+          >
+          <button
+            data-testid="lyrics-delete-line"
+            type="button"
+            class="btn btn-ghost btn-xs btn-square shrink-0 opacity-60 hover:opacity-100"
+            :title="t('lyrics.lineList.deleteLine')"
+            :aria-label="t('lyrics.lineList.deleteLine')"
+            @click.stop="removeLine(line.id)"
+          >
+            <Icon icon="lucide:trash-2" class="h-4 w-4" />
+          </button>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>

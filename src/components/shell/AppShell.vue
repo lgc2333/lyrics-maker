@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, shallowRef, toRaw, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
@@ -26,6 +26,7 @@ import { APP_COMMIT, APP_VERSION } from '../../version'
 import AboutModal from './AboutModal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import ImportConfirmModal from './ImportConfirmModal.vue'
+import LyricsClipboardConfirmModal from './LyricsClipboardConfirmModal.vue'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
@@ -69,6 +70,11 @@ const pendingLyricsImport = ref<{
   fileName: string
   format: LyricsFormatId
   displayFormat?: LyricsDisplayFormatId
+} | null>(null)
+const pendingClipboardPaste = ref<{
+  previewLines: string[]
+  lines: LyricLine[]
+  insertionPosition: 'selected-line-below' | 'list-bottom'
 } | null>(null)
 const projectValidationModal = shallowRef<{
   mode: 'export' | 'readonly'
@@ -310,6 +316,81 @@ function onPasteLyricsConfirm(text: string): void {
   if (lines.length > 0) store.insertLyricLines(lines)
 }
 
+function lyricsFromPlainTextLines(rawLines: readonly string[]): LyricLine[] {
+  return rawLines.map((rawText) => {
+    const tokens = autoSplitText(rawText)
+    const words: LyricWord[] = tokens.map((t) => ({
+      id: createPrefixedId('word'),
+      text: t,
+    }))
+    return { id: createPrefixedId('line'), words }
+  })
+}
+
+async function requestClipboardLyricsPaste(): Promise<void> {
+  if (!navigator.clipboard?.readText) {
+    store.showStatus('status.lyrics.clipboardUnsupported')
+    return
+  }
+
+  let text: string
+  try {
+    text = await navigator.clipboard.readText()
+  } catch {
+    store.showStatus('status.lyrics.clipboardReadFailed')
+    return
+  }
+
+  if (text.trim().length === 0) {
+    store.showStatus('status.lyrics.clipboardEmpty')
+    return
+  }
+
+  const previewLines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (previewLines.length === 0) {
+    store.showStatus('status.lyrics.clipboardNoLines')
+    return
+  }
+
+  pendingClipboardPaste.value = {
+    previewLines,
+    lines: lyricsFromPlainTextLines(previewLines),
+    insertionPosition: lyricsEditor.activeLineId.value
+      ? 'selected-line-below'
+      : 'list-bottom',
+  }
+}
+
+function getClipboardPasteIndex(): number {
+  const activeLineId = lyricsEditor.activeLineId.value
+  if (!activeLineId) return store.project.lyrics.length
+  const activeIndex = store.project.lyrics.findIndex((line) => line.id === activeLineId)
+  return activeIndex === -1 ? store.project.lyrics.length : activeIndex + 1
+}
+
+function confirmClipboardPaste(): void {
+  const pending = pendingClipboardPaste.value
+  if (!pending) return
+  pendingClipboardPaste.value = null
+  const lines = pending.lines.map((line) => ({
+    ...toRaw(line),
+    words: line.words.map((word) => ({ ...toRaw(word) })),
+  }))
+  store.insertLyricLinesAt(
+    getClipboardPasteIndex(),
+    lines,
+    'status.lyrics.clipboardPasteSuccess',
+  )
+}
+
+function cancelClipboardPaste(): void {
+  pendingClipboardPaste.value = null
+  store.showStatus('status.lyrics.clipboardPasteCancelled')
+}
+
 function onAddLyricLine(): void {
   store.insertLyricLines([
     {
@@ -430,8 +511,16 @@ watch(
   { immediate: true },
 )
 
+const effectiveShortcutBindings = computed(() => {
+  const bindings = new Map(store.shortcutBindingsByKeystroke)
+  if (editorMode.value !== 'lyrics') {
+    bindings.delete(store.shortcutBindings['lyrics.pasteClipboard'] ?? '')
+  }
+  return bindings
+})
+
 useEditorShortcuts({
-  bindings: computed(() => store.shortcutBindingsByKeystroke),
+  bindings: effectiveShortcutBindings,
   paused: computed(() => capture.capturingAction.value !== null),
   onAction: async (action) => {
     if (action === 'history.undo') {
@@ -484,6 +573,8 @@ useEditorShortcuts({
       if (editorMode.value === 'lyrics') lyricsEditor.handlePlayLineInterval()
     } else if (action === 'lyrics.playWordInterval') {
       if (editorMode.value === 'lyrics') lyricsEditor.handlePlayWordInterval()
+    } else if (action === 'lyrics.pasteClipboard') {
+      if (editorMode.value === 'lyrics') await requestClipboardLyricsPaste()
     }
   },
 })
@@ -534,6 +625,13 @@ useEditorShortcuts({
       v-if="showPasteModal"
       @confirm="onPasteLyricsConfirm"
       @cancel="showPasteModal = false"
+    />
+    <LyricsClipboardConfirmModal
+      v-if="pendingClipboardPaste"
+      :lines="pendingClipboardPaste.previewLines"
+      :insertion-position="pendingClipboardPaste.insertionPosition"
+      @confirm="confirmClipboardPaste"
+      @cancel="cancelClipboardPaste"
     />
     <UnsavedChangesDialog
       v-if="showUnsavedOpenDialog"

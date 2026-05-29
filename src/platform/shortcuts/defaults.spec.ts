@@ -36,6 +36,9 @@ describe('dEFAULT_SHORTCUT_BINDINGS', () => {
       'lyrics.deleteLine': 'Delete',
       'lyrics.clearSelection': 'Escape',
       'lyrics.editWholeLine': 'Tab',
+      'lyrics.pasteClipboard': 'Ctrl+V',
+      'lyrics.insertLineAbove': null,
+      'lyrics.insertLineBelow': null,
     }
     expect(DEFAULT_SHORTCUT_BINDINGS).toStrictEqual(expected)
   })

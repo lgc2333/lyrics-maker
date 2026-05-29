@@ -93,7 +93,15 @@
     "timingControl": "Timing Control",
     "lineList": {
       "title": "Lyric Lines",
-      "noStartTime": "--:--"
+      "noStartTime": "--:--",
+      "emptyState": "No lyrics yet",
+      "deleteLine": "Delete lyric line",
+      "toolbar": {
+        "insertTop": "Insert at top",
+        "insertAbove": "Insert above current line",
+        "insertBelow": "Insert below current line",
+        "insertBottom": "Insert at bottom"
+      }
     },
     "wordSplitBar": {
       "title": "Words",
@@ -126,6 +134,15 @@
         "srt": "SRT",
         "vtt": "VTT"
       }
+    },
+    "clipboard": {
+      "confirmTitle": "Paste Lyrics",
+      "confirmMessage": "Clipboard text will be inserted as plain lyric lines.",
+      "insertPosition": "Insert position: {position}",
+      "positionSelectedLineBelow": "below selected line",
+      "positionListBottom": "bottom of the list",
+      "confirm": "Insert",
+      "cancel": "Cancel"
     },
     "export": {
       "formats": {
@@ -327,6 +344,8 @@
     "lyrics": {
       "addLine": "Lyric line added",
       "insertLines": "Imported {count} lyric lines",
+      "insertLinesAt": "Inserted {count} lyric lines",
+      "insertEmptyLine": "Empty lyric line inserted",
       "removeLine": "Lyric line removed",
       "setLineStartTime": "Line start time set",
       "setWordEndTime": "Word end time set",
@@ -345,7 +364,13 @@
       "exportSuccess": "Lyrics exported",
       "exportCancelled": "Lyrics export cancelled",
       "exportFailed": "Failed to export lyrics: {reason}",
-      "dropMultipleUnsupported": "Dropping multiple files at once is not supported"
+      "dropMultipleUnsupported": "Dropping multiple files at once is not supported",
+      "clipboardPasteSuccess": "Inserted {count} lyric lines from clipboard",
+      "clipboardPasteCancelled": "Clipboard paste cancelled",
+      "clipboardUnsupported": "Clipboard reading is not supported in this browser",
+      "clipboardReadFailed": "Clipboard read failed or permission was denied",
+      "clipboardEmpty": "Clipboard is empty",
+      "clipboardNoLines": "Clipboard has no lyric lines to add"
     },
     "action": {
       "history": {
@@ -383,7 +408,10 @@
         "playWordInterval": "Play current word",
         "deleteLine": "Delete current line",
         "clearSelection": "Clear selection",
-        "editWholeLine": "Edit whole line"
+        "editWholeLine": "Edit whole line",
+        "pasteClipboard": "Paste lyrics from clipboard",
+        "insertLineAbove": "Insert lyric line above",
+        "insertLineBelow": "Insert lyric line below"
       }
     },
     "command": {
@@ -394,6 +422,7 @@
       "lyrics": {
         "addLine": "Add lyric line",
         "insertLines": "Import lyrics",
+        "insertLinesAt": "Insert lyric lines",
         "removeLine": "Remove lyric line",
         "setLineStartTime": "Set line start time",
         "setWordEndTime": "Set word end time",

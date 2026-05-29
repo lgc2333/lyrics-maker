@@ -64,6 +64,10 @@ function createMockLyricsEditor(overrides = {}) {
     activeLine: ref(null),
     activateLine: vi.fn(),
     clearSelection: vi.fn(),
+    insertEmptyLineTop: vi.fn(),
+    insertEmptyLineBottom: vi.fn(),
+    insertEmptyLineAboveActive: vi.fn(),
+    insertEmptyLineBelowActive: vi.fn(),
     handleMarkKey: vi.fn(),
     handleNextLineKey: vi.fn(),
     handleMarkNoAdvanceKey: vi.fn(),
@@ -103,6 +107,90 @@ describe('lyricsLineList', () => {
       const wrapper = mountComponent()
       const rows = wrapper.findAll('[data-testid="lyrics-line-row"]')
       expect(rows).toHaveLength(0)
+    })
+
+    it('shows a compact empty state when lyrics is empty', () => {
+      const wrapper = mountComponent()
+
+      expect(wrapper.get('[data-testid="lyrics-line-empty-state"]').text()).toContain(
+        '还没有歌词',
+      )
+    })
+  })
+
+  describe('insert toolbar', () => {
+    it('renders four insert toolbar buttons', () => {
+      const wrapper = mountComponent()
+
+      expect(wrapper.find('[data-testid="lyrics-insert-top"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="lyrics-insert-above"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="lyrics-insert-below"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="lyrics-insert-bottom"]').exists()).toBe(true)
+    })
+
+    it('enables top and bottom buttons for an empty list and calls editor helpers', async () => {
+      const lyricsEditor = createMockLyricsEditor()
+      const wrapper = mountComponent(lyricsEditor)
+
+      expect(
+        (wrapper.get('[data-testid="lyrics-insert-top"]').element as HTMLButtonElement)
+          .disabled,
+      ).toBe(false)
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-bottom"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(false)
+
+      await wrapper.get('[data-testid="lyrics-insert-top"]').trigger('click')
+      await wrapper.get('[data-testid="lyrics-insert-bottom"]').trigger('click')
+
+      expect(lyricsEditor.insertEmptyLineTop).toHaveBeenCalledOnce()
+      expect(lyricsEditor.insertEmptyLineBottom).toHaveBeenCalledOnce()
+    })
+
+    it('disables active-line insert buttons when no line is selected', () => {
+      const wrapper = mountComponent()
+
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-above"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-below"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+    })
+
+    it('enables active-line insert buttons when a line is selected', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'A' }] }])
+      const lyricsEditor = createMockLyricsEditor({ activeLineId: ref('line-1') })
+      const wrapper = mountComponent(lyricsEditor)
+
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-above"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(false)
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-below"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(false)
+
+      await wrapper.get('[data-testid="lyrics-insert-above"]').trigger('click')
+      await wrapper.get('[data-testid="lyrics-insert-below"]').trigger('click')
+
+      expect(lyricsEditor.insertEmptyLineAboveActive).toHaveBeenCalledOnce()
+      expect(lyricsEditor.insertEmptyLineBelowActive).toHaveBeenCalledOnce()
     })
   })
 
@@ -430,6 +518,24 @@ describe('lyricsLineList', () => {
 
       expect(lyricsEditor.activateLine).toHaveBeenCalledWith('line-1')
       expect(lyricsEditor.clearSelection).not.toHaveBeenCalled()
+    })
+
+    it('deletes the target row without activating it', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        { id: 'line-1', words: [{ id: 'w1', text: 'A' }] },
+        { id: 'line-2', words: [{ id: 'w2', text: 'B' }] },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      const wrapper = mountComponent(lyricsEditor)
+      const deleteButtons = wrapper.findAll('[data-testid="lyrics-delete-line"]')
+
+      await deleteButtons[1].trigger('click')
+
+      expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1'])
+      expect(lyricsEditor.activateLine).not.toHaveBeenCalled()
+      store.undo()
+      expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1', 'line-2'])
     })
   })
 })

@@ -4,6 +4,7 @@ export const COMMAND_LABEL_KEYS: Record<string, string> = {
   'lyrics.addLine': 'status.command.lyrics.addLine',
   'lyrics.clearWordEndTime': 'status.command.lyrics.clearWordEndTime',
   'lyrics.insertLines': 'status.command.lyrics.insertLines',
+  'lyrics.insertLinesAt': 'status.command.lyrics.insertLinesAt',
   'lyrics.insertWord': 'status.command.lyrics.insertWord',
   'lyrics.mergeWords': 'status.command.lyrics.mergeWords',
   'lyrics.removeLine': 'status.command.lyrics.removeLine',
@@ -49,6 +50,9 @@ export const ACTION_LABEL_KEYS: Record<string, string> = {
   'lyrics.deleteLine': 'status.action.lyrics.deleteLine',
   'lyrics.clearSelection': 'status.action.lyrics.clearSelection',
   'lyrics.editWholeLine': 'status.action.lyrics.editWholeLine',
+  'lyrics.pasteClipboard': 'status.action.lyrics.pasteClipboard',
+  'lyrics.insertLineAbove': 'status.action.lyrics.insertLineAbove',
+  'lyrics.insertLineBelow': 'status.action.lyrics.insertLineBelow',
 }
 
 export const RHYTHM_MODE_LABEL_KEYS: Record<string, string> = {

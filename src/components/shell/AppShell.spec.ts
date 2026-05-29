@@ -1,6 +1,6 @@
-import { mount } from '@vue/test-utils'
+import { mount as baseMount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AudioTransport } from '../../platform/audio/audio-transport'
 import type { MetronomeScheduler } from '../../platform/audio/metronome'
@@ -109,7 +109,26 @@ function createMockMetronome(): {
   }
 }
 
+function installClipboard(readText: () => Promise<string>) {
+  const clipboard = { readText: vi.fn(readText) }
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: clipboard,
+  })
+  return clipboard
+}
+
 describe('appShell', () => {
+  const mountedWrappers: Array<ReturnType<typeof baseMount>> = []
+
+  function mount(
+    ...args: Parameters<typeof baseMount<typeof AppShell>>
+  ): ReturnType<typeof baseMount> {
+    const wrapper = baseMount(...args)
+    mountedWrappers.push(wrapper)
+    return wrapper
+  }
+
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
@@ -128,6 +147,16 @@ describe('appShell', () => {
     mockConfirmLyricsImport.mockResolvedValue(true)
     mockExportLyrics.mockResolvedValue({ ok: true })
     mockReadAnyFile.mockResolvedValue({ ok: false, reason: 'unsupported' })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    })
+  })
+
+  afterEach(() => {
+    for (const wrapper of mountedWrappers.splice(0)) {
+      wrapper.unmount()
+    }
   })
 
   it('renders all phase-1 shell sections', () => {
@@ -294,6 +323,177 @@ describe('appShell', () => {
     )
 
     wrapper.unmount()
+  })
+
+  it('opens clipboard confirmation from Ctrl+V in lyrics mode', async () => {
+    const clipboard = installClipboard(async () => ' first line \n\nsecond line ')
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+
+    await vi.waitFor(() => {
+      expect(clipboard.readText).toHaveBeenCalledOnce()
+      expect(
+        wrapper.find('[data-testid="lyrics-clipboard-confirm-modal"]').exists(),
+      ).toBe(true)
+    })
+    expect(wrapper.get('[data-testid="clipboard-preview-list"]').text()).toContain(
+      'first line',
+    )
+    expect(wrapper.get('[data-testid="clipboard-preview-list"]').text()).toContain(
+      'second line',
+    )
+  })
+
+  it('does not intercept Ctrl+V in timing mode', async () => {
+    const clipboard = installClipboard(async () => 'line')
+    mount(AppShell)
+    const event = new KeyboardEvent('keydown', {
+      key: 'v',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+
+    window.dispatchEvent(event)
+    await Promise.resolve()
+
+    expect(clipboard.readText).not.toHaveBeenCalled()
+    expect(event.defaultPrevented).toBe(false)
+  })
+
+  it('does not intercept Ctrl+V while focus is in a text input', async () => {
+    const clipboard = installClipboard(async () => 'line')
+    const wrapper = mount(AppShell, { attachTo: document.body })
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    const input = document.createElement('input')
+    input.type = 'text'
+    document.body.append(input)
+    input.focus()
+
+    try {
+      const event = new KeyboardEvent('keydown', {
+        key: 'v',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+      input.dispatchEvent(event)
+      await Promise.resolve()
+
+      expect(clipboard.readText).not.toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(false)
+    } finally {
+      input.remove()
+      wrapper.unmount()
+    }
+  })
+
+  it('confirms clipboard paste below the active line', async () => {
+    installClipboard(async () => 'inserted one\ninserted two')
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'line-1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'line-2', words: [{ id: 'w2', text: 'second' }] },
+    ])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(
+        wrapper.find('[data-testid="lyrics-clipboard-confirm-modal"]').exists(),
+      ).toBe(true)
+    })
+    await wrapper.get('[data-testid="clipboard-confirm"]').trigger('click')
+
+    expect(
+      store.project.lyrics.map((line) => line.words.map((word) => word.text).join('')),
+    ).toEqual(['first', 'inserted one', 'inserted two', 'second'])
+    expect(store.statusMessage?.key).toBe('status.lyrics.clipboardPasteSuccess')
+  })
+
+  it('confirms clipboard paste at the bottom when no line is selected', async () => {
+    installClipboard(async () => 'bottom line')
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(
+        wrapper.find('[data-testid="lyrics-clipboard-confirm-modal"]').exists(),
+      ).toBe(true)
+    })
+    await wrapper.get('[data-testid="clipboard-confirm"]').trigger('click')
+
+    expect(
+      store.project.lyrics.map((line) => line.words.map((word) => word.text).join('')),
+    ).toEqual(['first', 'bottom line'])
+  })
+
+  it('cancels clipboard paste without mutating lyrics', async () => {
+    installClipboard(async () => 'cancelled line')
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(
+        wrapper.find('[data-testid="lyrics-clipboard-confirm-modal"]').exists(),
+      ).toBe(true)
+    })
+    await wrapper.get('[data-testid="clipboard-cancel"]').trigger('click')
+
+    expect(store.project.lyrics.map((line) => line.words[0].text)).toEqual(['first'])
+    expect(store.statusMessage?.key).toBe('status.lyrics.clipboardPasteCancelled')
+  })
+
+  it('reports clipboard failure states without mutating lyrics', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(store.statusMessage?.key).toBe('status.lyrics.clipboardUnsupported')
+    })
+
+    const failingClipboard = installClipboard(async () => {
+      throw new DOMException('denied', 'NotAllowedError')
+    })
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(failingClipboard.readText).toHaveBeenCalledOnce()
+      expect(store.statusMessage?.key).toBe('status.lyrics.clipboardReadFailed')
+    })
+
+    installClipboard(async () => '   ')
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }),
+    )
+    await vi.waitFor(() => {
+      expect(store.statusMessage?.key).toBe('status.lyrics.clipboardEmpty')
+    })
+
+    expect(store.project.lyrics).toHaveLength(0)
   })
 
   it('dispatches undo from edit menu and shows the command label', async () => {

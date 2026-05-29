@@ -603,6 +603,9 @@ describe('editor store (phase 5 plus part 8 - shortcut overrides)', () => {
     const store = useEditorStore()
     expect(store.shortcutBindings['lyrics.mark']).toBe('D')
     expect(store.shortcutBindings['lyrics.mark2']).toBe('S')
+    expect(store.shortcutBindings['lyrics.pasteClipboard']).toBe('Ctrl+V')
+    expect(store.shortcutBindings['lyrics.insertLineAbove']).toBeNull()
+    expect(store.shortcutBindings['lyrics.insertLineBelow']).toBeNull()
     expect(store.shortcutBindings['history.undo']).toBe('Ctrl+Z')
   })
 
@@ -610,6 +613,15 @@ describe('editor store (phase 5 plus part 8 - shortcut overrides)', () => {
     const store = useEditorStore()
     expect(store.shortcutBindingsByKeystroke.get('D')).toBe('lyrics.mark')
     expect(store.shortcutBindingsByKeystroke.get('S')).toBe('lyrics.mark2')
+    expect(store.shortcutBindingsByKeystroke.get('Ctrl+V')).toBe(
+      'lyrics.pasteClipboard',
+    )
+    expect([...store.shortcutBindingsByKeystroke.values()]).not.toContain(
+      'lyrics.insertLineAbove',
+    )
+    expect([...store.shortcutBindingsByKeystroke.values()]).not.toContain(
+      'lyrics.insertLineBelow',
+    )
   })
 
   it('assignShortcut writes a simple override when there is no conflict', () => {
@@ -1517,6 +1529,37 @@ describe('lyrics actions', () => {
     expect(store.project.lyrics[0].id).toBe('l1')
     store.undo()
     expect(store.project.lyrics).toHaveLength(0)
+  })
+
+  it('insertLyricLinesAt inserts lines at the requested index and reports status', () => {
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'l3', words: [{ id: 'w3', text: 'last' }] },
+    ])
+
+    store.insertLyricLinesAt(1, [{ id: 'l2', words: [{ id: 'w2', text: 'middle' }] }])
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['l1', 'l2', 'l3'])
+    expect(store.dirty).toBe(true)
+    expect(store.statusMessage?.key).toBe('status.lyrics.insertLinesAt')
+    expect(store.statusMessage?.params?.count).toBe(1)
+    expect(store.statusMessage?.params?.commandLabel).toBe('lyrics.insertLinesAt')
+  })
+
+  it('insertLyricLines still appends to the end', () => {
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'first' }] }])
+    store.insertLyricLines([{ id: 'l2', words: [{ id: 'w2', text: 'second' }] }])
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['l1', 'l2'])
+  })
+
+  it('insertLyricLinesAt is undoable', () => {
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'first' }] }])
+    store.insertLyricLinesAt(0, [{ id: 'l0', words: [{ id: 'w0', text: 'before' }] }])
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['l0', 'l1'])
+    store.undo()
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['l1'])
   })
 
   it('removeLyricLine removes a line and is undoable', () => {

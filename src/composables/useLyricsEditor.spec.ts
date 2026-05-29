@@ -97,6 +97,90 @@ describe('useLyricsEditor', () => {
     expect(editor.activeWordIndex.value).toBe(0)
   })
 
+  it('insertEmptyLineTop inserts at the top, selects the new line, and requests whole-line edit', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'second' }] },
+    ])
+    const { editor } = mountEditor()
+    const requestId = editor.wholeLineEditRequestId.value
+
+    editor.insertEmptyLineTop()
+
+    expect(store.project.lyrics).toHaveLength(3)
+    expect(store.project.lyrics[0].words[0].text).toBe('')
+    expect(editor.activeLineId.value).toBe(store.project.lyrics[0].id)
+    expect(editor.activeWordIndex.value).toBe(0)
+    expect(editor.splitBarMode.value).toBe('edit')
+    expect(editor.wholeLineEditRequestId.value).toBe(requestId + 1)
+  })
+
+  it('insertEmptyLineBottom inserts at the bottom, including an empty lyrics list', () => {
+    const store = useEditorStore()
+    const { editor } = mountEditor()
+
+    editor.insertEmptyLineBottom()
+
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(store.project.lyrics[0].words[0].text).toBe('')
+    expect(editor.activeLineId.value).toBe(store.project.lyrics[0].id)
+    expect(editor.splitBarMode.value).toBe('edit')
+  })
+
+  it('insertEmptyLineAboveActive inserts before the active line', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'second' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l2'
+
+    editor.insertEmptyLineAboveActive()
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual([
+      'l1',
+      editor.activeLineId.value,
+      'l2',
+    ])
+    expect(store.project.lyrics[1].words[0].text).toBe('')
+    expect(editor.splitBarMode.value).toBe('edit')
+  })
+
+  it('insertEmptyLineBelowActive inserts after the active line', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'second' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+
+    editor.insertEmptyLineBelowActive()
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual([
+      'l1',
+      editor.activeLineId.value,
+      'l2',
+    ])
+    expect(store.project.lyrics[1].words[0].text).toBe('')
+    expect(editor.splitBarMode.value).toBe('edit')
+  })
+
+  it('active-line insert helpers no-op when there is no active line', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'first' }] }])
+    const { editor } = mountEditor()
+
+    editor.insertEmptyLineAboveActive()
+    editor.insertEmptyLineBelowActive()
+
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['l1'])
+    expect(editor.activeLineId.value).toBeNull()
+    expect(editor.wholeLineEditRequestId.value).toBe(0)
+  })
+
   it('activateLine sets activeLineId and resets activeWordIndex when selecting another line', () => {
     const store = useEditorStore()
     store.insertLyricLines([

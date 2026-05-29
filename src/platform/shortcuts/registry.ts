@@ -21,6 +21,9 @@ export type ShortcutAction =
   | 'lyrics.deleteLine'
   | 'lyrics.clearSelection'
   | 'lyrics.editWholeLine'
+  | 'lyrics.pasteClipboard'
+  | 'lyrics.insertLineAbove'
+  | 'lyrics.insertLineBelow'
 
 export function createShortcutRegistry() {
   const bindings = new Map<string, ShortcutAction>()

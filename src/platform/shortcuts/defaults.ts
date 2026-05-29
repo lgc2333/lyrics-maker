@@ -23,4 +23,7 @@ export const DEFAULT_SHORTCUT_BINDINGS: Record<ShortcutAction, string | null> = 
   'lyrics.deleteLine': 'Delete',
   'lyrics.clearSelection': 'Escape',
   'lyrics.editWholeLine': 'Tab',
+  'lyrics.pasteClipboard': 'Ctrl+V',
+  'lyrics.insertLineAbove': null,
+  'lyrics.insertLineBelow': null,
 }

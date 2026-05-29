@@ -93,7 +93,15 @@
     "timingControl": "打轴控制",
     "lineList": {
       "title": "歌词行",
-      "noStartTime": "--:--"
+      "noStartTime": "--:--",
+      "emptyState": "还没有歌词",
+      "deleteLine": "删除歌词行",
+      "toolbar": {
+        "insertTop": "插入到顶部",
+        "insertAbove": "插入到当前行上方",
+        "insertBelow": "插入到当前行下方",
+        "insertBottom": "插入到底部"
+      }
     },
     "wordSplitBar": {
       "title": "词块",
@@ -126,6 +134,15 @@
         "srt": "SRT",
         "vtt": "VTT"
       }
+    },
+    "clipboard": {
+      "confirmTitle": "粘贴歌词",
+      "confirmMessage": "将把剪贴板文本作为纯文本歌词行插入。",
+      "insertPosition": "插入位置：{position}",
+      "positionSelectedLineBelow": "选中行下方",
+      "positionListBottom": "列表底部",
+      "confirm": "插入",
+      "cancel": "取消"
     },
     "export": {
       "formats": {
@@ -327,6 +344,8 @@
     "lyrics": {
       "addLine": "已添加歌词行",
       "insertLines": "已导入 {count} 行歌词",
+      "insertLinesAt": "已插入 {count} 行歌词",
+      "insertEmptyLine": "已插入空歌词行",
       "removeLine": "已删除歌词行",
       "setLineStartTime": "已设置行起始时间",
       "setWordEndTime": "已设置词结束时间",
@@ -345,7 +364,13 @@
       "exportSuccess": "歌词导出成功",
       "exportCancelled": "已取消导出歌词",
       "exportFailed": "导出歌词失败：{reason}",
-      "dropMultipleUnsupported": "暂不支持一次拖拽多个文件"
+      "dropMultipleUnsupported": "暂不支持一次拖拽多个文件",
+      "clipboardPasteSuccess": "已从剪贴板插入 {count} 行歌词",
+      "clipboardPasteCancelled": "已取消剪贴板粘贴",
+      "clipboardUnsupported": "当前浏览器不支持读取剪贴板",
+      "clipboardReadFailed": "读取剪贴板失败或权限被拒绝",
+      "clipboardEmpty": "剪贴板为空",
+      "clipboardNoLines": "剪贴板中没有可添加的歌词行"
     },
     "action": {
       "history": {
@@ -383,7 +408,10 @@
         "playWordInterval": "播放当前词",
         "deleteLine": "删除当前行",
         "clearSelection": "退出选择",
-        "editWholeLine": "编辑整行"
+        "editWholeLine": "编辑整行",
+        "pasteClipboard": "从剪贴板粘贴歌词",
+        "insertLineAbove": "在上方插入歌词行",
+        "insertLineBelow": "在下方插入歌词行"
       }
     },
     "command": {
@@ -394,6 +422,7 @@
       "lyrics": {
         "addLine": "添加歌词行",
         "insertLines": "导入歌词",
+        "insertLinesAt": "插入歌词行",
         "removeLine": "删除歌词行",
         "setLineStartTime": "设置行起始时间",
         "setWordEndTime": "设置词结束时间",

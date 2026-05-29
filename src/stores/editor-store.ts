@@ -4,7 +4,7 @@ import { computed, shallowRef, triggerRef } from 'vue'
 import { createCommandHistory } from '../core/commands/history'
 import {
   createClearWordEndTimeCommand,
-  createInsertLyricLinesCommand,
+  createInsertLyricLinesAtCommand,
   createInsertWordCommand,
   createMergeWordsCommand,
   createRemoveLyricLineCommand,
@@ -1001,7 +1001,15 @@ export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 4: Lyrics ----
 
   function insertLyricLines(lines: LyricLine[]): void {
-    execute(createInsertLyricLinesCommand(lines), 'status.lyrics.insertLines', {
+    insertLyricLinesAt(project.value.lyrics.length, lines, 'status.lyrics.insertLines')
+  }
+
+  function insertLyricLinesAt(
+    index: number,
+    lines: LyricLine[],
+    statusKey = 'status.lyrics.insertLinesAt',
+  ): void {
+    execute(createInsertLyricLinesAtCommand(index, lines), statusKey, {
       count: lines.length,
     })
   }
@@ -1204,6 +1212,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     // Phase 4: lyrics
     insertLyricLines,
+    insertLyricLinesAt,
     replaceLyricsFromImport,
     removeLyricLine,
     setLineStartTime,
