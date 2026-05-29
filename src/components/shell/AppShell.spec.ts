@@ -184,7 +184,7 @@ describe('appShell', () => {
     })
   })
 
-  it('deletes the selected lyric line with Delete while timing panel is active', async () => {
+  it('deletes the selected lyric line with Delete while lyrics panel is active', async () => {
     const wrapper = mount(AppShell)
     const store = useEditorStore()
     store.insertLyricLines([
@@ -194,7 +194,6 @@ describe('appShell', () => {
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
-    await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
 
@@ -203,21 +202,59 @@ describe('appShell', () => {
     })
   })
 
-  it('clears the selected lyric line with Escape while timing panel is active', async () => {
+  it('deletes the selected timing point with Delete while timing panel is active', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
+    const defaultPointId = store.project.timingPoints[0].id
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+    await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
+    await wrapper.get('[data-testid="timing-point-row"]').trigger('click')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+
+    await vi.waitFor(() => {
+      expect(
+        store.project.timingPoints.some((point) => point.id === defaultPointId),
+      ).toBe(false)
+    })
+    expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1'])
+  })
+
+  it('clears the selected lyric line with Escape while lyrics panel is active', async () => {
     const wrapper = mount(AppShell)
     const store = useEditorStore()
     store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
-    await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
 
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="lyrics-line-row"]').attributes('aria-selected'),
+      ).toBe('false')
+    })
+  })
+
+  it('clears the selected timing point with Escape while timing panel is active', async () => {
+    const wrapper = mount(AppShell)
+
+    await wrapper.get('[data-testid="timing-point-row"]').trigger('click')
     expect(
-      wrapper.get('[data-testid="lyrics-line-row"]').attributes('aria-selected'),
-    ).toBe('false')
+      wrapper.get('[data-testid="timing-point-row"]').attributes('aria-selected'),
+    ).toBe('true')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.get('[data-testid="timing-point-row"]').attributes('aria-selected'),
+      ).toBe('false')
+    })
   })
 
   it('opens whole-line edit with Tab in lyrics mode', async () => {

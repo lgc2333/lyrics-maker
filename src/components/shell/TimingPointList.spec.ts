@@ -95,6 +95,29 @@ describe('timingPointList', () => {
     expect(wrapper.emitted('select')![0]).toEqual([firstId])
   })
 
+  it('emits clearSelection when list blank space is clicked', async () => {
+    addTwoPoints()
+    const store = useEditorStore()
+    const firstId = store.project.timingPoints[0].id
+    const wrapper = mount(TimingPointList, { props: { selectedId: firstId } })
+
+    await wrapper.get('[data-testid="timing-point-list"]').trigger('click')
+
+    expect(wrapper.emitted('clearSelection')).toHaveLength(1)
+  })
+
+  it('does not emit clearSelection when a row is clicked', async () => {
+    addTwoPoints()
+    const store = useEditorStore()
+    const firstId = store.project.timingPoints[0].id
+    const wrapper = mount(TimingPointList, { props: { selectedId: null } })
+
+    await wrapper.get('[data-testid="timing-point-row"]').trigger('click')
+
+    expect(wrapper.emitted('select')![0]).toEqual([firstId])
+    expect(wrapper.emitted('clearSelection')).toBeUndefined()
+  })
+
   it('emits remove event with correct point id when delete button clicked', async () => {
     addTwoPoints()
     const store = useEditorStore()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 
 import { getActiveTimingPoint } from '../../core/timing/timing-engine'
 import { useEditorStore } from '../../stores/editor-store'
@@ -7,7 +7,7 @@ import TimingPointControls from './TimingPointControls.vue'
 import TimingPointList from './TimingPointList.vue'
 
 const store = useEditorStore()
-const selectedId = ref<string | null>(null)
+const selectedId = defineModel<string | null>('selectedId', { default: null })
 
 const activePoint = computed(() => {
   const points = store.project.timingPoints
@@ -103,6 +103,7 @@ function cloneSelectedPointAtCurrentTime(): void {
     <TimingPointList
       :selected-id="selectedId"
       @select="selectedId = $event"
+      @clear-selection="selectedId = null"
       @remove="store.removeTimingPoint($event)"
       @clone-selected="cloneSelectedPointAtCurrentTime"
       @add-at-current-time="addPointAtCurrentTime"

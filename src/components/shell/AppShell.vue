@@ -42,6 +42,7 @@ const persistence = useProjectPersistence()
 const editorMode = ref<'timing' | 'lyrics'>('timing')
 const lyricsEditor = useLyricsEditor()
 provide(LYRICS_EDITOR_KEY, lyricsEditor)
+const selectedTimingPointId = ref<string | null>(null)
 const localeMode = ref<LocalLocale>('system')
 const themeMode = ref<LocalTheme>('light')
 const systemPrefersDark = ref(false)
@@ -411,9 +412,17 @@ useEditorShortcuts({
     } else if (action === 'lyrics.nextLine') {
       if (editorMode.value === 'lyrics') lyricsEditor.handleNextLineKey()
     } else if (action === 'lyrics.deleteLine') {
-      lyricsEditor.handleDeleteLine()
+      if (editorMode.value === 'lyrics') {
+        lyricsEditor.handleDeleteLine()
+      } else if (selectedTimingPointId.value) {
+        store.removeTimingPoint(selectedTimingPointId.value)
+      }
     } else if (action === 'lyrics.clearSelection') {
-      lyricsEditor.clearSelection()
+      if (editorMode.value === 'lyrics') {
+        lyricsEditor.clearSelection()
+      } else {
+        selectedTimingPointId.value = null
+      }
     } else if (action === 'lyrics.editWholeLine') {
       if (editorMode.value === 'lyrics') lyricsEditor.requestWholeLineEdit()
     } else if (action === 'lyrics.playLineInterval') {
@@ -533,6 +542,7 @@ useEditorShortcuts({
     </div>
     <TimingPointsPanel
       v-if="editorMode === 'timing'"
+      v-model:selected-id="selectedTimingPointId"
       data-testid="timing-points-panel"
     />
     <LyricsPanel v-else data-testid="lyrics-panel" />

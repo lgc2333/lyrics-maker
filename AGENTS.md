@@ -25,6 +25,8 @@ Use `pnpm exec` or `pnpm dlx` instead of `npx` — this project uses pnpm as its
 
 Use plain `pnpm` first, if not found, fall back to: `fnm exec --using default pnpm.cmd`
 
+Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint errors and normalize formatting. Run `pnpm check` too when Vue or TypeScript types changed.
+
 ## For Codex
 
 - Git index writes (e.g. `git add`, `git commit`) may require escalation, `.git/index.lock` is permission-denied by the sandbox.
@@ -36,6 +38,8 @@ Use plain `pnpm` first, if not found, fall back to: `fnm exec --using default pn
 - Use **WebSearch** to get current information beyond training data. Prefer Context7 first for library docs, then web search if needed.
 
 ## Workflow Skills
+
+Do not invoke skills that are not named in this section unless the user explicitly asks for them, or a skill you have already read explicitly instructs you to invoke another skill.
 
 - **TDD (mandatory)**: This project uses TDD. Before any code change — features, refactors, and bug fixes alike — invoke `test-driven-development`. Write/update tests first, then implement.
 - **Bug fixing**: Always invoke `systematic-debugging` before proposing any fix.
@@ -106,6 +110,7 @@ src/
 │   ├── StatusBar.vue      # Shared operation/status feedback channel
 │   ├── PreferencesModal.vue # Local settings UI
 │   ├── ImportConfirmModal.vue # Lyrics import confirmation
+│   ├── ProjectValidationModal.vue # Project validation issue review
 │   ├── UnsavedChangesDialog.vue # Dirty-project confirmation
 │   └── injection-keys.ts  # Symbol-based InjectionKey<T> definitions
 ├── test/setup.ts          # Global test setup (Iconify mock, etc.)
@@ -149,8 +154,6 @@ Detailed project rules live in focused pattern docs:
 
 When starting work, proactively read the linked pattern docs relevant to the files or domain you will touch. When adding new durable project rules, update the relevant linked `docs/patterns/*` file instead of appending them under this section.
 
-## Before Committing
+## Committing
 
 Use semantic/conventional commit messages, e.g. `fix: keep vertical slider popovers reachable`.
-
-Before committing or claiming work is done, always run `pnpm lint` then `pnpm format` to catch lint errors and normalize formatting. Run `pnpm check` too when Vue or TypeScript types changed.

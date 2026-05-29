@@ -12,6 +12,7 @@ defineProps<{
 
 defineEmits<{
   select: [id: string]
+  clearSelection: []
   remove: [id: string]
   cloneSelected: [id: string]
   addAtCurrentTime: []
@@ -55,7 +56,13 @@ function isActive(id: string): boolean {
       </div>
     </header>
 
-    <ul role="listbox" tabindex="0" class="min-h-0 flex-1 overflow-auto">
+    <ul
+      data-testid="timing-point-list"
+      role="listbox"
+      tabindex="0"
+      class="min-h-0 flex-1 overflow-auto"
+      @click="$emit('clearSelection')"
+    >
       <li
         v-for="point in store.project.timingPoints"
         :key="point.id"
@@ -68,7 +75,7 @@ function isActive(id: string): boolean {
           'border-l-success rounded-r-sm': isActive(point.id),
           'border-l-transparent': !isActive(point.id),
         }"
-        @click="$emit('select', point.id)"
+        @click.stop="$emit('select', point.id)"
       >
         <span class="w-24 tabular-nums">{{ formatTimestamp(point.time) }}</span>
         <span class="w-20 tabular-nums"
