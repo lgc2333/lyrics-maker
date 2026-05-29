@@ -12,6 +12,7 @@
 - **Use `Symbol`-based `InjectionKey<T>` for provide/inject.** Bare string keys lack type safety and are prone to typos. Define keys in `src/components/shell/injection-keys.ts` and import them in both provider and consumer components.
 - **`useLyricsEditor` watch suppression for no-advance handlers.** The `watch` on `activeLine` re-derives `activeWordIndex` from data state (for undo/redo sync). Any handler that mutates timing data WITHOUT advancing `activeWordIndex` (e.g. `handleMarkNoAdvanceKey`) must set `_suppressWatchSync = true` before the mutation - the watch clears the flag and skips re-derivation for that tick.
 - **`@vueuse/core` is available as a dependency.** Use `watchDebounced`, `useDebounceFn`, `useEventListener`, etc. from `@vueuse/core` instead of rolling manual debounce/throttle helpers.
+- **Annotate composable computed returns as `ComputedRef<T>`.** `ReturnType<typeof computed<T>>` resolves to `WritableComputedRef`, which fails to satisfy consumer signatures expecting read-only computeds.
 - **Conditional hover popovers:** gate `@mouseenter` with a mode check (e.g. `verticalZoomPopoverOpen = timeline.viewMode.value === 'spectrogram'`) instead of using `v-if` on the whole wrapper - keeps the button always present but only opens the popover in the relevant mode.
 - **Auto-focus after state change:** set the reactive flag -> `await nextTick()` -> call `.focus()` on a typed template ref (`ref<HTMLInputElement | null>(null)`). The `nextTick` ensures the DOM element exists before focusing. In tests, use `attachTo: document.body` so `document.activeElement` resolves.
 - **Theme mode vs effective theme:** keep saved user preference as `LocalTheme` (`light | dark | system`), derive `effectiveTheme` in `AppShell`, and apply only the effective `light | dark` value to DaisyUI/timeline rendering.
@@ -21,6 +22,8 @@
 
 ## CSS / Tailwind / Template
 
+- **No `window.confirm` / `alert` / `prompt`.** ESLint blocks them. Use `ConfirmDialog.vue` (neutral or `tone="danger"`) for destructive confirmations; compose new modal dialogs in the same shape as `UnsavedChangesDialog.vue`.
+- **Never bake a keystroke into an i18n string.** Render shortcut hints as `${t(labelKey)} (${store.shortcutBindings[action]})` so user overrides propagate. Hardcoded `(Ctrl+S)`-style suffixes go stale the moment the user customizes the binding.
 - **Icon button + vertical slider controls:** use `VerticalSliderPopover.vue` for toolbar controls like volume or spectrogram vertical zoom. Pass icon content through the `icon` slot, use `buttonTestid`/`panelTestid` to preserve stable test anchors, and keep domain-specific update logic in the parent.
 - **Vertical slider hover popovers:** if a visual gap is needed between trigger and panel, bridge it with an invisible hover area larger than the gap (e.g. `mb-1` with `after:h-2`) so sub-pixel rounding does not leave a `mouseleave` strip.
 - **CSS `rotate` does not change the layout box.** For vertical sliders with `-rotate-90`, pair with `absolute` positioning and set `w-{N}` equal to the container's `h-{N}` to prevent flex/grid from collapsing the element to its content width.
