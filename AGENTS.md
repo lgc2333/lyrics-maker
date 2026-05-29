@@ -97,17 +97,22 @@ src/
 │   └── editor-store.ts    # Central editor session: project, undo/redo, save
 ├── composables/           # Vue composables
 │   ├── useEditorShortcuts.ts    # Keyboard → action dispatch (accepts {onAction})
+│   ├── useI18nSync.ts           # Syncs locale state with vue-i18n
 │   ├── useLyricsEditor.ts       # Lyrics timing state machine (D/Enter/Shift+D key handlers)
 │   ├── useLocalSettings.ts      # Local user settings orchestration
 │   ├── useProjectPersistence.ts # Ctrl+S save pipeline (wires store to file service)
+│   ├── useShortcutCapture.ts    # Shortcut recording/capture state for preferences UI
 │   └── useTimelineView.ts       # WaveSurfer orchestration (view mode, zoom, scroll sync)
 ├── components/shell/      # Editor shell — layout, transport, mode controls
+│   ├── AboutModal.vue     # App/about metadata modal
 │   ├── AppShell.vue       # Root layout, wires shortcuts + persistence to store
+│   ├── ConfirmDialog.vue  # Shared confirmation dialog
 │   ├── TransportBar.vue   # Playback controls, progress slider, view/zoom/volume controls
 │   ├── TimingPointsPanel.vue  # Timing point panel (active/selected states, right-side controls)
 │   ├── TimingPointList.vue    # Renders the list of timing points
 │   ├── TimingPointControls.vue # Right-side controls for timing points
 │   ├── LyricsPanel.vue        # Lyrics workspace (LyricsLineList + WordSplitBar)
+│   ├── LyricsClipboardConfirmModal.vue # Clipboard paste confirmation for lyrics editing
 │   ├── LyricsLineList.vue     # Scrollable line list with select/active states
 │   ├── WordSplitBar.vue       # Cut/timing/edit mode word blocks panel
 │   ├── LyricsPasteModal.vue   # Textarea modal for pasting lyrics
@@ -118,6 +123,7 @@ src/
 │   ├── PreferencesModal.vue # Local settings UI
 │   ├── ImportConfirmModal.vue # Lyrics import confirmation
 │   ├── ProjectValidationModal.vue # Project validation issue review
+│   ├── ShortcutBindingRow.vue # Shortcut customization row/editor
 │   ├── UnsavedChangesDialog.vue # Dirty-project confirmation
 │   └── injection-keys.ts  # Symbol-based InjectionKey<T> definitions
 ├── test/setup.ts          # Global test setup (Iconify mock, etc.)
@@ -144,9 +150,9 @@ Use semantic/conventional commit messages, e.g. `fix: keep vertical slider popov
 
 ## Current Phase
 
-Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus is implemented through the project persistence, local settings/preferences, import/export, and LRC subtype follow-up work represented in the current codebase. Remaining larger areas:
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus is implemented through Part 10 (lyrics list editing and clipboard work) in the current codebase. Remaining larger area:
 
-- Phase 5 Plus: shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
+- Phase 5 Plus Part 11.
 
 Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
 
