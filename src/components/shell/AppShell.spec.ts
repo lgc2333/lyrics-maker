@@ -167,7 +167,9 @@ describe('appShell', () => {
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('从上方「歌词」菜单导入或粘贴歌词以开始打轴')
+    expect(wrapper.text()).toContain(
+      '从上方「文件 -> 导入歌词文件...」菜单导入歌词开始打轴',
+    )
   })
 
   it('dispatches undo on Ctrl+Z', async () => {
@@ -206,7 +208,13 @@ describe('appShell', () => {
     const wrapper = mount(AppShell)
     const store = useEditorStore()
     store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
-    const defaultPointId = store.project.timingPoints[0].id
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
+    const pointId = store.project.timingPoints[0].id
 
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
@@ -216,9 +224,9 @@ describe('appShell', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
 
     await vi.waitFor(() => {
-      expect(
-        store.project.timingPoints.some((point) => point.id === defaultPointId),
-      ).toBe(false)
+      expect(store.project.timingPoints.some((point) => point.id === pointId)).toBe(
+        false,
+      )
     })
     expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1'])
   })
@@ -242,6 +250,14 @@ describe('appShell', () => {
 
   it('clears the selected timing point with Escape while timing panel is active', async () => {
     const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
+    await wrapper.vm.$nextTick()
 
     await wrapper.get('[data-testid="timing-point-row"]').trigger('click')
     expect(

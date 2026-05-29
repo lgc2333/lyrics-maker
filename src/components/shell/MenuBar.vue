@@ -229,7 +229,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'file'"
           data-testid="menu-popup-file"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-sm"
         >
           <button
             data-testid="menu-new-project"
@@ -283,7 +283,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
               v-if="openFileSubmenu === 'exportLyrics'"
               data-testid="menu-popup-export-lyrics"
               role="menu"
-              class="absolute left-full top-0 z-50 ml-0.5 w-max min-w-[180px] rounded border border-base-300 bg-base-100 shadow text-xs"
+              class="absolute left-full top-0 z-50 ml-0.5 w-max min-w-[180px] rounded border border-base-300 bg-base-100 shadow text-sm"
             >
               <button
                 v-for="target in lyricExportTargets"
@@ -356,7 +356,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'edit'"
           data-testid="menu-popup-edit"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[140px] rounded border border-base-300 bg-base-100 shadow text-xs"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[140px] rounded border border-base-300 bg-base-100 shadow text-sm"
         >
           <button
             data-testid="menu-undo"
@@ -410,7 +410,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'help'"
           data-testid="menu-popup-help"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-sm"
         >
           <button
             data-testid="menu-about"
@@ -463,7 +463,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         v-if="themeMenuOpen"
         data-testid="menu-popup-theme"
         role="menu"
-        class="absolute top-7 right-2 z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
+        class="absolute top-7 right-2 z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-sm"
       >
         <button
           v-for="option in themeOptions"

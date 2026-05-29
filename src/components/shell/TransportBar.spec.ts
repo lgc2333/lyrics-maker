@@ -372,6 +372,11 @@ describe('transportBar', () => {
     expect(wrapper.find('[data-testid="view-mode-toggle"]').exists()).toBe(false)
   })
 
+  it('grid toggle is not rendered without timeline context', () => {
+    const wrapper = mount(TransportBar)
+    expect(wrapper.find('[data-testid="grid-visibility-toggle"]').exists()).toBe(false)
+  })
+
   it('subdivision-select is not rendered without timeline context', () => {
     const wrapper = mount(TransportBar)
     expect(wrapper.find('[data-testid="subdivision-select"]').exists()).toBe(false)
@@ -653,6 +658,38 @@ describe('transportBar playback follow toggle', () => {
     await wrapper.get('[data-testid="auto-follow-toggle"]').trigger('click')
 
     expect(timeline.setAutoFollowPlayback).toHaveBeenCalledWith(false)
+  })
+})
+
+describe('transportBar grid visibility toggle', () => {
+  beforeEach(() => {
+    __overrideAudioTransportFactory(() => createMockTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+  })
+
+  it('renders grid visibility toggle when timeline is provided', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+
+    expect(wrapper.find('[data-testid="grid-visibility-toggle"]').exists()).toBe(true)
+  })
+
+  it('marks grid visibility toggle active when grid is visible', () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+    const button = wrapper.get('[data-testid="grid-visibility-toggle"]')
+
+    expect(button.classes()).toContain('btn-active')
+  })
+
+  it('clicking grid visibility toggle updates local state without dirtying project', async () => {
+    const wrapper = mountWithTimeline(makeTimeline())
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="grid-visibility-toggle"]').trigger('click')
+
+    expect(store.gridVisible).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.settings.gridVisible')
+    expect(store.dirty).toBe(false)
   })
 })
 

@@ -64,6 +64,13 @@ function isActive(id: string): boolean {
       @click="$emit('clearSelection')"
     >
       <li
+        v-if="store.project.timingPoints.length === 0"
+        data-testid="timing-point-empty"
+        class="flex h-full min-h-32 items-center justify-center px-4 text-center text-sm text-base-content/50"
+      >
+        {{ t('timing.pointList.empty') }}
+      </li>
+      <li
         v-for="point in store.project.timingPoints"
         :key="point.id"
         data-testid="timing-point-row"

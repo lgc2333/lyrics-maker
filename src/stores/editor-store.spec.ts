@@ -100,6 +100,15 @@ function createMockMetronome(): {
   }
 }
 
+function addDefaultTimingPoint(store: ReturnType<typeof useEditorStore>): void {
+  store.addTimingPoint({
+    time: 0,
+    bpm: 120,
+    timeSignatureNumerator: 4,
+    timeSignatureDenominator: 4,
+  })
+}
+
 describe('editor store (phase 1)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
@@ -108,6 +117,7 @@ describe('editor store (phase 1)', () => {
 
     expect(store.project.title).toBe('Untitled Project')
     expect(store.project.lyrics).toHaveLength(0)
+    expect(store.project.timingPoints).toHaveLength(0)
     expect(store.project.version).toBe(1)
   })
 
@@ -399,6 +409,7 @@ describe('editor store (phase 1)', () => {
 
     expect(store.project.title).toBe('Untitled Project')
     expect(store.project.lyrics).toHaveLength(0)
+    expect(store.project.timingPoints).toHaveLength(0)
     expect(store.dirty).toBe(false)
     expect(store.canUndo).toBe(false)
     expect(store.statusMessage?.key).toBe('status.project.newSuccess')
@@ -531,15 +542,21 @@ describe('editor store (phase 2 - timing points)', () => {
       timeSignatureNumerator: 3,
       timeSignatureDenominator: 4,
     })
-    expect(store.project.timingPoints).toHaveLength(2)
-    expect(store.project.timingPoints[1].bpm).toBe(140)
+    expect(store.project.timingPoints).toHaveLength(1)
+    expect(store.project.timingPoints[0].bpm).toBe(140)
 
     store.undo()
-    expect(store.project.timingPoints).toHaveLength(1)
+    expect(store.project.timingPoints).toHaveLength(0)
   })
 
   it('updateTimingPoint modifies fields and undo restores', () => {
     const store = useEditorStore()
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
     const tpId = store.project.timingPoints[0].id
 
     store.updateTimingPoint(tpId, { bpm: 160 })
@@ -551,6 +568,12 @@ describe('editor store (phase 2 - timing points)', () => {
 
   it('removeTimingPoint removes and undo restores', () => {
     const store = useEditorStore()
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
     const tpId = store.project.timingPoints[0].id
 
     store.removeTimingPoint(tpId)
@@ -595,6 +618,20 @@ describe('editor store (phase 5 plus part 6 - local preference hardware sync)', 
     expect(mockAudio.transport.setVolume).toHaveBeenCalledWith(0.3)
     expect(mockMetronome.scheduler.setSfxVolume).toHaveBeenCalledWith(0.5)
   })
+
+  it('applies and exports local grid visibility state', () => {
+    const store = useEditorStore()
+
+    expect(store.gridVisible).toBe(true)
+
+    store.applyLocalState({
+      ...store.exportLocalStateBase(),
+      gridVisible: false,
+    })
+
+    expect(store.gridVisible).toBe(false)
+    expect(store.exportLocalStateBase().gridVisible).toBe(false)
+  })
 })
 
 describe('editor store (phase 5 plus part 2 - settings)', () => {
@@ -609,6 +646,20 @@ describe('editor store (phase 5 plus part 2 - settings)', () => {
 
     expect(store.snapEnabled).toBe(false)
     expect(store.statusMessage?.key).toBe('status.settings.snapEnabled')
+    expect(store.statusMessage?.params?.enabled).toBe(false)
+    expect(store.dirty).toBe(false)
+    expect(store.canUndo).toBe(false)
+  })
+
+  it('updates gridVisible as a local preference without command history', () => {
+    const store = useEditorStore()
+
+    expect(store.gridVisible).toBe(true)
+
+    store.setGridVisible(false)
+
+    expect(store.gridVisible).toBe(false)
+    expect(store.statusMessage?.key).toBe('status.settings.gridVisible')
     expect(store.statusMessage?.params?.enabled).toBe(false)
     expect(store.dirty).toBe(false)
     expect(store.canUndo).toBe(false)
@@ -691,6 +742,7 @@ describe('editor store (phase 2 - audio transport)', () => {
     setActivePinia(createPinia())
 
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
     await store.togglePlayback()
     store.toggleMetronome()
@@ -930,11 +982,12 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
   it('applies tap bpm to active timing point after >8 taps', async () => {
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     // 10 taps at 0.5s intervals → 120 BPM
     for (let i = 0; i < 10; i++) {
-      store.tapBpm(i * 0.5)
+      await store.tapBpm(i * 0.5)
     }
 
     expect(store.project.timingPoints[0].bpm).toBeGreaterThan(100)
@@ -942,6 +995,7 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
   it('starts playback from active timing point when tapping while paused', async () => {
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     // First play then pause to ensure transport exists and is paused
@@ -950,7 +1004,7 @@ describe('editor store (phase 2 - TAP BPM)', () => {
     expect(transportPlaying()).toBe(false)
 
     // Tap should seek to active timing point (time 0) and start playback
-    store.tapBpm(1.0)
+    await store.tapBpm(1.0)
 
     expect(mockTransport.seek).toHaveBeenCalled()
     expect(mockTransport.play).toHaveBeenCalled()
@@ -958,6 +1012,7 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
   it('updates tapSampleCount and tapEstimatedBpm reactively', async () => {
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     expect(store.tapSampleCount).toBe(0)
@@ -965,7 +1020,7 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
     // 10 taps at 0.5s intervals
     for (let i = 0; i < 10; i++) {
-      store.tapBpm(i * 0.5)
+      await store.tapBpm(i * 0.5)
     }
 
     expect(store.tapSampleCount).toBeGreaterThan(8)
@@ -974,11 +1029,12 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
   it('does not apply BPM before >8 taps', async () => {
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     // Only 5 taps
     for (let i = 0; i < 5; i++) {
-      store.tapBpm(i * 0.5)
+      await store.tapBpm(i * 0.5)
     }
 
     // BPM should not have been applied yet (still default 120)
@@ -988,20 +1044,21 @@ describe('editor store (phase 2 - TAP BPM)', () => {
 
   it('tapCount increments on every tap', async () => {
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
 
     expect(store.tapCount).toBe(0)
-    store.tapBpm(0.0)
+    await store.tapBpm(0.0)
     expect(store.tapCount).toBe(1)
-    store.tapBpm(0.5)
+    await store.tapBpm(0.5)
     expect(store.tapCount).toBe(2)
   })
 
-  it('tapBpm reports missing audio when no transport loaded', () => {
+  it('tapBpm reports missing audio when no transport loaded', async () => {
     // Use a fresh store with no audio imported
     const store = useEditorStore()
 
-    store.tapBpm(0.5)
+    await store.tapBpm()
     expect(store.tapCount).toBe(0)
     expect(store.statusMessage?.key).toBe('status.tapBpm.noAudio')
   })
@@ -1047,6 +1104,7 @@ describe('editor store (phase 2 - metronome)', () => {
     setActivePinia(createPinia())
 
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
     await store.togglePlayback() // start playing
 
@@ -1085,6 +1143,7 @@ describe('editor store (phase 2 - metronome)', () => {
     setActivePinia(createPinia())
 
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
     await store.togglePlayback() // start playing
 
@@ -1130,6 +1189,7 @@ describe('editor store (phase 2 - metronome)', () => {
     vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
 
     const store = useEditorStore()
+    addDefaultTimingPoint(store)
     await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
     await store.togglePlayback()
     store.toggleMetronome()
@@ -1203,8 +1263,7 @@ describe('editor store (phase 2 - reactive state)', () => {
   it('activeTimingPointId reflects current time', () => {
     const store = useEditorStore()
 
-    // Default timing point at time=0
-    expect(store.activeTimingPointId).toBe('tp-1')
+    expect(store.activeTimingPointId).toBeNull()
   })
 
   it('initial reactive state has correct defaults', () => {

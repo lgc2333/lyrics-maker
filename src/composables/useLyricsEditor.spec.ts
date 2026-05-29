@@ -357,6 +357,12 @@ describe('handleMarkKey (D)', () => {
 
   it('ignores the current word old endTime when snapping during re-timing', async () => {
     const store = useEditorStore()
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
     store.insertLyricLines([
       {
         id: 'l1',
@@ -550,6 +556,12 @@ describe('handleNextLineKey (Enter)', () => {
 
   it('allows current line endTime to snap to the next line startTime boundary', async () => {
     const store = useEditorStore()
+    store.addTimingPoint({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
     store.insertLyricLines([
       { id: 'l1', words: [{ id: 'w1', text: 'storm' }], startTime: 74 },
       { id: 'l2', words: [{ id: 'w2', text: "I'm" }], startTime: 75.75 },

@@ -35,7 +35,6 @@ describe('timingPointList', () => {
 
   function addTwoPoints() {
     const store = useEditorStore()
-    store.removeTimingPoint(store.project.timingPoints[0].id)
     store.addTimingPoint({
       time: 0,
       bpm: 120,
@@ -118,6 +117,15 @@ describe('timingPointList', () => {
     expect(wrapper.emitted('clearSelection')).toBeUndefined()
   })
 
+  it('renders an empty state when there are no timing points', () => {
+    const wrapper = mount(TimingPointList, { props: { selectedId: null } })
+
+    expect(wrapper.findAll('[data-testid="timing-point-row"]')).toHaveLength(0)
+    expect(wrapper.get('[data-testid="timing-point-empty"]').text()).toContain(
+      '还没有 Timing Point',
+    )
+  })
+
   it('emits remove event with correct point id when delete button clicked', async () => {
     addTwoPoints()
     const store = useEditorStore()
@@ -144,10 +152,6 @@ describe('timingPointList', () => {
   })
 
   it('isActive() returns false when store has no timing points', () => {
-    // Remove the default timing point, leaving an empty array
-    const store = useEditorStore()
-    store.removeTimingPoint(store.project.timingPoints[0].id)
-
     const wrapper = mount(TimingPointList, { props: { selectedId: null } })
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
     expect(rows).toHaveLength(0)

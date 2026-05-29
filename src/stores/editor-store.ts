@@ -133,6 +133,7 @@ export const useEditorStore = defineStore('editor', () => {
     DEFAULT_LOCAL_USER_STATE.snapDivisor,
   )
   const _rhythmMode = shallowRef<LocalRhythmMode>(DEFAULT_LOCAL_USER_STATE.rhythmMode)
+  const _gridVisible = shallowRef(DEFAULT_LOCAL_USER_STATE.gridVisible)
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -173,6 +174,7 @@ export const useEditorStore = defineStore('editor', () => {
   const snapEnabled = computed(() => _snapEnabled.value)
   const snapDivisor = computed(() => _snapDivisor.value)
   const rhythmMode = computed(() => _rhythmMode.value)
+  const gridVisible = computed(() => _gridVisible.value)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
   const hasAudio = computed(() => _audioFile.value !== null && duration.value > 0)
   const progressRatio = computed(() =>
@@ -399,6 +401,7 @@ export const useEditorStore = defineStore('editor', () => {
     _snapEnabled.value = state.snapEnabled
     _snapDivisor.value = state.snapDivisor
     _rhythmMode.value = state.rhythmMode
+    _gridVisible.value = state.gridVisible
     _metronomeState.value = state.metronomeEnabled ? 'on' : 'off'
     _syncAudioHardware()
     if (_metronome.value) {
@@ -417,6 +420,7 @@ export const useEditorStore = defineStore('editor', () => {
       snapEnabled: _snapEnabled.value,
       snapDivisor: _snapDivisor.value,
       rhythmMode: _rhythmMode.value,
+      gridVisible: _gridVisible.value,
     }
   }
 
@@ -829,6 +833,14 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  function setGridVisible(enabled: boolean): void {
+    _gridVisible.value = enabled
+    showStatus('status.settings.gridVisible', {
+      enabled,
+      state: enabled ? '显示' : '隐藏',
+    })
+  }
+
   // ---- Phase 3: Subdivision seek ----
 
   function seekToNextBeat(divisor: number, triplets: boolean): void {
@@ -1003,6 +1015,7 @@ export const useEditorStore = defineStore('editor', () => {
     snapEnabled,
     snapDivisor,
     rhythmMode,
+    gridVisible,
     duration,
     hasAudio,
     progressRatio,
@@ -1044,6 +1057,7 @@ export const useEditorStore = defineStore('editor', () => {
     setRhythmMode,
     setSnapDivisor,
     setSnapEnabled,
+    setGridVisible,
 
     // Phase 3: beat-level seek
     seekToNextBeat,

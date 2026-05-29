@@ -440,6 +440,43 @@ describe('useTimelineView', () => {
     wrapper.unmount()
   })
 
+  it('passes grid visibility to the grid overlay', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+
+    emitViewEvent(0, 'ready')
+    await wrapper.vm.$nextTick()
+
+    expect(mockGridPlugins[0].update).toHaveBeenCalledWith(
+      expect.objectContaining({ visible: true }),
+    )
+
+    wrapper.unmount()
+  })
+
+  it('updates the grid overlay when grid visibility changes', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+
+    mockGridPlugins[0].update.mockClear()
+    store.setGridVisible(false)
+    await wrapper.vm.$nextTick()
+
+    expect(mockGridPlugins[0].update).toHaveBeenCalledWith(
+      expect.objectContaining({ visible: false }),
+    )
+    expect(mockLinePlugins[0].update).toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
   it('recreates the playhead plugin when switching view modes', async () => {
     let timeline: ReturnType<typeof useTimelineView> | undefined
     const container = document.createElement('div')

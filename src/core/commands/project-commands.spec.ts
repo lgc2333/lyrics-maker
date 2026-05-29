@@ -9,6 +9,21 @@ import {
   createUpdateTimingPointCommand,
 } from './project-commands'
 
+function createProjectWithTimingPoint() {
+  return {
+    ...createEmptyProject(),
+    timingPoints: [
+      {
+        id: 'tp-1',
+        time: 0,
+        bpm: 120,
+        timeSignatureNumerator: 4,
+        timeSignatureDenominator: 4,
+      },
+    ],
+  }
+}
+
 describe('add lyric line command', () => {
   it('adds a lyric line via do()', () => {
     const payload = {
@@ -132,7 +147,7 @@ describe('timing point commands', () => {
 
   it('updates a timing point via command', () => {
     const command = createUpdateTimingPointCommand('tp-1', { bpm: 140 })
-    const afterUpdate = command.do(createEmptyProject())
+    const afterUpdate = command.do(createProjectWithTimingPoint())
     expect(afterUpdate.timingPoints[0].bpm).toBe(140)
     expect(afterUpdate.timingPoints[0].time).toBe(0) // unchanged
     const afterUndo = command.undo(afterUpdate)
@@ -141,7 +156,7 @@ describe('timing point commands', () => {
 
   it('removes a timing point via command', () => {
     const command = createRemoveTimingPointCommand('tp-1')
-    const afterRemove = command.do(createEmptyProject())
+    const afterRemove = command.do(createProjectWithTimingPoint())
     expect(afterRemove.timingPoints).toHaveLength(0)
     const afterUndo = command.undo(afterRemove)
     expect(afterUndo.timingPoints).toHaveLength(1)
@@ -149,7 +164,7 @@ describe('timing point commands', () => {
   })
 
   it('update command can be reused — undo restores to original state from first do()', () => {
-    const project = createEmptyProject()
+    const project = createProjectWithTimingPoint()
     const command = createUpdateTimingPointCommand('tp-1', { bpm: 140 })
 
     // First do/undo cycle
@@ -167,7 +182,7 @@ describe('timing point commands', () => {
 
   it('remove command undo is a no-op if do() was never called', () => {
     const command = createRemoveTimingPointCommand('tp-1')
-    const project = createEmptyProject()
+    const project = createProjectWithTimingPoint()
     const result = command.undo(project)
     // Should return the project unchanged
     expect(result.timingPoints).toHaveLength(1)

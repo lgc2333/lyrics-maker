@@ -28,6 +28,7 @@ const localUserStateSchema = z.object({
   rhythmMode: z.enum(['common', 'triplets']).default('common'),
   viewMode: z.enum(['waveform', 'spectrogram']).default('waveform'),
   spectrogramVerticalZoom: z.number().min(0.5).max(10).default(5),
+  gridVisible: z.boolean().default(true),
   autoFollowPlayback: z.boolean().default(true),
   mainViewHeight: z.number().min(180).max(520).default(250),
 })

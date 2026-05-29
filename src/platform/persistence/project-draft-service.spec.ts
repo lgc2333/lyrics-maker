@@ -60,7 +60,15 @@ describe('project draft service', () => {
       'lyrics-maker.project-draft.v1',
       JSON.stringify({
         ...project,
-        timingPoints: [{ ...project.timingPoints[0], bpm: '120' }],
+        timingPoints: [
+          {
+            id: 'tp-1',
+            time: 0,
+            bpm: '120',
+            timeSignatureNumerator: 4,
+            timeSignatureDenominator: 4,
+          },
+        ],
       }),
     )
 

@@ -55,14 +55,8 @@ describe('timingPointsPanel', () => {
     setActivePinia(createPinia())
   })
 
-  /**
-   * Removes the default timing point from createEmptyProject (tp-1) and adds
-   * two custom points so the panel has exactly 2 rows.
-   */
   function addTwoPoints() {
     const store = useEditorStore()
-    // Remove the default point (tp-1 at time 0) so we start clean
-    store.removeTimingPoint(store.project.timingPoints[0].id)
     store.addTimingPoint({
       time: 0,
       bpm: 120,
@@ -82,6 +76,15 @@ describe('timingPointsPanel', () => {
     const wrapper = mount(TimingPointsPanel)
     const rows = wrapper.findAll('[data-testid="timing-point-row"]')
     expect(rows).toHaveLength(2)
+  })
+
+  it('renders an empty state for a fresh project', () => {
+    const wrapper = mount(TimingPointsPanel)
+
+    expect(wrapper.findAll('[data-testid="timing-point-row"]')).toHaveLength(0)
+    expect(wrapper.get('[data-testid="timing-point-empty"]').text()).toContain(
+      '还没有 Timing Point',
+    )
   })
 
   it('applies selected background on row click', async () => {
@@ -127,6 +130,21 @@ describe('timingPointsPanel', () => {
     )
   })
 
+  it('add-at-current-time creates the first timing point with fallback values', async () => {
+    const store = useEditorStore()
+    const wrapper = mount(TimingPointsPanel)
+
+    await wrapper.get('[data-testid="add-point-at-current-time"]').trigger('click')
+
+    expect(store.project.timingPoints).toHaveLength(1)
+    expect(store.project.timingPoints[0]).toMatchObject({
+      time: 0,
+      bpm: 120,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
+  })
+
   it('shows clone-selected-at-current-time button', () => {
     const wrapper = mount(TimingPointsPanel)
     expect(
@@ -153,7 +171,6 @@ describe('timingPointsPanel', () => {
 
   it('formats timing point time as MM:SS.mmm', () => {
     const store = useEditorStore()
-    store.removeTimingPoint(store.project.timingPoints[0].id)
     store.addTimingPoint({
       time: 65.123,
       bpm: 120,

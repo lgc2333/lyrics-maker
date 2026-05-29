@@ -284,6 +284,100 @@ describe('gridOverlayPlugin', () => {
       ).toHaveLength(0)
     })
 
+    it('clears grid lines when grid visibility is disabled', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line').length,
+      ).toBeGreaterThan(0)
+
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+        visible: false,
+      })
+
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line'),
+      ).toHaveLength(0)
+    })
+
+    it('keeps pointer time preview available when grid visibility is disabled', () => {
+      const { wrapper, scrollContainer, ws } = createFakeWs()
+      Object.defineProperty(scrollContainer, 'getBoundingClientRect', {
+        value: () => ({ left: 0 }),
+        configurable: true,
+      })
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+        visible: false,
+      })
+      wrapper.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: 250,
+          bubbles: true,
+        }),
+      )
+
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="grid-time-preview"]')?.style
+          .display,
+      ).toBe('block')
+      expect(
+        wrapper.querySelector('[data-testid="grid-time-preview-label"]')?.textContent,
+      ).toBe('00:02.500')
+    })
+
+    it('re-renders grid lines after empty timing points reset the rendered cache', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      const plugin = GridOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line').length,
+      ).toBeGreaterThan(0)
+
+      plugin.update({
+        timingPoints: [],
+        divisor: 4,
+        triplets: false,
+      })
+      scrollContainer.scrollLeft = 10
+      emit('scroll')
+      plugin.update({
+        timingPoints,
+        divisor: 4,
+        triplets: false,
+      })
+
+      expect(
+        wrapper.querySelectorAll('[data-testid="timeline-grid"] line').length,
+      ).toBeGreaterThan(0)
+    })
+
     it('shows a formatted pointer time preview in wrapper coordinates', () => {
       const { wrapper, scrollContainer, ws } = createFakeWs()
       Object.defineProperty(scrollContainer, 'getBoundingClientRect', {

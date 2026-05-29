@@ -84,6 +84,7 @@ export function useTimelineView(
       triplets: effectiveTriplets.value,
       theme: activeTheme.value,
       viewMode: viewMode.value,
+      visible: store.gridVisible,
     }
   }
 
@@ -232,7 +233,12 @@ export function useTimelineView(
 
   // Redraw grid when timing points or divisor/triplets change
   watch(
-    [() => store.project.timingPoints, divisor, effectiveTriplets],
+    [
+      () => store.project.timingPoints,
+      divisor,
+      effectiveTriplets,
+      () => store.gridVisible,
+    ],
     () => {
       gridPlugin?.update(_buildOverlayParams())
       lineOverlayPlugin?.update(_buildLineOverlayParams())

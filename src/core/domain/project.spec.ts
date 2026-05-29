@@ -8,44 +8,33 @@ describe('createEmptyProject', () => {
       version: 1,
       title: 'Untitled Project',
       lyrics: [],
-      timingPoints: [
-        {
-          id: 'tp-1',
-          time: 0,
-          bpm: 120,
-          timeSignatureNumerator: 4,
-          timeSignatureDenominator: 4,
-        },
-      ],
+      timingPoints: [],
     })
   })
 
-  it('includes phase-2 timing defaults without user preference fields', () => {
+  it('starts without timing points or user preference fields', () => {
     const project = createEmptyProject()
-    expect(project.timingPoints).toHaveLength(1)
-    expect(project.timingPoints[0].time).toBe(0)
+    expect(project.timingPoints).toHaveLength(0)
     expect('audio' in project).toBe(false)
     expect('settings' in project).toBe(false)
   })
 
   it('returns fresh default project instances', () => {
     const first = createEmptyProject()
-    first.timingPoints[0].bpm = 140
+    first.timingPoints.push({
+      id: 'tp-1',
+      time: 0,
+      bpm: 140,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+    })
     first.lyrics.push({ id: 'line-1', words: [] })
 
     expect(createEmptyProject()).toEqual({
       version: 1,
       title: 'Untitled Project',
       lyrics: [],
-      timingPoints: [
-        {
-          id: 'tp-1',
-          time: 0,
-          bpm: 120,
-          timeSignatureNumerator: 4,
-          timeSignatureDenominator: 4,
-        },
-      ],
+      timingPoints: [],
     })
   })
 })
@@ -75,7 +64,15 @@ describe('parseProjectDocument', () => {
   it('rejects project fields with incompatible types', () => {
     const result = parseProjectDocument({
       ...createEmptyProject(),
-      timingPoints: [{ ...createEmptyProject().timingPoints[0], bpm: '120' }],
+      timingPoints: [
+        {
+          id: 'tp-1',
+          time: 0,
+          bpm: '120',
+          timeSignatureNumerator: 4,
+          timeSignatureDenominator: 4,
+        },
+      ],
     })
 
     expect(result).toBeNull()

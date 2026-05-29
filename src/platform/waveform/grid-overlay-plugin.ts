@@ -13,12 +13,14 @@ export interface GridOverlayOptions extends OverlayStyleContext {
    * WaveSurfer's wrapper so it scrolls with the waveform/spectrogram.
    */
   outerContainer?: HTMLElement
+  visible?: boolean
 }
 
 export interface GridOverlayParams extends OverlayStyleContext {
   timingPoints: TimingPoint[]
   divisor: number
   triplets: boolean
+  visible?: boolean
 }
 
 export class GridOverlayPlugin extends BasePlugin<
@@ -239,22 +241,46 @@ export class GridOverlayPlugin extends BasePlugin<
     this.lastPointerClientX = null
   }
 
+  private _resetRenderedRange(): void {
+    this.renderedStart = 0
+    this.renderedEnd = 0
+    this.hasRenderedRange = false
+  }
+
   private _draw(): void {
     if (!this.svg || !this.wavesurfer) return
 
     this._applyPointerPreviewTokens()
     this.svg.replaceChildren()
 
+    const visible = this.params.visible ?? this.options.visible ?? true
+    if (!visible) {
+      this._resetRenderedRange()
+      return
+    }
+
     const duration = this.wavesurfer.getDuration()
-    if (duration <= 0) return
+    if (duration <= 0) {
+      this._resetRenderedRange()
+      return
+    }
 
     const visibleDuration = this.visibleEnd - this.visibleStart
-    if (visibleDuration <= 0) return
+    if (visibleDuration <= 0) {
+      this._resetRenderedRange()
+      return
+    }
 
-    if (this.params.timingPoints.length === 0) return
+    if (this.params.timingPoints.length === 0) {
+      this._resetRenderedRange()
+      return
+    }
 
     const wrapper = this.wavesurfer.getWrapper()
-    if (wrapper.scrollWidth <= 0) return
+    if (wrapper.scrollWidth <= 0) {
+      this._resetRenderedRange()
+      return
+    }
     const pxPerSec = wrapper.scrollWidth / duration
     const renderBuffer = Math.max(0.5, visibleDuration / 2)
     const renderStart = Math.max(0, this.visibleStart - renderBuffer)

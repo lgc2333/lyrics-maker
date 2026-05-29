@@ -12,6 +12,10 @@ describe('local settings validation', () => {
     expect(DEFAULT_LOCAL_USER_STATE.spectrogramVerticalZoom).toBe(5)
   })
 
+  it('defaults grid visibility to on', () => {
+    expect(DEFAULT_LOCAL_USER_STATE.gridVisible).toBe(true)
+  })
+
   it('accepts a complete local settings payload', () => {
     const result = parseLocalUserSettings({
       version: 1,
@@ -119,7 +123,12 @@ describe('local settings service', () => {
 
     service.save(
       { ...DEFAULT_LOCAL_USER_SETTINGS, theme: 'dark' },
-      { ...DEFAULT_LOCAL_USER_STATE, musicVolume: 0.25, snapDivisor: 8 },
+      {
+        ...DEFAULT_LOCAL_USER_STATE,
+        musicVolume: 0.25,
+        snapDivisor: 8,
+        gridVisible: false,
+      },
     )
 
     const result = service.load()
@@ -132,6 +141,7 @@ describe('local settings service', () => {
     })
     expect(result.state.musicVolume).toBe(0.25)
     expect(result.state.snapDivisor).toBe(8)
+    expect(result.state.gridVisible).toBe(false)
   })
 
   it('validates import text before saving', () => {
@@ -153,6 +163,7 @@ describe('local settings service', () => {
         viewMode: 'spectrogram',
         spectrogramVerticalZoom: 7,
         autoFollowPlayback: false,
+        gridVisible: false,
         mainViewHeight: 360,
       },
     )
@@ -168,6 +179,7 @@ describe('local settings service', () => {
     expect(exported.viewMode).toBeUndefined()
     expect(exported.spectrogramVerticalZoom).toBeUndefined()
     expect(exported.autoFollowPlayback).toBeUndefined()
+    expect(exported.gridVisible).toBeUndefined()
     expect(exported.mainViewHeight).toBeUndefined()
   })
 })

@@ -39,6 +39,7 @@
     "musicVolume": "音乐音量",
     "sfxVolume": "音效音量",
     "autoFollowPlayback": "播放时自动跟随",
+    "gridVisible": "显示/隐藏网格线",
     "waveformMode": "波形",
     "spectrogramMode": "频谱",
     "toggleViewMode": "切换波形/频谱",
@@ -59,6 +60,7 @@
       "title": "时间点",
       "cloneSelected": "克隆选中时轴到此处",
       "addAtCurrentTime": "在此处添加时轴",
+      "empty": "还没有 Timing Point。可以在当前时间添加第一个时间点。",
       "delete": "删除"
     },
     "controls": {
@@ -73,7 +75,7 @@
   },
   "lyrics": {
     "title": "歌词编辑器",
-    "emptyHint": "从上方「歌词」菜单导入或粘贴歌词以开始打轴",
+    "emptyHint": "从上方「文件 -> 导入歌词文件...」菜单导入歌词开始打轴",
     "selectLineHint": "选择一行歌词以编辑",
     "timingControl": "打轴控制",
     "lineList": {
@@ -269,6 +271,7 @@
       "sfxUnmuted": "音效音量已恢复",
       "viewMode": "时间线视图已切换为 {mode}",
       "autoFollowPlayback": "播放时自动跟随已{state}",
+      "gridVisible": "网格线已{state}",
       "rhythmModeTemporary": "临时切换节奏模式：{mode}"
     },
     "localSettings": {

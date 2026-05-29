@@ -57,6 +57,10 @@ function onAutoFollowToggle(): void {
     state: enabled ? '开启' : '关闭',
   })
 }
+
+function onGridVisibilityToggle(): void {
+  store.setGridVisible(!store.gridVisible)
+}
 </script>
 
 <template>
@@ -98,16 +102,6 @@ function onAutoFollowToggle(): void {
     </button>
 
     <button
-      data-testid="snap-toggle"
-      class="btn btn-ghost btn-sm btn-square"
-      :class="{ 'btn-active text-primary': store.snapEnabled }"
-      :title="t('transport.snap')"
-      @click="store.setSnapEnabled(!store.snapEnabled)"
-    >
-      <Icon icon="mynaui:magnet" class="h-5 w-5" />
-    </button>
-
-    <button
       v-if="timeline"
       data-testid="auto-follow-toggle"
       class="btn btn-ghost btn-sm btn-square"
@@ -116,6 +110,31 @@ function onAutoFollowToggle(): void {
       @click="onAutoFollowToggle"
     >
       <Icon icon="material-symbols:filter-center-focus-rounded" class="h-5 w-5" />
+    </button>
+
+    <div class="h-5 w-px bg-base-300" />
+    <button
+      v-if="timeline"
+      data-testid="grid-visibility-toggle"
+      class="btn btn-ghost btn-sm btn-square"
+      :class="{ 'btn-active text-primary': store.gridVisible }"
+      :title="t('transport.gridVisible')"
+      @click="onGridVisibilityToggle"
+    >
+      <Icon
+        :icon="store.gridVisible ? 'hugeicons:grid' : 'hugeicons:grid-off'"
+        class="h-5 w-5"
+      />
+    </button>
+
+    <button
+      data-testid="snap-toggle"
+      class="btn btn-ghost btn-sm btn-square"
+      :class="{ 'btn-active text-primary': store.snapEnabled }"
+      :title="t('transport.snap')"
+      @click="store.setSnapEnabled(!store.snapEnabled)"
+    >
+      <Icon icon="mynaui:magnet" class="h-5 w-5" />
     </button>
 
     <!-- Rhythm mode toggle -->
@@ -140,34 +159,34 @@ function onAutoFollowToggle(): void {
     <div
       v-if="timeline"
       data-testid="subdivision-stepper"
-      class="join"
+      class="join items-center"
       :title="t('transport.subdivisionDivisor')"
     >
       <button
         data-testid="subdivision-decrease"
-        class="btn btn-xs join-item btn-ghost"
+        class="btn btn-sm btn-square join-item btn-ghost"
         :disabled="timeline.divisor.value === 1"
         @click="stepSubdivision(-1)"
       >
-        <Icon icon="material-symbols:remove-rounded" class="h-4 w-4" />
+        <Icon icon="material-symbols:remove-rounded" class="h-5 w-5" />
       </button>
       <div
         data-testid="subdivision-value"
-        class="join-item flex h-6 min-w-9 items-center justify-center border border-base-300 px-2 text-[11px] tabular-nums"
+        class="join-item min-w-8 text-sm tabular-nums text-center"
       >
-        {{ timeline.divisor.value }}x
+        {{ timeline.divisor.value }}<span class="text-xs">x</span>
       </div>
       <button
         data-testid="subdivision-increase"
-        class="btn btn-xs join-item btn-ghost"
+        class="btn btn-sm btn-square join-item btn-ghost"
         :disabled="timeline.divisor.value === 16"
         @click="stepSubdivision(1)"
       >
-        <Icon icon="material-symbols:add-rounded" class="h-4 w-4" />
+        <Icon icon="material-symbols:add-rounded" class="h-5 w-5" />
       </button>
     </div>
 
-    <div class="mx-1 h-5 w-px bg-base-300" />
+    <div class="h-5 w-px bg-base-300" />
 
     <button
       data-testid="prev-bar"

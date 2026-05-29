@@ -675,6 +675,12 @@
 - Delete 键删除当前选中行，在时轴模式及歌词模式下都是如此。
 - 歌词模式下，按Tab键自动触发整行编辑（接入自定义快捷键）
 
+- 实现帮助 -> 关于，展示以下信息（注意 i18n）：
+  - `shell.appTitle`
+  - Made with ♥️ by LgCookie
+  - 当前版本号与短提交hash
+  - GitHub：`https://github.com/lgc2333/lyrics-maker`
+
 ## Part 8：快捷键自定义
 
 ### 目标

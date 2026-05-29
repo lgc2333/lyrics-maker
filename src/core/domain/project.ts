@@ -24,15 +24,7 @@ export const projectDocumentSchema = z.object({
   version: z.literal(1).default(1),
   title: z.string().default('Untitled Project'),
   lyrics: z.array(lyricLineSchema).default(() => []),
-  timingPoints: z.array(timingPointSchema).default(() => [
-    {
-      id: 'tp-1',
-      time: 0,
-      bpm: 120,
-      timeSignatureNumerator: 4,
-      timeSignatureDenominator: 4,
-    },
-  ]),
+  timingPoints: z.array(timingPointSchema).default(() => []),
 })
 
 export type LyricWord = z.infer<typeof lyricWordSchema>
