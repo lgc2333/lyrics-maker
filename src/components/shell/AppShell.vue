@@ -411,7 +411,11 @@ useEditorShortcuts({
     } else if (action === 'lyrics.nextLine') {
       if (editorMode.value === 'lyrics') lyricsEditor.handleNextLineKey()
     } else if (action === 'lyrics.deleteLine') {
-      if (editorMode.value === 'lyrics') lyricsEditor.handleDeleteLine()
+      lyricsEditor.handleDeleteLine()
+    } else if (action === 'lyrics.clearSelection') {
+      lyricsEditor.clearSelection()
+    } else if (action === 'lyrics.editWholeLine') {
+      if (editorMode.value === 'lyrics') lyricsEditor.requestWholeLineEdit()
     } else if (action === 'lyrics.playLineInterval') {
       if (editorMode.value === 'lyrics') lyricsEditor.handlePlayLineInterval()
     } else if (action === 'lyrics.playWordInterval') {

@@ -184,6 +184,62 @@ describe('appShell', () => {
     })
   })
 
+  it('deletes the selected lyric line with Delete while timing panel is active', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'line-1', words: [{ id: 'w1', text: 'first' }] },
+      { id: 'line-2', words: [{ id: 'w2', text: 'second' }] },
+    ])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+    await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+
+    await vi.waitFor(() => {
+      expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-2'])
+    })
+  })
+
+  it('clears the selected lyric line with Escape while timing panel is active', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+    await wrapper.get('[data-testid="mode-switch-timing"]').trigger('click')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+
+    expect(
+      wrapper.get('[data-testid="lyrics-line-row"]').attributes('aria-selected'),
+    ).toBe('false')
+  })
+
+  it('opens whole-line edit with Tab in lyrics mode', async () => {
+    const wrapper = mount(AppShell, { attachTo: document.body })
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'first' }] }])
+
+    await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
+    await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-testid="whole-line-input"]').exists()).toBe(true)
+    })
+
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-testid="whole-line-input"]').element,
+    )
+
+    wrapper.unmount()
+  })
+
   it('dispatches undo from edit menu and shows the command label', async () => {
     const wrapper = mount(AppShell)
     const store = useEditorStore()

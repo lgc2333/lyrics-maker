@@ -67,12 +67,15 @@ function createMockLyricsEditor(overrides = {}) {
     activeLineId,
     activeWordIndex,
     splitBarMode,
+    wholeLineEditRequestId: ref(0),
     activeLine: computed(() => {
       if (!activeLineId.value) return null
       const store = useEditorStore()
       return store.project.lyrics.find((l) => l.id === activeLineId.value) ?? null
     }),
     activateLine: vi.fn(),
+    clearSelection: vi.fn(),
+    requestWholeLineEdit: vi.fn(),
     handleMarkKey: vi.fn(),
     handleNextLineKey: vi.fn(),
     handleMarkNoAdvanceKey: vi.fn(),
@@ -109,9 +112,19 @@ describe('wordSplitBar', () => {
   })
 
   describe('empty state', () => {
-    it('shows hint text when no active line', () => {
+    it('shows import hint text when no lyrics exist', () => {
       const { wrapper } = mountComponent()
       expect(wrapper.text()).toContain(zhCN.lyrics.emptyHint)
+    })
+
+    it('asks the user to select a line when lyrics exist but none is selected', () => {
+      const store = useEditorStore()
+      store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'hello' }] }])
+
+      const { wrapper } = mountComponent()
+
+      expect(wrapper.text()).toContain(zhCN.lyrics.selectLineHint)
+      expect(wrapper.text()).not.toContain(zhCN.lyrics.emptyHint)
     })
 
     it('does not render start block or word blocks when no active line', () => {
@@ -748,6 +761,32 @@ describe('wordSplitBar', () => {
       await wrapper.vm.$nextTick()
 
       const input = wrapper.find('input[data-testid="whole-line-input"]')
+      expect(input.exists()).toBe(true)
+      expect(document.activeElement).toBe(input.element)
+
+      wrapper.unmount()
+    })
+
+    it('enters whole-line edit after a shortcut edit request', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      const { wrapper } = mountComponent(lyricsEditor, {
+        attachTo: document.body,
+      })
+
+      lyricsEditor.wholeLineEditRequestId.value += 1
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+
+      const input = wrapper.find('input[data-testid="whole-line-input"]')
+      expect(lyricsEditor.splitBarMode.value).toBe('edit')
       expect(input.exists()).toBe(true)
       expect(document.activeElement).toBe(input.element)
 

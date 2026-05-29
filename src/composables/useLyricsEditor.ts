@@ -11,6 +11,7 @@ export function useLyricsEditor() {
   const activeLineId = ref<string | null>(null)
   const activeWordIndex = ref(0)
   const splitBarMode = ref<'cut' | 'timing' | 'edit'>('timing')
+  const wholeLineEditRequestId = ref(0)
 
   const activeLine = computed(() =>
     activeLineId.value
@@ -45,6 +46,17 @@ export function useLyricsEditor() {
         }
       }
     }
+  }
+
+  function clearSelection(): void {
+    activeLineId.value = null
+    activeWordIndex.value = 0
+  }
+
+  function requestWholeLineEdit(): void {
+    if (!activeLine.value) return
+    splitBarMode.value = 'edit'
+    wholeLineEditRequestId.value += 1
   }
 
   function selectTimedWordAt(time: number): void {
@@ -288,8 +300,11 @@ export function useLyricsEditor() {
     activeLineId,
     activeWordIndex,
     splitBarMode,
+    wholeLineEditRequestId,
     activeLine,
     activateLine,
+    clearSelection,
+    requestWholeLineEdit,
     selectTimedWordAt,
     handleMarkKey,
     handleNextLineKey,

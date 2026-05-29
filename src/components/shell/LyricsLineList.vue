@@ -98,7 +98,13 @@ function hasIncompleteWordStatus(line: {
 <template>
   <div class="flex h-full min-w-0 flex-col">
     <!-- Line list -->
-    <ul role="listbox" tabindex="0" class="min-h-0 flex-1 overflow-auto">
+    <ul
+      data-testid="lyrics-line-list"
+      role="listbox"
+      tabindex="0"
+      class="min-h-0 flex-1 overflow-auto"
+      @click="lyricsEditor.clearSelection()"
+    >
       <li
         v-for="(line, index) in store.project.lyrics"
         :key="line.id"
@@ -112,7 +118,7 @@ function hasIncompleteWordStatus(line: {
           'border-l-success': isActive(line.id),
           'border-l-transparent': !isActive(line.id),
         }"
-        @click="lyricsEditor.activateLine(line.id)"
+        @click.stop="lyricsEditor.activateLine(line.id)"
       >
         <span class="w-6 text-xs opacity-40">{{ index + 1 }}</span>
         <span class="w-16 tabular-nums text-xs opacity-60">

@@ -74,6 +74,7 @@
   "lyrics": {
     "title": "歌词编辑器",
     "emptyHint": "从上方「歌词」菜单导入或粘贴歌词以开始打轴",
+    "selectLineHint": "选择一行歌词以编辑",
     "timingControl": "打轴控制",
     "lineList": {
       "title": "歌词行",

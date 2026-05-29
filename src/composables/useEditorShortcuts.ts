@@ -44,6 +44,8 @@ export function useEditorShortcuts(options: {
   registry.register('C', 'lyrics.playLineInterval')
   registry.register('V', 'lyrics.playWordInterval')
   registry.register('Delete', 'lyrics.deleteLine')
+  registry.register('Escape', 'lyrics.clearSelection')
+  registry.register('Tab', 'lyrics.editWholeLine')
 
   function reportActionError(error: unknown, action: ShortcutAction): void {
     if (options.onError) {

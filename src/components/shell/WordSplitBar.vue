@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, inject, nextTick, ref } from 'vue'
+import { computed, inject, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { autoSplitText } from '../../core/lyrics/auto-split'
@@ -17,6 +17,9 @@ const lyricsEditor = inject(LYRICS_EDITOR_KEY) as LyricsEditorContext
 const activeLine = computed(() => lyricsEditor.activeLine.value)
 
 const words = computed(() => activeLine.value?.words ?? [])
+const emptyHintKey = computed(() =>
+  store.project.lyrics.length === 0 ? 'lyrics.emptyHint' : 'lyrics.selectLineHint',
+)
 
 const selectedWord = computed(() => {
   const index = lyricsEditor.activeWordIndex.value - 1
@@ -191,6 +194,15 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
   }
   return parts
 }
+
+watch(
+  () => lyricsEditor.wholeLineEditRequestId.value,
+  async () => {
+    if (!activeLine.value) return
+    lyricsEditor.splitBarMode.value = 'edit'
+    await enterWholeLineEdit()
+  },
+)
 </script>
 
 <template>
@@ -460,7 +472,7 @@ function splitBySpaces(text: string): { text: string; isSpace: boolean }[] {
       </div>
 
       <div v-else class="flex-1 text-xs opacity-40">
-        {{ t('lyrics.emptyHint') }}
+        {{ t(emptyHintKey) }}
       </div>
     </div>
   </div>

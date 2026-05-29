@@ -60,6 +60,7 @@ function createMockLyricsEditor(overrides = {}) {
     splitBarMode: ref('select' as 'cut' | 'select'),
     activeLine: ref(null),
     activateLine: vi.fn(),
+    clearSelection: vi.fn(),
     handleMarkKey: vi.fn(),
     handleNextLineKey: vi.fn(),
     handleMarkNoAdvanceKey: vi.fn(),
@@ -403,6 +404,29 @@ describe('lyricsLineList', () => {
 
       await row.trigger('click')
       expect(lyricsEditor.activateLine).toHaveBeenCalledWith('line-1')
+    })
+
+    it('clears selection when clicking list blank space', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'A' }] }])
+      const lyricsEditor = createMockLyricsEditor()
+      const wrapper = mountComponent(lyricsEditor)
+
+      await wrapper.get('[data-testid="lyrics-line-list"]').trigger('click')
+
+      expect(lyricsEditor.clearSelection).toHaveBeenCalledOnce()
+    })
+
+    it('does not clear selection when clicking a row', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'A' }] }])
+      const lyricsEditor = createMockLyricsEditor()
+      const wrapper = mountComponent(lyricsEditor)
+
+      await wrapper.get('[data-testid="lyrics-line-row"]').trigger('click')
+
+      expect(lyricsEditor.activateLine).toHaveBeenCalledWith('line-1')
+      expect(lyricsEditor.clearSelection).not.toHaveBeenCalled()
     })
   })
 })

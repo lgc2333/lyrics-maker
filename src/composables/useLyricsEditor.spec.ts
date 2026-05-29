@@ -79,6 +79,21 @@ describe('useLyricsEditor', () => {
     expect(editor.splitBarMode.value).toBe('timing')
   })
 
+  it('clearSelection clears the selected line and active word', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 1.0 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.activeWordIndex.value = 1
+
+    editor.clearSelection()
+
+    expect(editor.activeLineId.value).toBeNull()
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
   it('activateLine sets activeLineId and resets activeWordIndex when selecting another line', () => {
     const store = useEditorStore()
     store.insertLyricLines([

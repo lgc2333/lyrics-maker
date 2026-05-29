@@ -15,6 +15,8 @@ export type ShortcutAction =
   | 'lyrics.playLineInterval'
   | 'lyrics.playWordInterval'
   | 'lyrics.deleteLine'
+  | 'lyrics.clearSelection'
+  | 'lyrics.editWholeLine'
 
 export function createShortcutRegistry() {
   const bindings = new Map<string, ShortcutAction>()
