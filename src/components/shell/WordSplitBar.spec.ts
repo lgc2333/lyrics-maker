@@ -115,9 +115,22 @@ describe('wordSplitBar', () => {
   })
 
   describe('empty state', () => {
-    it('shows import hint text when no lyrics exist', () => {
+    it('shows import and paste hint text with the current paste shortcut when no lyrics exist', () => {
       const { wrapper } = mountComponent()
-      expect(wrapper.text()).toContain(zhCN.lyrics.emptyHint)
+
+      expect(wrapper.text()).toContain('导入歌词文件')
+      expect(wrapper.text()).toContain('粘贴')
+      expect(wrapper.text()).toContain('Ctrl+V')
+    })
+
+    it('updates the paste hint when the paste shortcut changes', () => {
+      const store = useEditorStore()
+      store.assignShortcut('lyrics.pasteClipboard', 'Alt+V')
+
+      const { wrapper } = mountComponent()
+
+      expect(wrapper.text()).toContain('Alt+V')
+      expect(wrapper.text()).not.toContain('Ctrl+V')
     })
 
     it('asks the user to select a line when lyrics exist but none is selected', () => {
@@ -127,7 +140,8 @@ describe('wordSplitBar', () => {
       const { wrapper } = mountComponent()
 
       expect(wrapper.text()).toContain(zhCN.lyrics.selectLineHint)
-      expect(wrapper.text()).not.toContain(zhCN.lyrics.emptyHint)
+      expect(wrapper.text()).not.toContain('导入歌词文件')
+      expect(wrapper.text()).not.toContain('Ctrl+V')
     })
 
     it('does not render start block or word blocks when no active line', () => {

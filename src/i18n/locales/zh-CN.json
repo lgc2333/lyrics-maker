@@ -88,7 +88,7 @@
   },
   "lyrics": {
     "title": "歌词编辑器",
-    "emptyHint": "从上方「文件 -> 导入歌词文件...」菜单导入歌词开始打轴",
+    "emptyHint": "从上方「文件 -> 导入歌词文件...」菜单导入歌词，或按 {shortcut} 粘贴歌词开始编辑",
     "selectLineHint": "选择一行歌词以编辑",
     "timingControl": "打轴控制",
     "lineList": {

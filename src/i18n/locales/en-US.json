@@ -88,7 +88,7 @@
   },
   "lyrics": {
     "title": "Lyrics Editor",
-    "emptyHint": "Use the top menu \"File -> Import Lyrics File...\" to start timing.",
+    "emptyHint": "Use \"File -> Import Lyrics File...\" or press {shortcut} to paste lyrics and start editing.",
     "selectLineHint": "Select a lyric line to edit.",
     "timingControl": "Timing Control",
     "lineList": {

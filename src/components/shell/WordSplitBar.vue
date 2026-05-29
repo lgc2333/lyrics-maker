@@ -20,6 +20,11 @@ const words = computed(() => activeLine.value?.words ?? [])
 const emptyHintKey = computed(() =>
   store.project.lyrics.length === 0 ? 'lyrics.emptyHint' : 'lyrics.selectLineHint',
 )
+const emptyHintParams = computed(() =>
+  store.project.lyrics.length === 0
+    ? { shortcut: store.shortcutBindings['lyrics.pasteClipboard'] ?? '' }
+    : {},
+)
 
 const selectedWord = computed(() => {
   const index = lyricsEditor.activeWordIndex.value - 1
@@ -472,7 +477,7 @@ watch(
       </div>
 
       <div v-else class="flex-1 text-xs opacity-40">
-        {{ t(emptyHintKey) }}
+        {{ t(emptyHintKey, emptyHintParams) }}
       </div>
     </div>
   </div>
