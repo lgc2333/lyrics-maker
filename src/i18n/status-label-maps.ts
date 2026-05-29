@@ -1,0 +1,55 @@
+export const COMMAND_LABEL_KEYS: Record<string, string> = {
+  'audio.setMusicVolume': 'status.command.audio.setMusicVolume',
+  'audio.setSfxVolume': 'status.command.audio.setSfxVolume',
+  'lyrics.addLine': 'status.command.lyrics.addLine',
+  'lyrics.clearWordEndTime': 'status.command.lyrics.clearWordEndTime',
+  'lyrics.insertLines': 'status.command.lyrics.insertLines',
+  'lyrics.insertWord': 'status.command.lyrics.insertWord',
+  'lyrics.mergeWords': 'status.command.lyrics.mergeWords',
+  'lyrics.removeLine': 'status.command.lyrics.removeLine',
+  'lyrics.removeWord': 'status.command.lyrics.removeWord',
+  'lyrics.replaceAll': 'status.command.lyrics.replaceAll',
+  'lyrics.replaceLineWords': 'status.command.lyrics.replaceLineWords',
+  'lyrics.setLineStartTime': 'status.command.lyrics.setLineStartTime',
+  'lyrics.setWordEndTime': 'status.command.lyrics.setWordEndTime',
+  'lyrics.splitWord': 'status.command.lyrics.splitWord',
+  'lyrics.updateWordText': 'status.command.lyrics.updateWordText',
+  'project.setTitle': 'status.command.project.setTitle',
+  'settings.setRhythmMode': 'status.command.settings.setRhythmMode',
+  'settings.setSnapDivisor': 'status.command.settings.setSnapDivisor',
+  'settings.setSnapEnabled': 'status.command.settings.setSnapEnabled',
+  'timing.addPoint': 'status.command.timing.addPoint',
+  'timing.removePoint': 'status.command.timing.removePoint',
+  'timing.updatePoint': 'status.command.timing.updatePoint',
+}
+
+export const ACTION_LABEL_KEYS: Record<string, string> = {
+  'transport.nextBar': 'status.action.transport.nextBar',
+  'transport.nextBeat': 'status.action.transport.nextBeat',
+  'transport.playPause': 'status.action.transport.playPause',
+  'transport.playInterval': 'status.action.transport.playInterval',
+  'transport.prevBar': 'status.action.transport.prevBar',
+  'transport.prevBeat': 'status.action.transport.prevBeat',
+  'transport.seek': 'status.action.transport.seek',
+  'lyrics.mark': 'status.action.lyrics.mark',
+  'lyrics.nextLine': 'status.action.lyrics.nextLine',
+  'lyrics.playLineInterval': 'status.action.lyrics.playLineInterval',
+  'lyrics.playWordInterval': 'status.action.lyrics.playWordInterval',
+}
+
+export const RHYTHM_MODE_LABEL_KEYS: Record<string, string> = {
+  common: 'transport.rhythmCommon',
+  triplets: 'transport.rhythmTriplets',
+  waveform: 'transport.waveformMode',
+  spectrogram: 'transport.spectrogramMode',
+}
+
+export const REASON_LABEL_KEYS: Record<string, string> = {
+  cancelled: 'status.reason.cancelled',
+  failed: 'status.reason.failed',
+  invalid: 'status.reason.invalid',
+  no_cached_handle: 'status.reason.noCachedHandle',
+  no_draft: 'status.reason.noDraft',
+  unknown: 'status.reason.unknown',
+  unsupported: 'status.reason.unsupported',
+}

@@ -313,6 +313,7 @@
     "action": {
       "transport": {
         "playPause": "播放/暂停",
+        "playInterval": "播放片段",
         "seek": "跳转进度",
         "prevBeat": "上一拍线",
         "nextBeat": "下一拍线",

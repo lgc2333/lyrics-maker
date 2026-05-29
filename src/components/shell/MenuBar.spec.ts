@@ -353,6 +353,28 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="menu-popup-edit"]').exists()).toBe(false)
   })
 
+  it.each([
+    ['project.setTitle', '修改工程名'],
+    ['lyrics.replaceAll', '替换歌词'],
+  ])('translates %s in undo and redo menu labels', async (commandLabel, expected) => {
+    const wrapper = mount(MenuBar, {
+      props: {
+        mode: 'timing',
+        theme: 'light',
+        audioLoaded: true,
+        canUndo: true,
+        canRedo: true,
+        nextUndoLabel: commandLabel,
+        nextRedoLabel: commandLabel,
+      },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-edit"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="menu-undo"]').text()).toContain(expected)
+    expect(wrapper.get('[data-testid="menu-redo"]').text()).toContain(expected)
+  })
+
   it('lets edit menu grow to fit long undo and redo labels without wrapping', async () => {
     const wrapper = mount(MenuBar, {
       props: {
