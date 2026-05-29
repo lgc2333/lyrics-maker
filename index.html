@@ -2,12 +2,106 @@
 <html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lyrics Maker</title>
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1d232a" media="(prefers-color-scheme: dark)" />
+
+    <title>Lyrics Maker — 网页端歌词打轴编辑器</title>
+    <meta
+      name="description"
+      content="Lyrics Maker 是一款开源的网页端歌词打轴编辑器，支持 LRC、TTML、ASS 等多种歌词格式，提供波形可视化、节拍网格、逐字时间轴与实时预览。"
+    />
+    <meta
+      name="keywords"
+      content="歌词打轴, 歌词编辑器, LRC, TTML, ASS, 卡拉OK歌词, 逐字歌词, 音乐同步, lyrics maker, karaoke lyrics editor"
+    />
+    <meta name="author" content="LgCookie" />
+    <meta name="application-name" content="Lyrics Maker" />
+    <meta name="apple-mobile-web-app-title" content="Lyrics Maker" />
+
+    <link rel="canonical" href="https://lrc.lgck.cc/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://lrc.lgck.cc/" />
+    <link rel="alternate" hreflang="x-default" href="https://lrc.lgck.cc/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Lyrics Maker" />
+    <meta property="og:title" content="Lyrics Maker — 网页端歌词打轴编辑器" />
+    <meta
+      property="og:description"
+      content="开源网页端歌词打轴编辑器，支持 LRC / TTML / ASS 多格式，波形可视化、节拍网格、逐字时间轴。"
+    />
+    <meta property="og:url" content="https://lrc.lgck.cc/" />
+    <!-- TODO: 待补充 public/og-image.png (1200x630) 后取消注释 -->
+    <!-- <meta property="og:image" content="https://lrc.lgck.cc/og-image.png" /> -->
+    <!-- <meta property="og:image:width" content="1200" /> -->
+    <!-- <meta property="og:image:height" content="630" /> -->
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter Card -->
+    <!-- TODO: 待补充 og-image.png 后改回 summary_large_image -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Lyrics Maker — 网页端歌词打轴编辑器" />
+    <meta
+      name="twitter:description"
+      content="开源网页端歌词打轴编辑器，支持 LRC / TTML / ASS 多格式，波形可视化、节拍网格、逐字时间轴。"
+    />
+    <!-- <meta name="twitter:image" content="https://lrc.lgck.cc/og-image.png" /> -->
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Lyrics Maker",
+        "description": "开源网页端歌词打轴编辑器，支持 LRC、TTML、ASS 等多种歌词格式，提供波形可视化、节拍网格、逐字时间轴与实时预览。",
+        "url": "https://lrc.lgck.cc/",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web Browser",
+        "inLanguage": "zh-CN",
+        "author": {
+          "@type": "Person",
+          "name": "LgCookie"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <noscript>
+      <div
+        style="
+          max-width: 720px;
+          margin: 4rem auto;
+          padding: 0 1.5rem;
+          font-family:
+            system-ui,
+            -apple-system,
+            sans-serif;
+          color: #1d232a;
+          line-height: 1.6;
+        "
+      >
+        <h1 style="font-size: 1.75rem; margin-bottom: 0.75rem">
+          Lyrics Maker — 网页端歌词打轴编辑器
+        </h1>
+        <p>
+          Lyrics Maker 是一款开源的网页端歌词打轴工具，支持
+          <strong>LRC、TTML、ASS</strong>
+          等多种歌词格式，提供波形可视化、节拍网格和逐字时间轴编辑能力。
+        </p>
+        <p style="color: #555">
+          ⚠️ 本应用需要 JavaScript 才能运行，请在浏览器设置中启用 JavaScript
+          后刷新页面。
+        </p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
