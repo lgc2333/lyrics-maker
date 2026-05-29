@@ -447,6 +447,19 @@ describe('menuBar', () => {
     expect(wrapper.find('[data-testid="menu-shortcuts"]').exists()).toBe(false)
   })
 
+  it('emits openAbout from the help menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-help"]').trigger('click')
+    const aboutButton = wrapper.get('[data-testid="menu-about"]')
+    expect(aboutButton.attributes('disabled')).toBeUndefined()
+    await aboutButton.trigger('click')
+
+    expect(wrapper.emitted('openAbout')).toHaveLength(1)
+  })
+
   it('does not render the old top-level lyrics menu', () => {
     const wrapper = mount(MenuBar, {
       props: { mode: 'timing', theme: 'light', audioLoaded: true },

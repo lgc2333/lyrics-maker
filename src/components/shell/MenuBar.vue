@@ -48,6 +48,7 @@ const emit = defineEmits<{
   undo: []
   redo: []
   openPreferences: []
+  openAbout: []
   updateProjectTitle: [title: string]
 }>()
 
@@ -415,8 +416,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-about"
             role="menuitem"
-            disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left opacity-50"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
+            @click="(emit('openAbout'), closeMenu())"
           >
             {{ t('shell.menu.about') }}
           </button>

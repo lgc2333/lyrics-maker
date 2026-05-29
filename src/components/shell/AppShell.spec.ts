@@ -858,4 +858,23 @@ describe('appShell', () => {
       '本地设置导入成功',
     )
   })
+
+  it('opens and closes the about modal from the help menu', async () => {
+    const wrapper = mount(AppShell)
+
+    expect(wrapper.find('[data-testid="about-modal"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="menu-trigger-help"]').trigger('click')
+    await wrapper.get('[data-testid="menu-about"]').trigger('click')
+
+    const modal = wrapper.get('[data-testid="about-modal"]')
+    expect(modal.text()).toContain('Lyrics Maker')
+    expect(modal.text()).toContain('Made with ♥️ by LgCookie')
+    expect(modal.get('[data-testid="about-github-link"]').attributes('href')).toBe(
+      'https://github.com/lgc2333/lyrics-maker',
+    )
+
+    await wrapper.get('[data-testid="about-close"]').trigger('click')
+    expect(wrapper.find('[data-testid="about-modal"]').exists()).toBe(false)
+  })
 })

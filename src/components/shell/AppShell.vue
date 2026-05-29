@@ -18,6 +18,8 @@ import { autoSplitText } from '../../core/lyrics/auto-split'
 import { createPrefixedId } from '../../platform/ids/create-id'
 import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
 import { useEditorStore } from '../../stores/editor-store'
+import { APP_COMMIT, APP_VERSION } from '../../version'
+import AboutModal from './AboutModal.vue'
 import ImportConfirmModal from './ImportConfirmModal.vue'
 import LyricsPanel from './LyricsPanel.vue'
 import LyricsPasteModal from './LyricsPasteModal.vue'
@@ -51,6 +53,7 @@ const restoreSettingsInput = ref<HTMLInputElement | null>(null)
 const showPasteModal = ref(false)
 const showUnsavedOpenDialog = ref(false)
 const showPreferencesModal = ref(false)
+const showAboutModal = ref(false)
 const pendingDirtyAction = shallowRef<{
   kind: 'open' | 'new'
   run: () => void | Promise<void>
@@ -469,6 +472,7 @@ useEditorShortcuts({
       @openAudioFile="openAudioPicker"
       @pasteLyrics="showPasteModal = true"
       @openPreferences="showPreferencesModal = true"
+      @openAbout="showAboutModal = true"
       @importLyricsFile="requestLyricsImport"
       @exportLyricsFile="requestLyricsExport"
       @validateProject="validateCurrentProject"
@@ -511,6 +515,12 @@ useEditorShortcuts({
       @updateThemeMode="setThemeMode"
       @backupSettings="onExportSettings"
       @restoreSettings="openSettingsRestorePicker"
+    />
+    <AboutModal
+      v-if="showAboutModal"
+      :version="APP_VERSION"
+      :commit="APP_COMMIT"
+      @close="showAboutModal = false"
     />
     <input
       ref="audioInput"

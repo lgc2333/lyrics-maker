@@ -28,7 +28,12 @@
       "about": "关于"
     },
     "appTitle": "Lyrics Maker",
-    "mode": { "timing": "时轴", "lyrics": "歌词" }
+    "mode": { "timing": "时轴", "lyrics": "歌词" },
+    "about": {
+      "title": "关于",
+      "madeWith": "Made with ♥️ by LgCookie",
+      "close": "关闭"
+    }
   },
   "transport": {
     "metronome": "节拍器",

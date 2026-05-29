@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AboutModal: typeof import('./components/shell/AboutModal.vue')['default']
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
     ImportConfirmModal: typeof import('./components/shell/ImportConfirmModal.vue')['default']
     LyricsLineList: typeof import('./components/shell/LyricsLineList.vue')['default']
