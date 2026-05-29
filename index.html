@@ -13,7 +13,7 @@
     />
     <meta
       name="keywords"
-      content="歌词打轴, 歌词编辑器, LRC, TTML, ASS, 卡拉OK歌词, 逐字歌词, 音乐同步, lyrics maker, karaoke lyrics editor"
+      content="歌词打轴, 歌词编辑器, LRC, TTML, ASS, 卡拉OK歌词, 逐字歌词, 音乐同步, lyrics maker, karaoke lyrics editor, web-based lyrics editor, lyrics timing tool, synced lyrics, word-by-word lyrics"
     />
     <meta name="author" content="LgCookie" />
     <meta name="application-name" content="Lyrics Maker" />
@@ -21,6 +21,7 @@
 
     <link rel="canonical" href="https://lrc.lgck.cc/" />
     <link rel="alternate" hreflang="zh-CN" href="https://lrc.lgck.cc/" />
+    <link rel="alternate" hreflang="en" href="https://lrc.lgck.cc/" />
     <link rel="alternate" hreflang="x-default" href="https://lrc.lgck.cc/" />
 
     <!-- Open Graph -->
@@ -37,14 +38,18 @@
     <!-- <meta property="og:image:width" content="1200" /> -->
     <!-- <meta property="og:image:height" content="630" /> -->
     <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
 
     <!-- Twitter Card -->
     <!-- TODO: 待补充 og-image.png 后改回 summary_large_image -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Lyrics Maker — 网页端歌词打轴编辑器" />
+    <meta
+      name="twitter:title"
+      content="Lyrics Maker — Web-based Lyrics Timing Editor"
+    />
     <meta
       name="twitter:description"
-      content="开源网页端歌词打轴编辑器，支持 LRC / TTML / ASS 多格式，波形可视化、节拍网格、逐字时间轴。"
+      content="Open-source web-based lyrics timing editor with LRC / TTML / ASS support, waveform visualization, beat grid, and per-word timeline."
     />
     <!-- <meta name="twitter:image" content="https://lrc.lgck.cc/og-image.png" /> -->
 
@@ -55,11 +60,12 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "Lyrics Maker",
-        "description": "开源网页端歌词打轴编辑器，支持 LRC、TTML、ASS 等多种歌词格式，提供波形可视化、节拍网格、逐字时间轴与实时预览。",
+        "alternateName": "Lyrics Maker — Web-based Lyrics Timing Editor",
+        "description": "Lyrics Maker is an open-source web-based lyrics timing editor that supports LRC, TTML, ASS and other formats, with waveform visualization, beat grid, per-word timeline, and live preview.",
         "url": "https://lrc.lgck.cc/",
         "applicationCategory": "MultimediaApplication",
         "operatingSystem": "Web Browser",
-        "inLanguage": "zh-CN",
+        "inLanguage": ["zh-CN", "en-US"],
         "author": {
           "@type": "Person",
           "name": "LgCookie"
@@ -99,6 +105,20 @@
         <p style="color: #555">
           ⚠️ 本应用需要 JavaScript 才能运行，请在浏览器设置中启用 JavaScript
           后刷新页面。
+        </p>
+        <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #ddd" />
+        <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem">
+          Lyrics Maker — Web-based Lyrics Timing Editor
+        </h2>
+        <p>
+          Lyrics Maker is an open-source web-based lyrics timing editor with
+          <strong>LRC, TTML, ASS</strong>
+          format support, providing waveform visualization, a beat grid, and a per-word
+          timeline.
+        </p>
+        <p style="color: #555">
+          ⚠️ This app requires JavaScript. Please enable JavaScript in your browser
+          settings and refresh the page.
         </p>
       </div>
     </noscript>

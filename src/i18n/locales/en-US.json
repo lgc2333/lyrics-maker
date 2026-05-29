@@ -1,0 +1,417 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "seo": {
+    "title": "Lyrics Maker — Web-based Lyrics Timing Editor",
+    "description": "Lyrics Maker is an open-source web-based lyrics timing editor that supports LRC, TTML, ASS and other formats, with waveform visualization, beat grid, per-word timeline, and live preview."
+  },
+  "shell": {
+    "menu": {
+      "file": "File",
+      "newProject": "New Project",
+      "openProject": "Open Project",
+      "openAudio": "Import Audio",
+      "importLyrics": "Import Lyrics File...",
+      "exportLyrics": "Export Lyrics As",
+      "validateProject": "Validate Project",
+      "openFile": "Open File...",
+      "saveProject": "Save Project",
+      "saveAs": "Save Project As",
+      "preferences": "Preferences",
+      "edit": "Edit",
+      "undo": "Undo",
+      "redo": "Redo",
+      "view": "View",
+      "zoomFit": "Zoom to Fit",
+      "zoomSelection": "Zoom to Selection",
+      "lyrics": "Lyrics",
+      "pasteLyrics": "Paste Lyrics...",
+      "importLyricsFile": "Import Lyrics File...",
+      "addLyricLine": "Add Empty Line",
+      "help": "Help",
+      "shortcuts": "Shortcut List",
+      "about": "About"
+    },
+    "appTitle": "Lyrics Maker",
+    "mode": { "timing": "Timing", "lyrics": "Lyrics" },
+    "about": {
+      "title": "About",
+      "madeWith": "Made with ♥️ by LgCookie",
+      "close": "Close"
+    }
+  },
+  "transport": {
+    "metronome": "Metronome",
+    "snap": "Snap",
+    "prevBar": "Previous Bar",
+    "playPause": "Play / Pause",
+    "nextBar": "Next Bar",
+    "musicVolume": "Music Volume",
+    "sfxVolume": "SFX Volume",
+    "autoFollowPlayback": "Auto-follow Playback",
+    "gridVisible": "Show / Hide Grid",
+    "waveformMode": "Waveform",
+    "spectrogramMode": "Spectrogram",
+    "toggleViewMode": "Toggle Waveform / Spectrogram",
+    "subdivisionDivisor": "Divisor",
+    "rhythmMode": "Rhythm",
+    "rhythmCommon": "Common",
+    "rhythmTriplets": "Triplets",
+    "rhythmTripletsAlt": "Triplets (Alt)",
+    "verticalZoom": "Vertical Zoom",
+    "subdivision1x": "1x (1 / beat)",
+    "subdivision2x": "2x (2 / beat)",
+    "subdivision4x": "4x (4 / beat)",
+    "subdivision8x": "8x (8 / beat)",
+    "subdivision16x": "16x (16 / beat)"
+  },
+  "timing": {
+    "pointList": {
+      "title": "Timing Points",
+      "cloneSelected": "Clone selected timing point here",
+      "addAtCurrentTime": "Add timing point at current time",
+      "empty": "No timing points yet. Add the first one at the current time.",
+      "delete": "Delete"
+    },
+    "controls": {
+      "offset": "Offset",
+      "setToCurrentTime": "Set to current time",
+      "bpm": "BPM",
+      "timeSignature": "Time Signature",
+      "tapBpmIdle": "Tap to measure BPM",
+      "tapBpmHint": "Tap",
+      "tapBpmActive": "{bpm} BPM / {count} Taps"
+    }
+  },
+  "lyrics": {
+    "title": "Lyrics Editor",
+    "emptyHint": "Use the top menu \"File -> Import Lyrics File...\" to start timing.",
+    "selectLineHint": "Select a lyric line to edit.",
+    "timingControl": "Timing Control",
+    "lineList": {
+      "title": "Lyric Lines",
+      "noStartTime": "--:--"
+    },
+    "wordSplitBar": {
+      "title": "Words",
+      "modeCut": "Scissors",
+      "modeSelect": "Select",
+      "startBlock": "Start",
+      "endTimeLabel": "End time",
+      "derivedStartLabel": "Start time",
+      "cutMode": "Cut",
+      "timingMode": "Timing",
+      "editMode": "Edit",
+      "wholeLineEdit": "Edit Whole Line",
+      "deleteWord": "Delete word"
+    },
+    "import": {
+      "confirmTitle": "Import Lyrics File",
+      "confirmMessage": "Detected {fileName} as a {format} file.",
+      "replaceWarning": "Confirming will replace current lyrics and mark the project unsaved.",
+      "preserveNote": "Current audio and project settings will be preserved.",
+      "confirm": "Import",
+      "cancel": "Cancel",
+      "formats": {
+        "txt": "TXT",
+        "lrc": "LRC",
+        "lrc-line": "Line LRC",
+        "lrc-enhanced": "Enhanced LRC",
+        "lrc-eslyric": "ESLyric",
+        "ttml": "TTML",
+        "ass": "ASS",
+        "srt": "SRT",
+        "vtt": "VTT"
+      }
+    },
+    "export": {
+      "formats": {
+        "txt": "TXT",
+        "lrcLine": "Line LRC",
+        "lrcEnhanced": "Enhanced LRC",
+        "lrcEslyric": "ESLyric",
+        "ttml": "TTML",
+        "ass": "ASS",
+        "srt": "SRT",
+        "vtt": "VTT"
+      },
+      "loss": {
+        "allTiming": "All timing information will be lost",
+        "wordTiming": "Per-word timing information will be lost"
+      }
+    }
+  },
+  "project": {
+    "defaultTitle": "Untitled Project",
+    "suggestedFileName": "lyrics-project.json",
+    "fileTypeDescription": "Lyrics Project",
+    "unsavedDialog": {
+      "title": "Current project has unsaved changes",
+      "message": "Please choose how to handle the current changes before opening another project.",
+      "saveAndOpen": "Save and Open",
+      "discardAndOpen": "Discard and Open",
+      "cancel": "Cancel"
+    },
+    "validation": {
+      "title": "Project Validation Warnings",
+      "summary": "{errors} errors, {warnings} warnings",
+      "exportPrompt": "These issues may affect the exported result. You can still continue exporting.",
+      "error": "Error",
+      "warning": "Warning",
+      "cancel": "Cancel Export",
+      "continueExport": "Continue Export",
+      "close": "Close",
+      "issues": {
+        "emptyTitle": "Project title is empty.",
+        "emptyId": "An empty ID exists.",
+        "duplicateId": "An ID duplicates another project element.",
+        "nonFiniteTime": "Time value is not a valid number.",
+        "negativeTime": "Time value is less than 0.",
+        "invalidBpm": "BPM must be a valid number greater than 0.",
+        "invalidTimeSignatureNumerator": "Time signature numerator must be a positive integer.",
+        "invalidTimeSignatureDenominator": "Time signature denominator must be a positive integer.",
+        "duplicateTimingPointTime": "Duplicate timing point time exists.",
+        "emptyWords": "Lyric line has no words.",
+        "missingLineStartTime": "Line has word timing but is missing the line start time.",
+        "lineStartAfterEnd": "Line start time is later than its end time.",
+        "lineIntervalOverlap": "Lyric line intervals overlap.",
+        "lineOrderRegression": "Lyric line time order regresses.",
+        "wordEndBeforeBoundary": "Word end time is earlier than the previous boundary.",
+        "missingWordEndTime": "Per-word export may lose untimed words.",
+        "missingLineTiming": "Per-line export cannot derive a complete line interval.",
+        "untimedEmptyPlaceholder": "Empty placeholder word lacks an end time and cannot carry a silent boundary."
+      }
+    }
+  },
+  "preferences": {
+    "title": "Preferences",
+    "close": "Close",
+    "categories": {
+      "general": "General",
+      "shortcuts": "Shortcuts",
+      "backup": "Backup / Restore"
+    },
+    "theme": {
+      "title": "Theme",
+      "description": "Choose a light or dark interface. \"Follow system\" syncs with the OS preference.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "Follow system",
+      "systemEffective": "Current system preference: {theme}"
+    },
+    "locale": {
+      "title": "Interface Language",
+      "description": "Choose the interface language. System default follows your browser preference.",
+      "system": "System default",
+      "zhCN": "简体中文",
+      "enUS": "English"
+    },
+    "shortcuts": {
+      "description": "Click a key button and press a new combination to assign; press Esc to cancel.",
+      "resetAll": "Reset All",
+      "resetAllConfirmTitle": "Reset all shortcuts?",
+      "resetAllConfirm": "Are you sure you want to reset all shortcuts to their defaults?",
+      "reset": "Reset",
+      "assign": "Assign Shortcut",
+      "cancelCapture": "Cancel",
+      "clear": "Clear",
+      "unbound": "Unbound",
+      "capturing": "Press keys..."
+    },
+    "backup": {
+      "description": "Backup exports all local user settings; Restore reads a JSON backup and applies it.",
+      "export": "Export Settings",
+      "restore": "Restore Settings"
+    }
+  },
+  "errors": {
+    "unsupportedFsApi": "This browser does not support live file writing",
+    "saveFailed": "Save failed, please retry",
+    "bpmMustBePositive": "BPM must be positive",
+    "timeSignatureNumeratorMustBePositive": "Time signature numerator must be positive",
+    "timeSignatureDenominatorMustBePositive": "Time signature denominator must be positive",
+    "noTimingPoints": "No timing points available",
+    "failedToLoadAudio": "Failed to load audio file",
+    "unknownError": "Unknown error",
+    "waveformLoadFailed": "Failed to load waveform"
+  },
+  "status": {
+    "ready": "Ready",
+    "dirty": "Unsaved changes",
+    "saved": "Saved",
+    "audioRequired": "{action} requires importing audio first",
+    "history": {
+      "undo": "Undone: {commandLabel}",
+      "redo": "Redone: {commandLabel}",
+      "noUndo": "Nothing to undo",
+      "noRedo": "Nothing to redo"
+    },
+    "project": {
+      "saveSuccess": "Saved successfully",
+      "saveFailed": "Save failed: {reason}",
+      "saveCancelled": "Save cancelled",
+      "autoSaveSuccess": "Auto-saved",
+      "autoSaveFailed": "Auto-save failed: {reason}",
+      "openSuccess": "Project opened",
+      "openFailed": "Failed to open project: {reason}",
+      "openCancelled": "Project open cancelled",
+      "newSuccess": "New project created",
+      "newCancelled": "New project cancelled",
+      "draftRestored": "Restored from browser draft",
+      "titleUpdated": "Project title updated",
+      "validationPassed": "Project validation passed",
+      "validationIssues": "Project validation found {count} issues",
+      "unsupportedFileApi": "This browser does not support project file I/O"
+    },
+    "audio": {
+      "importSuccess": "Audio imported: {fileName}",
+      "loadFailed": "Failed to load audio"
+    },
+    "tapBpm": {
+      "noAudio": "Tap BPM requires importing audio first",
+      "updated": "Tap BPM updated to {bpm}"
+    },
+    "timing": {
+      "addPoint": "Timing point added",
+      "updatePoint": "Timing point updated",
+      "removePoint": "Timing point removed"
+    },
+    "metronome": {
+      "on": "Metronome on",
+      "off": "Metronome off",
+      "latchPending": "Metronome will turn off after the next beat"
+    },
+    "settings": {
+      "rhythmMode": "Rhythm mode switched to {mode}",
+      "snapDivisor": "Snap divisor set to {divisor}x",
+      "snapEnabled": "Snap {state}",
+      "musicVolume": "Music volume {value}%",
+      "musicMuted": "Music muted",
+      "musicUnmuted": "Music unmuted",
+      "sfxVolume": "SFX volume {value}%",
+      "sfxMuted": "SFX muted",
+      "sfxUnmuted": "SFX unmuted",
+      "viewMode": "Timeline view switched to {mode}",
+      "autoFollowPlayback": "Auto-follow playback {state}",
+      "gridVisible": "Grid {state}",
+      "rhythmModeTemporary": "Rhythm mode temporarily switched to {mode}"
+    },
+    "localSettings": {
+      "loadFailed": "Failed to load local settings: {reason}",
+      "saveFailed": "Failed to save local settings: {reason}",
+      "importSuccess": "Local settings imported",
+      "importCancelled": "Local settings restore cancelled",
+      "importFailed": "Failed to import local settings: {reason}",
+      "exportSuccess": "Local settings exported"
+    },
+    "shortcuts": {
+      "assigned": "Assigned {action} → {keystroke}",
+      "reassigned": "{keystroke} reassigned from {fromAction} to {toAction}",
+      "cleared": "Shortcut cleared for {action}",
+      "reset": "Shortcut for {action} reset",
+      "resetAll": "All shortcuts reset"
+    },
+    "reason": {
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "invalid": "Invalid data format",
+      "noCachedHandle": "No file currently opened",
+      "noDraft": "No browser draft available",
+      "unknown": "Unknown reason",
+      "unsupported": "Unsupported in this browser"
+    },
+    "lyrics": {
+      "addLine": "Lyric line added",
+      "insertLines": "Imported {count} lyric lines",
+      "removeLine": "Lyric line removed",
+      "setLineStartTime": "Line start time set",
+      "setWordEndTime": "Word end time set",
+      "clearWordEndTime": "Word end time cleared",
+      "splitWord": "Word split",
+      "mergeWords": "Words merged",
+      "removeWord": "Word removed",
+      "updateWordText": "Word edited",
+      "insertWord": "Word inserted",
+      "replaceLineWords": "Lyric line rewritten",
+      "replaceAll": "Lyrics replaced",
+      "importSuccess": "Imported {count} lyric lines",
+      "importCancelled": "Lyrics import cancelled",
+      "importFailed": "Failed to import lyrics: {reason}",
+      "unsupportedFormat": "Unsupported file format",
+      "exportSuccess": "Lyrics exported",
+      "exportCancelled": "Lyrics export cancelled",
+      "exportFailed": "Failed to export lyrics: {reason}",
+      "dropMultipleUnsupported": "Dropping multiple files at once is not supported"
+    },
+    "action": {
+      "history": {
+        "undo": "Undo",
+        "redo": "Redo"
+      },
+      "project": {
+        "save": "Save project"
+      },
+      "timing": {
+        "tapBpm": "Tap BPM"
+      },
+      "metronome": {
+        "toggle": "Toggle metronome"
+      },
+      "transport": {
+        "togglePlay": "Play / Pause",
+        "playPause": "Play / Pause",
+        "playInterval": "Play interval",
+        "seek": "Seek",
+        "prevBeat": "Previous beat line",
+        "nextBeat": "Next beat line",
+        "prevBar": "Previous bar",
+        "nextBar": "Next bar"
+      },
+      "lyrics": {
+        "mark": "Mark lyric",
+        "mark2": "Mark lyric (alt)",
+        "markNoAdvance": "Mark lyric (no advance)",
+        "nextLine": "Go to next line",
+        "playLineInterval": "Play current line",
+        "playWordInterval": "Play current word",
+        "deleteLine": "Delete current line",
+        "clearSelection": "Clear selection",
+        "editWholeLine": "Edit whole line"
+      }
+    },
+    "command": {
+      "audio": {
+        "setMusicVolume": "Adjust music volume",
+        "setSfxVolume": "Adjust SFX volume"
+      },
+      "lyrics": {
+        "addLine": "Add lyric line",
+        "insertLines": "Import lyrics",
+        "removeLine": "Remove lyric line",
+        "setLineStartTime": "Set line start time",
+        "setWordEndTime": "Set word end time",
+        "clearWordEndTime": "Clear word end time",
+        "splitWord": "Split word",
+        "mergeWords": "Merge words",
+        "removeWord": "Remove word",
+        "updateWordText": "Edit word",
+        "insertWord": "Insert word",
+        "replaceLineWords": "Rewrite lyric line",
+        "replaceAll": "Replace lyrics"
+      },
+      "settings": {
+        "setRhythmMode": "Switch rhythm mode",
+        "setSnapDivisor": "Adjust snap divisor",
+        "setSnapEnabled": "Toggle snap"
+      },
+      "project": { "setTitle": "Change project title" },
+      "timing": {
+        "addPoint": "Add timing point",
+        "updatePoint": "Update timing point",
+        "removePoint": "Remove timing point"
+      }
+    }
+  }
+}

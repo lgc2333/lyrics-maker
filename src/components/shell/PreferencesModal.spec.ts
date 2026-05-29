@@ -40,6 +40,7 @@ describe('preferencesModal', () => {
     ).toBe('system')
     expect(wrapper.text()).toContain('系统默认')
     expect(wrapper.text()).toContain('简体中文')
+    expect(wrapper.text()).toContain('English')
     expect(wrapper.text()).toContain('跟随系统')
     expect(wrapper.text()).not.toContain('音乐音量')
     expect(wrapper.text()).not.toContain('节拍器')
@@ -91,6 +92,9 @@ describe('preferencesModal', () => {
 
     await wrapper.get('[data-testid="preferences-locale-select"]').setValue('zh-CN')
     expect(wrapper.emitted('updateLocaleMode')?.[0]).toEqual(['zh-CN'])
+
+    await wrapper.get('[data-testid="preferences-locale-select"]').setValue('en-US')
+    expect(wrapper.emitted('updateLocaleMode')?.[1]).toEqual(['en-US'])
 
     await wrapper.get('[data-testid="preferences-tab-backup"]').trigger('click')
     await wrapper.get('[data-testid="preferences-backup"]').trigger('click')

@@ -3,6 +3,10 @@
     "confirm": "确定",
     "cancel": "取消"
   },
+  "seo": {
+    "title": "Lyrics Maker — 网页端歌词打轴编辑器",
+    "description": "Lyrics Maker 是一款开源的网页端歌词打轴编辑器，支持 LRC、TTML、ASS 等多种歌词格式，提供波形可视化、节拍网格、逐字时间轴与实时预览。"
+  },
   "shell": {
     "menu": {
       "file": "文件",
@@ -201,7 +205,8 @@
       "title": "界面语言",
       "description": "选择界面显示语言。系统默认会跟随浏览器偏好。",
       "system": "系统默认",
-      "zhCN": "简体中文"
+      "zhCN": "简体中文",
+      "enUS": "English"
     },
     "shortcuts": {
       "description": "点击键位按钮后按下新组合即可分配；按 Esc 取消。",

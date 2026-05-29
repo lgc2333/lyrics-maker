@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
+import { useI18nSync } from '../../composables/useI18nSync'
 import { useLocalSettings } from '../../composables/useLocalSettings'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
@@ -128,6 +129,11 @@ const localSettings = useLocalSettings({
   timeline,
 })
 provide(LOCAL_SETTINGS_KEY, localSettings)
+
+useI18nSync({
+  localeMode,
+  navigatorLanguages: typeof navigator !== 'undefined' ? navigator.languages : [],
+})
 
 const capture = useShortcutCapture({
   onCaptured: (action, keystroke) => {

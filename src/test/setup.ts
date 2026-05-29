@@ -2,7 +2,7 @@ import { config } from '@vue/test-utils'
 import { afterEach, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 
-import { i18n } from '../i18n'
+import { DEFAULT_LOCALE, i18n, setI18nLocale } from '../i18n'
 
 vi.mock('@iconify/vue', () => ({
   Icon: defineComponent({
@@ -23,6 +23,17 @@ vi.mock('@iconify/vue', () => ({
   }),
 }))
 
+// Force navigator.languages to the project default locale so AppShell tests stay
+// language-stable regardless of the host runner (happy-dom defaults to en-US).
+Object.defineProperty(window.navigator, 'languages', {
+  configurable: true,
+  get: () => [DEFAULT_LOCALE],
+})
+Object.defineProperty(window.navigator, 'language', {
+  configurable: true,
+  get: () => DEFAULT_LOCALE,
+})
+
 const defaultStubs = {
   Icon: true,
 }
@@ -32,4 +43,5 @@ config.global.stubs = { ...defaultStubs }
 
 afterEach(() => {
   config.global.stubs = { ...defaultStubs }
+  setI18nLocale(DEFAULT_LOCALE)
 })

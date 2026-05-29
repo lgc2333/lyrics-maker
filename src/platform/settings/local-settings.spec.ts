@@ -58,6 +58,17 @@ describe('local settings validation', () => {
     expect(result.settings.locale).toBe('system')
   })
 
+  it('accepts en-US as a supported locale value', () => {
+    const result = parseLocalUserSettings({
+      version: 1,
+      locale: 'en-US',
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected en-US locale to parse')
+    expect(result.settings.locale).toBe('en-US')
+  })
+
   it('accepts system theme mode for following the OS preference', () => {
     const result = parseLocalUserSettings({
       version: 1,

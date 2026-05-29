@@ -76,6 +76,7 @@ const themeOptions: Array<{ value: LocalTheme; labelKey: string; testid: string 
 const localeOptions: Array<{ value: LocalLocale; labelKey: string }> = [
   { value: 'system', labelKey: 'preferences.locale.system' },
   { value: 'zh-CN', labelKey: 'preferences.locale.zhCN' },
+  { value: 'en-US', labelKey: 'preferences.locale.enUS' },
 ]
 
 const effectiveThemeLabel = computed(() =>
@@ -128,22 +129,26 @@ const effectiveThemeLabel = computed(() =>
           </button>
         </aside>
 
-        <main class="min-h-0 overflow-auto p-5">
+        <main class="min-h-0 overflow-auto">
           <section
             v-if="activeCategory === 'general'"
             data-testid="preferences-panel-general"
-            class="max-w-xl"
+            class="flex flex-col p-2 gap-2"
           >
-            <label class="mb-6 block max-w-xs">
-              <span class="mb-1 block text-sm font-semibold">
+            <div
+              data-testid="preferences-section-locale"
+              class="rounded-lg border border-base-300 bg-base-200/40 p-4"
+            >
+              <h3 class="mb-1 text-sm font-semibold">
                 {{ t('preferences.locale.title') }}
-              </span>
-              <span class="mb-3 block text-sm text-base-content/70">
+              </h3>
+              <p class="mb-3 text-sm text-base-content/70">
                 {{ t('preferences.locale.description') }}
-              </span>
+              </p>
               <select
                 data-testid="preferences-locale-select"
-                class="select select-sm w-full"
+                class="select select-sm w-full max-w-xs"
+                :aria-label="t('preferences.locale.title')"
                 :value="props.localeMode"
                 @change="
                   emit(
@@ -160,51 +165,58 @@ const effectiveThemeLabel = computed(() =>
                   {{ t(option.labelKey) }}
                 </option>
               </select>
-            </label>
-
-            <h3 class="mb-1 text-sm font-semibold">
-              {{ t('preferences.theme.title') }}
-            </h3>
-            <p class="mb-3 text-sm text-base-content/70">
-              {{ t('preferences.theme.description') }}
-            </p>
-            <div class="join">
-              <button
-                v-for="option in themeOptions"
-                :key="option.value"
-                :data-testid="option.testid"
-                class="btn btn-sm join-item"
-                :class="{ 'btn-active btn-primary': props.themeMode === option.value }"
-                @click="emit('updateThemeMode', option.value)"
-              >
-                {{ t(option.labelKey) }}
-              </button>
             </div>
-            <p
-              v-if="props.themeMode === 'system'"
-              class="mt-3 text-xs text-base-content/60"
+
+            <div
+              data-testid="preferences-section-theme"
+              class="rounded-lg border border-base-300 bg-base-200/40 p-4"
             >
-              {{
-                t('preferences.theme.systemEffective', {
-                  theme: effectiveThemeLabel,
-                })
-              }}
-            </p>
+              <h3 class="mb-1 text-sm font-semibold">
+                {{ t('preferences.theme.title') }}
+              </h3>
+              <p class="mb-3 text-sm text-base-content/70">
+                {{ t('preferences.theme.description') }}
+              </p>
+              <div class="join">
+                <button
+                  v-for="option in themeOptions"
+                  :key="option.value"
+                  :data-testid="option.testid"
+                  class="btn btn-sm join-item"
+                  :class="{
+                    'btn-active btn-primary': props.themeMode === option.value,
+                  }"
+                  @click="emit('updateThemeMode', option.value)"
+                >
+                  {{ t(option.labelKey) }}
+                </button>
+              </div>
+              <p
+                v-if="props.themeMode === 'system'"
+                class="mt-3 text-xs text-base-content/60"
+              >
+                {{
+                  t('preferences.theme.systemEffective', {
+                    theme: effectiveThemeLabel,
+                  })
+                }}
+              </p>
+            </div>
           </section>
 
           <section
             v-else-if="activeCategory === 'shortcuts'"
             data-testid="preferences-panel-shortcuts"
-            class="flex h-full flex-col"
+            class="flex h-full flex-col p-2 gap-2"
           >
-            <header class="mb-3 flex shrink-0 items-center justify-between">
+            <header class="flex shrink-0 items-center justify-between px-1">
               <p class="text-sm text-base-content/70">
                 {{ t('preferences.shortcuts.description') }}
               </p>
               <button
                 data-testid="preferences-shortcuts-reset-all"
                 type="button"
-                class="btn btn-ghost btn-xs"
+                class="btn btn-ghost btn-sm"
                 @click="emit('resetAllShortcuts')"
               >
                 {{ t('preferences.shortcuts.resetAll') }}
@@ -212,7 +224,7 @@ const effectiveThemeLabel = computed(() =>
             </header>
             <ul
               data-testid="preferences-shortcuts-list"
-              class="flex-1 overflow-auto rounded border border-base-300 p-1"
+              class="flex-1 overflow-auto rounded border border-base-300 p-2"
             >
               <ShortcutBindingRow
                 v-for="action in shortcutActions"
@@ -229,25 +241,34 @@ const effectiveThemeLabel = computed(() =>
             </ul>
           </section>
 
-          <section v-else data-testid="preferences-panel-backup" class="max-w-xl">
-            <p class="mb-4 text-sm text-base-content/70">
-              {{ t('preferences.backup.description') }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <button
-                data-testid="preferences-backup"
-                class="btn btn-sm btn-primary"
-                @click="emit('backupSettings')"
-              >
-                {{ t('preferences.backup.export') }}
-              </button>
-              <button
-                data-testid="preferences-restore"
-                class="btn btn-sm"
-                @click="emit('restoreSettings')"
-              >
-                {{ t('preferences.backup.restore') }}
-              </button>
+          <section
+            v-else
+            data-testid="preferences-panel-backup"
+            class="flex flex-col p-2 gap-2"
+          >
+            <div
+              data-testid="preferences-section-backup"
+              class="rounded-lg border border-base-300 bg-base-200/40 p-4"
+            >
+              <p class="mb-4 text-sm text-base-content/70">
+                {{ t('preferences.backup.description') }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  data-testid="preferences-backup"
+                  class="btn btn-sm btn-primary"
+                  @click="emit('backupSettings')"
+                >
+                  {{ t('preferences.backup.export') }}
+                </button>
+                <button
+                  data-testid="preferences-restore"
+                  class="btn btn-sm"
+                  @click="emit('restoreSettings')"
+                >
+                  {{ t('preferences.backup.restore') }}
+                </button>
+              </div>
             </div>
           </section>
         </main>
