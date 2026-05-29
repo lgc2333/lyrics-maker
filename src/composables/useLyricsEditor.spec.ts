@@ -30,6 +30,8 @@ function createMockAudioTransport(): AudioTransport {
     getDuration: vi.fn(() => 120),
     setVolume: vi.fn(),
     getVolume: vi.fn(() => 1),
+    setPlaybackRate: vi.fn(),
+    getPlaybackRate: vi.fn(() => 1),
     getIsPlaying: vi.fn(() => _playing),
     destroy: vi.fn(),
   }
@@ -39,6 +41,7 @@ function createMockMetronome(): MetronomeScheduler {
   return {
     setEnabled: vi.fn(),
     setSfxVolume: vi.fn(),
+    setPlaybackRate: vi.fn(),
     syncToTimeline: vi.fn(),
     handlePlaybackPaused: vi.fn(),
     cancelPendingClicks: vi.fn(),

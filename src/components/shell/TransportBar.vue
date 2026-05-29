@@ -235,6 +235,35 @@ function onGridVisibilityToggle(): void {
       @input="onSeek"
     />
 
+    <div
+      data-testid="playback-rate-stepper"
+      class="join items-center"
+      :title="t('transport.playbackRate')"
+    >
+      <button
+        data-testid="playback-rate-decrease"
+        class="btn btn-sm btn-square join-item btn-ghost"
+        :disabled="!store.canDecreasePlaybackRate"
+        @click="store.decreasePlaybackRate()"
+      >
+        <Icon icon="material-symbols:remove-rounded" class="h-5 w-5" />
+      </button>
+      <div
+        data-testid="playback-rate-value"
+        class="join-item min-w-12 text-sm tabular-nums text-center"
+      >
+        {{ Math.round(store.playbackRate * 100) }}%
+      </div>
+      <button
+        data-testid="playback-rate-increase"
+        class="btn btn-sm btn-square join-item btn-ghost"
+        :disabled="!store.canIncreasePlaybackRate"
+        @click="store.increasePlaybackRate()"
+      >
+        <Icon icon="material-symbols:add-rounded" class="h-5 w-5" />
+      </button>
+    </div>
+
     <VerticalSliderPopover
       data-testid="music-volume"
       button-testid="music-volume-button"

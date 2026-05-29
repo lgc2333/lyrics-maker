@@ -454,6 +454,12 @@ useEditorShortcuts({
       store.seekToPreviousBar()
     } else if (action === 'transport.nextBar') {
       store.seekToNextBar()
+    } else if (action === 'transport.increasePlaybackRate') {
+      store.increasePlaybackRate()
+    } else if (action === 'transport.decreasePlaybackRate') {
+      store.decreasePlaybackRate()
+    } else if (action === 'transport.resetPlaybackRate') {
+      store.resetPlaybackRate()
     } else if (action === 'lyrics.mark' || action === 'lyrics.mark2') {
       if (editorMode.value === 'lyrics') lyricsEditor.handleMarkKey()
     } else if (action === 'lyrics.markNoAdvance') {

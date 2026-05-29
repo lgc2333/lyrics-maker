@@ -314,6 +314,90 @@ describe('metronome', () => {
     })
   })
 
+  describe('playback rate', () => {
+    it('schedules beat clicks using the wall-clock delay implied by the rate', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setPlaybackRate(0.5)
+
+      // currentTime = 10 (song), nextBeat.at = 10.5 (song).
+      // Song delta = 0.5; wall-clock delta = 0.5 / 0.5 = 1.0
+      // ctx.currentTime = 10 → scheduled at 10 + 1.0 = 11.0
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+
+      const source = fakeCtx._sources[0]
+      expect(source.start).toHaveBeenCalledWith(11.0)
+    })
+
+    it('cancels future beat clicks and reschedules with new rate', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      expect(fakeCtx._sources.length).toBe(1)
+
+      m.setPlaybackRate(0.5)
+
+      // Old beat click should be cancelled (stop called)
+      expect(fakeCtx._sources[0].stop).toHaveBeenCalled()
+
+      // Next sync with the same beat should schedule again, now using the new rate
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      expect(fakeCtx._sources.length).toBe(2)
+      expect(fakeCtx._sources[1].start).toHaveBeenCalledWith(11.0)
+    })
+
+    it('schedules latch clicks using the wall-clock delay implied by the rate', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setPlaybackRate(0.5)
+      m.setEnabled(false)
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+
+      // Latch source scheduled with rate-adjusted wall-clock time
+      expect(fakeCtx._sources[0].start).toHaveBeenCalledWith(11.0)
+    })
+
+    it('setPlaybackRate(0) throws and leaves internal rate unchanged', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setPlaybackRate(0.5)
+
+      expect(() => m.setPlaybackRate(0)).toThrow()
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      // Still using 0.5 → 11.0
+      expect(fakeCtx._sources[0].start).toHaveBeenCalledWith(11.0)
+    })
+
+    it('setPlaybackRate with a negative value throws and leaves internal rate unchanged', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+      m.setPlaybackRate(0.5)
+
+      expect(() => m.setPlaybackRate(-1)).toThrow()
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      expect(fakeCtx._sources[0].start).toHaveBeenCalledWith(11.0)
+    })
+
+    it('default rate is 1 so existing schedule behavior is unchanged', async () => {
+      const m = createMetronome(fakeCtx as unknown as AudioContext)
+      await flushMicrotasks()
+      m.setEnabled(true)
+
+      m.syncToTimeline(10, { at: 10.5, isBarStart: true })
+      // At default rate=1: 10 + 0.5/1 = 10.5
+      expect(fakeCtx._sources[0].start).toHaveBeenCalledWith(10.5)
+    })
+  })
+
   describe('sfx volume', () => {
     it('setSfxVolume applies to master gain', () => {
       const m = createMetronome(fakeCtx as unknown as AudioContext)

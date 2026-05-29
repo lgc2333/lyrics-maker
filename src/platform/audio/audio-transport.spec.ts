@@ -15,6 +15,7 @@ function createFakeMediaElement(opts?: { deferLoad?: boolean }) {
   let _currentTime = 0
   let _duration = Number.NaN
   let _paused = true
+  let _playbackRate = 1
   let _pendingLoad: (() => void) | null = null
 
   const el = {
@@ -58,6 +59,12 @@ function createFakeMediaElement(opts?: { deferLoad?: boolean }) {
     },
     get paused() {
       return _paused
+    },
+    get playbackRate() {
+      return _playbackRate
+    },
+    set playbackRate(v: number) {
+      _playbackRate = v
     },
 
     addEventListener(event: string, fn: (...args: unknown[]) => void) {
@@ -240,6 +247,42 @@ describe('audio transport', () => {
 
       transport.setVolume(0.75)
       expect(transport.getVolume()).toBeCloseTo(0.75)
+    })
+  })
+
+  describe('playback rate', () => {
+    it('setPlaybackRate writes to audioElement.playbackRate', () => {
+      const el = createFakeMediaElement()
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      transport.setPlaybackRate(0.5)
+      expect(el.playbackRate).toBeCloseTo(0.5)
+    })
+
+    it('setPlaybackRate(0) throws and leaves audioElement.playbackRate unchanged', () => {
+      const el = createFakeMediaElement()
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      transport.setPlaybackRate(0.75)
+      expect(() => transport.setPlaybackRate(0)).toThrow()
+      expect(el.playbackRate).toBeCloseTo(0.75)
+    })
+
+    it('setPlaybackRate with a negative value throws and leaves audioElement.playbackRate unchanged', () => {
+      const el = createFakeMediaElement()
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      transport.setPlaybackRate(0.5)
+      expect(() => transport.setPlaybackRate(-1)).toThrow()
+      expect(el.playbackRate).toBeCloseTo(0.5)
+    })
+
+    it('getPlaybackRate returns the current media element playback rate', () => {
+      const el = createFakeMediaElement()
+      const transport = createAudioTransport(el as unknown as HTMLAudioElement)
+
+      transport.setPlaybackRate(0.25)
+      expect(transport.getPlaybackRate()).toBeCloseTo(0.25)
     })
   })
 

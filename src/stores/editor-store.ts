@@ -106,6 +106,8 @@ export function __overrideMetronomeFactory(factory: () => MetronomeScheduler): v
 // Store
 // ---------------------------------------------------------------------------
 
+const PLAYBACK_RATE_OPTIONS = [0.25, 0.5, 0.75, 1] as const
+
 export const useEditorStore = defineStore('editor', () => {
   // ---- Phase 1: core state ----
   const history = shallowRef(
@@ -144,6 +146,7 @@ export const useEditorStore = defineStore('editor', () => {
   const _shortcutOverrides = shallowRef<ShortcutOverrides>({
     ...DEFAULT_LOCAL_USER_STATE.shortcutOverrides,
   })
+  const _playbackRate = shallowRef<number>(1)
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -192,6 +195,9 @@ export const useEditorStore = defineStore('editor', () => {
   const shortcutBindingsByKeystroke = computed(() =>
     buildBindingsByKeystroke(shortcutBindings.value),
   )
+  const playbackRate = computed(() => _playbackRate.value)
+  const canIncreasePlaybackRate = computed(() => _playbackRate.value < 1)
+  const canDecreasePlaybackRate = computed(() => _playbackRate.value > 0.25)
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
   const hasAudio = computed(() => _audioFile.value !== null && duration.value > 0)
   const progressRatio = computed(() =>
@@ -237,6 +243,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!_audioTransport.value) {
       _audioTransport.value = _audioTransportFactory()
       _audioTransport.value.setVolume(effectiveMusicVolume.value)
+      _audioTransport.value.setPlaybackRate(_playbackRate.value)
     }
     return _audioTransport.value
   }
@@ -245,6 +252,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!_metronome.value) {
       _metronome.value = _metronomeFactory()
       _metronome.value.setSfxVolume(effectiveSfxVolume.value)
+      _metronome.value.setPlaybackRate(_playbackRate.value)
     }
     return _metronome.value
   }
@@ -339,9 +347,11 @@ export const useEditorStore = defineStore('editor', () => {
   function _syncAudioHardware() {
     if (_audioTransport.value) {
       _audioTransport.value.setVolume(effectiveMusicVolume.value)
+      _audioTransport.value.setPlaybackRate(_playbackRate.value)
     }
     if (_metronome.value) {
       _metronome.value.setSfxVolume(effectiveSfxVolume.value)
+      _metronome.value.setPlaybackRate(_playbackRate.value)
     }
   }
 
@@ -611,6 +621,7 @@ export const useEditorStore = defineStore('editor', () => {
     const transport = _ensureAudioTransport()
     try {
       await transport.loadFile(file)
+      _syncAudioHardware()
       triggerRef(_audioTransport)
       showStatus('status.audio.importSuccess', { fileName: file.name })
     } catch (error) {
@@ -834,6 +845,40 @@ export const useEditorStore = defineStore('editor', () => {
     _sfxMuted.value = muted
     _metronome.value?.setSfxVolume(effectiveSfxVolume.value)
     showStatus(muted ? 'status.settings.sfxMuted' : 'status.settings.sfxUnmuted')
+  }
+
+  // ---- Phase 5 Plus Part 9: Playback rate (session-only) ----
+
+  function setPlaybackRate(rate: number): void {
+    if (!(rate > 0)) {
+      throw new Error(`playbackRate must be > 0 (received ${rate})`)
+    }
+    if (rate === _playbackRate.value) return
+    _playbackRate.value = rate
+    _audioTransport.value?.setPlaybackRate(rate)
+    _metronome.value?.setPlaybackRate(rate)
+    showStatus('status.settings.playbackRate', {
+      value: Math.round(rate * 100),
+    })
+  }
+
+  function increasePlaybackRate(): void {
+    const current = _playbackRate.value
+    const next = PLAYBACK_RATE_OPTIONS.find((r) => r > current)
+    if (next !== undefined) setPlaybackRate(next)
+  }
+
+  function decreasePlaybackRate(): void {
+    const current = _playbackRate.value
+    let target: number | undefined
+    for (const r of PLAYBACK_RATE_OPTIONS) {
+      if (r < current) target = r
+    }
+    if (target !== undefined) setPlaybackRate(target)
+  }
+
+  function resetPlaybackRate(): void {
+    setPlaybackRate(1)
   }
 
   function toggleMusicMuted(): void {
@@ -1103,6 +1148,13 @@ export const useEditorStore = defineStore('editor', () => {
     clearShortcut,
     resetShortcut,
     resetAllShortcuts,
+    playbackRate,
+    canIncreasePlaybackRate,
+    canDecreasePlaybackRate,
+    setPlaybackRate,
+    increasePlaybackRate,
+    decreasePlaybackRate,
+    resetPlaybackRate,
     duration,
     hasAudio,
     progressRatio,

@@ -50,6 +50,7 @@
     "nextBar": "下一小节",
     "musicVolume": "音乐音量",
     "sfxVolume": "音效音量",
+    "playbackRate": "播放速度",
     "autoFollowPlayback": "播放时自动跟随",
     "gridVisible": "显示/隐藏网格线",
     "waveformMode": "波形",
@@ -296,7 +297,8 @@
       "viewMode": "时间线视图已切换为 {mode}",
       "autoFollowPlayback": "播放时自动跟随已{state}",
       "gridVisible": "网格线已{state}",
-      "rhythmModeTemporary": "临时切换节奏模式：{mode}"
+      "rhythmModeTemporary": "临时切换节奏模式：{mode}",
+      "playbackRate": "播放速度：{value}%"
     },
     "localSettings": {
       "loadFailed": "本地设置读取失败：{reason}",
@@ -367,7 +369,10 @@
         "prevBeat": "上一拍线",
         "nextBeat": "下一拍线",
         "prevBar": "上一小节",
-        "nextBar": "下一小节"
+        "nextBar": "下一小节",
+        "increasePlaybackRate": "提高播放速度",
+        "decreasePlaybackRate": "降低播放速度",
+        "resetPlaybackRate": "重置播放速度"
       },
       "lyrics": {
         "mark": "歌词打轴",

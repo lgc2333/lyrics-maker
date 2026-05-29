@@ -29,6 +29,8 @@ function createMockTransport(): AudioTransport {
     getDuration: vi.fn(() => 120),
     setVolume: vi.fn(),
     getVolume: vi.fn(() => 1),
+    setPlaybackRate: vi.fn(),
+    getPlaybackRate: vi.fn(() => 1),
     getIsPlaying: vi.fn(() => playing),
     destroy: vi.fn(),
   }
@@ -38,6 +40,7 @@ function createMockMetronome(): MetronomeScheduler {
   return {
     setEnabled: vi.fn(),
     setSfxVolume: vi.fn(),
+    setPlaybackRate: vi.fn(),
     syncToTimeline: vi.fn(),
     handlePlaybackPaused: vi.fn(),
     cancelPendingClicks: vi.fn(),
@@ -111,6 +114,58 @@ describe('transportBar', () => {
   it('renders playback progress slider', () => {
     const wrapper = mount(TransportBar)
     expect(wrapper.find('[data-testid="playback-progress"]').exists()).toBe(true)
+  })
+
+  // ---- Playback rate stepper ----
+
+  it('renders playback rate stepper with default 100% and correct edge disable states', () => {
+    const wrapper = mount(TransportBar)
+
+    expect(wrapper.find('[data-testid="playback-rate-stepper"]').exists()).toBe(true)
+    expect(
+      wrapper.get('[data-testid="playback-rate-value"]').text().replace(/\s+/g, ''),
+    ).toBe('100%')
+
+    const decrease = wrapper.get('[data-testid="playback-rate-decrease"]')
+    const increase = wrapper.get('[data-testid="playback-rate-increase"]')
+    expect((decrease.element as HTMLButtonElement).disabled).toBe(false)
+    expect((increase.element as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('decreases playback rate when the decrease button is clicked', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="playback-rate-decrease"]').trigger('click')
+
+    expect(store.playbackRate).toBe(0.75)
+    expect(
+      wrapper.get('[data-testid="playback-rate-value"]').text().replace(/\s+/g, ''),
+    ).toBe('75%')
+  })
+
+  it('increases playback rate when the increase button is clicked after a decrease', async () => {
+    const wrapper = mount(TransportBar)
+    const store = useEditorStore()
+
+    await wrapper.get('[data-testid="playback-rate-decrease"]').trigger('click')
+    await wrapper.get('[data-testid="playback-rate-decrease"]').trigger('click')
+    expect(store.playbackRate).toBe(0.5)
+
+    await wrapper.get('[data-testid="playback-rate-increase"]').trigger('click')
+
+    expect(store.playbackRate).toBe(0.75)
+  })
+
+  it('keeps playback rate stepper enabled even when no audio is loaded', () => {
+    const transport = createMockTransport()
+    transport.getDuration = vi.fn(() => 0)
+    __overrideAudioTransportFactory(() => transport)
+
+    const wrapper = mount(TransportBar)
+
+    const decrease = wrapper.get('[data-testid="playback-rate-decrease"]')
+    expect((decrease.element as HTMLButtonElement).disabled).toBe(false)
   })
 
   // ---- Progress slider behavior ----

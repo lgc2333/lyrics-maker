@@ -22,6 +22,8 @@ function createMockTransport(): AudioTransport {
     getDuration: vi.fn(() => 120),
     setVolume: vi.fn(),
     getVolume: vi.fn(() => 1),
+    setPlaybackRate: vi.fn(),
+    getPlaybackRate: vi.fn(() => 1),
     getIsPlaying: vi.fn(() => false),
     destroy: vi.fn(),
   }

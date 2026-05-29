@@ -37,6 +37,7 @@
   ```
 
   把「歌曲时间差」（`nextBeat.at - currentTime`）直接加到「墙钟时间」（`audioContext.currentTime`）上。
+
 - 在 `playbackRate=0.5` 时，墙钟要走 1 秒才走完 0.5 秒歌曲时间，但 click 仍按 0.5 秒墙钟 schedule → click 会提前响、且偏差随时间累积。
 - 解决方案：`metronome` 新增 `setPlaybackRate(rate: number)`，内部维护 `playbackRate = 1`，schedule 公式统一改为：
 
@@ -204,11 +205,13 @@ case 'transport.resetPlaybackRate':
       "playbackRate": "播放速度：{value}%" / "Playback rate: {value}%"
     }
   },
-  "shortcuts": {
-    "actions": {
-      "transport.increasePlaybackRate": "提高播放速度" / "Increase playback rate",
-      "transport.decreasePlaybackRate": "降低播放速度" / "Decrease playback rate",
-      "transport.resetPlaybackRate": "重置播放速度" / "Reset playback rate"
+  "status": {
+    "action": {
+      "transport": {
+        "increasePlaybackRate": "提高播放速度" / "Increase playback rate",
+        "decreasePlaybackRate": "降低播放速度" / "Decrease playback rate",
+        "resetPlaybackRate": "重置播放速度" / "Reset playback rate"
+      }
     }
   }
 }

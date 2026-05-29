@@ -26,6 +26,11 @@
 - **Command-backed editable actions should publish status messages.** Use `showStatus()` after meaningful command execution and use `history.nextUndoLabel` / `nextRedoLabel` for undo/redo-facing status text.
 - **Null sentinel `number | undefined | null` needs `?? undefined` for optional fields.** The undo-capture pattern (`let prev: number | undefined | null = null`) produces a 3-way type. When assigning back to an optional field like `endTime?: number`, use `prev ?? undefined` to narrow out `null`.
 
+## Shortcuts
+
+- **`ShortcutAction` i18n labels live under `status.action.<area>.<verb>`.** Example: `status.action.transport.increasePlaybackRate`, not `shortcuts.actions.*`. Every new action must also be registered in `ACTION_LABEL_KEYS` (`src/i18n/status-label-maps.ts`); without it `PreferencesModal` falls back to the raw action id string.
+- **Use `null` in `DEFAULT_SHORTCUT_BINDINGS` for "registered but unbound".** The shortcut UI treats `null` as "no default key, user may bind one"; do not invent a placeholder keystroke just to satisfy the type.
+
 ## General TypeScript
 
 - **Use `Math.round`, not `Math.floor`, for seconds<>milliseconds conversion.** `Math.floor(sec * 1000)` turns `8.030` (IEEE 754 actually `8.02999...`) into `8.029`, inconsistent with `.toFixed(3)` rounding. Always use `Math.round`.

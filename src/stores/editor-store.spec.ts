@@ -20,6 +20,7 @@ function createMockAudioTransport(): {
   let _playing = false
   let _currentTime = 0
   let _volume = 1
+  let _playbackRate = 1
   const _duration = 120
 
   const transport: AudioTransport = {
@@ -39,6 +40,13 @@ function createMockAudioTransport(): {
       _volume = Math.max(0, Math.min(1, value))
     }),
     getVolume: vi.fn(() => _volume),
+    setPlaybackRate: vi.fn((rate: number) => {
+      if (!(rate > 0)) {
+        throw new Error(`playbackRate must be > 0 (received ${rate})`)
+      }
+      _playbackRate = rate
+    }),
+    getPlaybackRate: vi.fn(() => _playbackRate),
     getIsPlaying: vi.fn(() => _playing),
     destroy: vi.fn(),
   }
@@ -76,6 +84,7 @@ function createMockMetronome(): {
       _enabled = value
     }),
     setSfxVolume: vi.fn(),
+    setPlaybackRate: vi.fn(),
     syncToTimeline: vi.fn(),
     hasPendingLatch: vi.fn(() => _latchPending),
     fireLatchNow: vi.fn(() => {
@@ -714,6 +723,132 @@ describe('editor store (phase 5 plus part 6 - local preference hardware sync)', 
 
     expect(store.gridVisible).toBe(false)
     expect(store.exportLocalStateBase().gridVisible).toBe(false)
+  })
+})
+
+describe('editor store (phase 5 plus part 9 - playback rate)', () => {
+  let mockAudio: ReturnType<typeof createMockAudioTransport>
+  let mockMetronome: ReturnType<typeof createMockMetronome>
+
+  beforeEach(() => {
+    mockAudio = createMockAudioTransport()
+    mockMetronome = createMockMetronome()
+    __overrideAudioTransportFactory(() => mockAudio.transport)
+    __overrideMetronomeFactory(() => mockMetronome.scheduler)
+    setActivePinia(createPinia())
+  })
+
+  it('starts at 100% with decrease available and increase blocked at the upper bound', () => {
+    const store = useEditorStore()
+
+    expect(store.playbackRate).toBe(1)
+    expect(store.canDecreasePlaybackRate).toBe(true)
+    expect(store.canIncreasePlaybackRate).toBe(false)
+  })
+
+  it('decreasePlaybackRate steps through 0.75 / 0.5 / 0.25 and stops at the lower bound', () => {
+    const store = useEditorStore()
+
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.75)
+
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.5)
+
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.25)
+    expect(store.canDecreasePlaybackRate).toBe(false)
+
+    // No-op at the lower bound: state unchanged AND no fresh status message
+    store.clearStatus()
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.25)
+    expect(store.statusMessage).toBeNull()
+  })
+
+  it('increasePlaybackRate steps back up and stops at the upper bound', () => {
+    const store = useEditorStore()
+    store.decreasePlaybackRate()
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.5)
+
+    store.increasePlaybackRate()
+    expect(store.playbackRate).toBe(0.75)
+
+    store.increasePlaybackRate()
+    expect(store.playbackRate).toBe(1)
+    expect(store.canIncreasePlaybackRate).toBe(false)
+
+    // No-op at the upper bound: state unchanged AND no fresh status message
+    store.clearStatus()
+    store.increasePlaybackRate()
+    expect(store.playbackRate).toBe(1)
+    expect(store.statusMessage).toBeNull()
+  })
+
+  it('resetPlaybackRate snaps back to 1 from any rate and is a no-op when already at 1', () => {
+    const store = useEditorStore()
+    store.decreasePlaybackRate()
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.5)
+
+    store.resetPlaybackRate()
+    expect(store.playbackRate).toBe(1)
+    expect(store.statusMessage?.key).toBe('status.settings.playbackRate')
+    expect(store.statusMessage?.params?.value).toBe(100)
+
+    store.clearStatus()
+    store.resetPlaybackRate()
+    expect(store.statusMessage).toBeNull()
+  })
+
+  it('emits a status message with the new rate as a percentage', () => {
+    const store = useEditorStore()
+
+    store.decreasePlaybackRate()
+
+    expect(store.statusMessage?.key).toBe('status.settings.playbackRate')
+    expect(store.statusMessage?.params?.value).toBe(75)
+  })
+
+  it('pushes the new rate to audio transport and metronome on every successful change', async () => {
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.toggleMetronome()
+    ;(mockAudio.transport.setPlaybackRate as ReturnType<typeof vi.fn>).mockClear()
+    ;(mockMetronome.scheduler.setPlaybackRate as ReturnType<typeof vi.fn>).mockClear()
+
+    store.decreasePlaybackRate()
+
+    expect(mockAudio.transport.setPlaybackRate).toHaveBeenCalledWith(0.75)
+    expect(mockMetronome.scheduler.setPlaybackRate).toHaveBeenCalledWith(0.75)
+  })
+
+  it('throws when setPlaybackRate is called with a non-positive value', () => {
+    const store = useEditorStore()
+
+    expect(() => store.setPlaybackRate(0)).toThrow()
+    expect(() => store.setPlaybackRate(-1)).toThrow()
+    expect(store.playbackRate).toBe(1)
+  })
+
+  it('re-applies the current playback rate after importing a new audio file', async () => {
+    const store = useEditorStore()
+    store.decreasePlaybackRate()
+    expect(store.playbackRate).toBe(0.75)
+
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+
+    expect(mockAudio.transport.setPlaybackRate).toHaveBeenCalledWith(0.75)
+  })
+
+  it('does not persist playback rate via local settings', () => {
+    const store = useEditorStore()
+    store.decreasePlaybackRate()
+
+    const exported = store.exportLocalStateBase()
+
+    expect(Object.keys(exported)).not.toContain('playbackRate')
   })
 })
 

@@ -9,6 +9,8 @@ export interface AudioTransport {
   getDuration: () => number
   setVolume: (value: number) => void
   getVolume: () => number
+  setPlaybackRate: (rate: number) => void
+  getPlaybackRate: () => number
   getIsPlaying: () => boolean
   destroy: () => void
 }
@@ -77,6 +79,17 @@ export function createAudioTransport(audioElement: HTMLAudioElement): AudioTrans
 
     getVolume(): number {
       return audioElement.volume
+    },
+
+    setPlaybackRate(rate: number): void {
+      if (!(rate > 0)) {
+        throw new Error(`playbackRate must be > 0 (received ${rate})`)
+      }
+      audioElement.playbackRate = rate
+    },
+
+    getPlaybackRate(): number {
+      return audioElement.playbackRate
     },
 
     getIsPlaying(): boolean {

@@ -36,6 +36,7 @@
 - **No-audio actions should report status, not silently disable controls.** Keep UI controls available when feedback is useful (play/seek/jump/Tap BPM/lyrics timing), guard in store/composables, and call `showStatus()` with localized messages.
 - **Platform objects that own resources must expose a `destroy()` that fully cleans up.** Never rely on GC alone for Web Audio API resources (AudioContext, AudioBufferSourceNode), object URLs, or event listeners.
 - **`destroy()` must clean up pending async operations.** When a platform object manages async loads (e.g. `loadFile`), `destroy()` must call the pending cleanup function and revoke any blob URLs. Otherwise listeners dangle after the object is destroyed.
+- **Metronome scheduling mixes song time and wall-clock time.** `syncToTimeline` / `scheduleLatchAtNextBeat` compute `audioContext.currentTime + (songTimeDelta) / playbackRate`. Anything that decouples song time from wall-clock time (audio `playbackRate`, future pitch-shift, custom playback engines) must be threaded into this formula, and the corresponding `setPlaybackRate` must cancel pending `kind === 'beat'` clicks and reset `lastScheduledBeatTime` so the next sync re-schedules with the new factor. Same applies when sync hardware on `importAudioFile` / `_ensureAudioTransport` / `_ensureMetronome` / `_syncAudioHardware` — extend all four to keep the rate consistent.
 
 ## Lyrics Timing
 

@@ -50,6 +50,7 @@
     "nextBar": "Next Bar",
     "musicVolume": "Music Volume",
     "sfxVolume": "SFX Volume",
+    "playbackRate": "Playback rate",
     "autoFollowPlayback": "Auto-follow Playback",
     "gridVisible": "Show / Hide Grid",
     "waveformMode": "Waveform",
@@ -296,7 +297,8 @@
       "viewMode": "Timeline view switched to {mode}",
       "autoFollowPlayback": "Auto-follow playback {state}",
       "gridVisible": "Grid {state}",
-      "rhythmModeTemporary": "Rhythm mode temporarily switched to {mode}"
+      "rhythmModeTemporary": "Rhythm mode temporarily switched to {mode}",
+      "playbackRate": "Playback rate: {value}%"
     },
     "localSettings": {
       "loadFailed": "Failed to load local settings: {reason}",
@@ -367,7 +369,10 @@
         "prevBeat": "Previous beat line",
         "nextBeat": "Next beat line",
         "prevBar": "Previous bar",
-        "nextBar": "Next bar"
+        "nextBar": "Next bar",
+        "increasePlaybackRate": "Increase playback rate",
+        "decreasePlaybackRate": "Decrease playback rate",
+        "resetPlaybackRate": "Reset playback rate"
       },
       "lyrics": {
         "mark": "Mark lyric",

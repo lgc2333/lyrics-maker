@@ -1,6 +1,7 @@
 export interface MetronomeScheduler {
   setEnabled: (enabled: boolean) => void
   setSfxVolume: (volume: number) => void
+  setPlaybackRate: (rate: number) => void
   syncToTimeline: (
     currentTime: number,
     nextBeat: { at: number; isBarStart: boolean } | null,
@@ -40,6 +41,7 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
   let latchPending = false
   let lastScheduledBeatTime = -1
   let destroyed = false
+  let playbackRate = 1
 
   let tickBuffer: AudioBuffer | null = null
   let downbeatBuffer: AudioBuffer | null = null
@@ -128,7 +130,8 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
 
     cancelScheduledClicks((click) => click.kind === 'beat' && click.at >= currentTime)
 
-    const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
+    const audioCtxTime =
+      audioContext.currentTime + (nextBeat.at - currentTime) / playbackRate
     const source = playBufferAt(audioCtxTime, latchBuffer)
     if (!source) return false
 
@@ -155,6 +158,15 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
     setSfxVolume(volume: number) {
       const clamped = Math.max(0, Math.min(1, volume))
       masterGain.gain.value = clamped
+    },
+
+    setPlaybackRate(rate: number) {
+      if (!(rate > 0)) {
+        throw new Error(`playbackRate must be > 0 (received ${rate})`)
+      }
+      playbackRate = rate
+      cancelScheduledClicks((click) => click.kind === 'beat')
+      lastScheduledBeatTime = -1
     },
 
     syncToTimeline(
@@ -187,7 +199,8 @@ export function createMetronome(audioContext: AudioContext): MetronomeScheduler 
       if (loadError) return
       if (!tickBuffer || !downbeatBuffer || !latchBuffer) return
 
-      const audioCtxTime = audioContext.currentTime + (nextBeat.at - currentTime)
+      const audioCtxTime =
+        audioContext.currentTime + (nextBeat.at - currentTime) / playbackRate
 
       if (enabled) {
         const source = playBufferAt(

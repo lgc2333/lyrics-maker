@@ -16,6 +16,7 @@
 - **Pinia setup store closure variables are invisible to DevTools `evaluate_script`.** Internal `_audioTransport`, `_rafId`, `_isPlaying` are not in `$state` or any public API. To debug, add temporary `console.log` in source - HMR won't reload Pinia stores, so use a full page refresh.
 - **Icon tests can inspect the Icon stub prop.** For controls rendered with `@iconify/vue`, prefer `findComponent({ name: 'Icon' }).props('icon')` when asserting which icon is shown.
 - **Hidden file input tests:** assign `input.files` with `Object.defineProperty(..., { configurable: true, value: [new File(...)] })`, then dispatch a `change` event on the input; clicking the visible button only proves `.click()` was invoked.
+- **Extending `AudioTransport` / `MetronomeScheduler` is a shotgun edit.** When you add a method to either interface in `src/platform/audio/`, every spec that hand-rolls a mock of that interface must add the matching field, or `pnpm test:run` will fail with widespread `TypeError`s. Known mock sites: `src/stores/editor-store.spec.ts`, `src/composables/useLyricsEditor.spec.ts`, `src/composables/useTimelineView.spec.ts`, and `src/components/shell/{AppShell,LyricsLineList,TimingPointControls,TimingPointList,TimingPointsPanel,TransportBar,WordSplitBar}.spec.ts`. Grep anchors: `AudioTransport = {`, `MetronomeScheduler = {`, `setVolume: vi.fn`, `setSfxVolume: vi.fn`.
 
 ## Store Testing
 

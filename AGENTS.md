@@ -126,29 +126,6 @@ src/
 └── main.ts                # App bootstrap (Pinia → router → i18n)
 ```
 
-## Current Phase
-
-Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus is implemented through the project persistence, local settings/preferences, import/export, and LRC subtype follow-up work represented in the current codebase. Remaining larger areas:
-
-- Phase 5 Plus: shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
-
-Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
-
-### Design Docs
-
-Design decisions may evolve over time. If a newer document conflicts with an older one, defer to the newer document and ignore the conflicting parts of the older one. The list below is ordered from oldest to newest.
-
-- [Initial design spec](docs/initial-design-spec.md)
-- [Phase 1–5 overall design](docs/superpowers/specs/2026-05-16-lyrics-maker-phased-design.md)
-- [Phase 2 audio + timing design](docs/superpowers/specs/2026-05-16-phase-2-audio-timing-design.md)
-- [Phase 3 pre-layout design](docs/superpowers/specs/2026-05-17-pre-phase-3-layout-design.md)
-- [Phase 3 timeline view design](docs/superpowers/specs/2026-05-18-phase-3-timeline-view-design.md)
-- [Phase 4 UX proposal chat](docs/superpowers/specs/2026-05-20-phase-4-ux-proposal-chat.md)
-- [Phase 4 detailed proposal chat](docs/superpowers/specs/2026-05-20-phase-4-detailed-proposal-chat.md)
-- [Phase 4 lyrics timing design](docs/superpowers/specs/2026-05-20-phase-4-lyrics-timing-design.md)
-- [Phase 4 post fix lyrics UI/UX improvements design](docs/superpowers/specs/2026-05-23-phase-4-post-fix-lyrics-ui-improvements-design.md)
-- [Phase 5 Plus spec](docs/phase-5-plus-spec.md)
-
 ## Rules & Patterns
 
 Detailed project rules live in focused pattern docs:
@@ -164,3 +141,15 @@ When starting work, proactively read the linked pattern docs relevant to the fil
 ## Committing
 
 Use semantic/conventional commit messages, e.g. `fix: keep vertical slider popovers reachable`.
+
+## Current Phase
+
+Phase 1 (infrastructure base), Phase 2 (audio + timing core), Phase 3 (waveform/spectrogram timeline view), and Phase 4 (lyrics timing) are complete. Phase 5 Plus is implemented through the project persistence, local settings/preferences, import/export, and LRC subtype follow-up work represented in the current codebase. Remaining larger areas:
+
+- Phase 5 Plus: shortcut customization, playback enhancements, lyrics list editing, and overlay drag editing.
+
+Test environment: Vitest + happy-dom + `@vue/test-utils`. Tests use `setActivePinia(createPinia())` in `beforeEach`. Test files live next to source files (`*.spec.ts`).
+
+### Design Docs
+
+See [design.md](docs/design.md).
