@@ -14,12 +14,11 @@
       "validateProject": "校验工程",
       "openFile": "打开文件...",
       "saveProject": "保存项目",
-      "save": "保存 (Ctrl+S)",
       "saveAs": "项目另存为",
       "preferences": "首选项",
       "edit": "编辑",
-      "undo": "撤销 (Ctrl+Z)",
-      "redo": "重做 (Ctrl+Y)",
+      "undo": "撤销",
+      "redo": "重做",
       "view": "查看",
       "zoomFit": "缩放至合适",
       "zoomSelection": "缩放至选区",
@@ -77,7 +76,7 @@
       "setToCurrentTime": "设为当前时间",
       "bpm": "BPM",
       "timeSignature": "拍号",
-      "tapBpmIdle": "点击测 BPM (B)",
+      "tapBpmIdle": "点击测 BPM",
       "tapBpmHint": "Tap",
       "tapBpmActive": "{bpm} BPM / {count} Taps"
     }
@@ -204,7 +203,6 @@
       "system": "系统默认",
       "zhCN": "简体中文"
     },
-    "shortcutsPlaceholder": "快捷键设置将在后续版本中实现。",
     "shortcuts": {
       "description": "点击键位按钮后按下新组合即可分配；按 Esc 取消。",
       "resetAll": "全部重置",

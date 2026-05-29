@@ -585,6 +585,89 @@ describe('editor store (phase 2 - timing points)', () => {
   })
 })
 
+describe('editor store (phase 5 plus part 8 - shortcut overrides)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('exposes default shortcut bindings when no overrides are set', () => {
+    const store = useEditorStore()
+    expect(store.shortcutBindings['lyrics.mark']).toBe('D')
+    expect(store.shortcutBindings['lyrics.mark2']).toBe('S')
+    expect(store.shortcutBindings['history.undo']).toBe('Ctrl+Z')
+  })
+
+  it('builds a reverse keystroke index that skips null bindings', () => {
+    const store = useEditorStore()
+    expect(store.shortcutBindingsByKeystroke.get('D')).toBe('lyrics.mark')
+    expect(store.shortcutBindingsByKeystroke.get('S')).toBe('lyrics.mark2')
+  })
+
+  it('assignShortcut writes a simple override when there is no conflict', () => {
+    const store = useEditorStore()
+    const result = store.assignShortcut('lyrics.mark2', 'Q')
+    expect(result).toEqual({ ok: true, reassignedFrom: null })
+    expect(store.shortcutBindings['lyrics.mark2']).toBe('Q')
+  })
+
+  it('assignShortcut short-circuits when the keystroke already maps to that action', () => {
+    const store = useEditorStore()
+    const result = store.assignShortcut('lyrics.mark', 'D')
+    expect(result).toEqual({ ok: false, reason: 'sameBinding' })
+  })
+
+  it('assignShortcut reassigns the previous owner to null on conflict', () => {
+    const store = useEditorStore()
+    const result = store.assignShortcut('lyrics.mark2', 'D')
+    expect(result).toEqual({ ok: true, reassignedFrom: 'lyrics.mark' })
+    expect(store.shortcutBindings['lyrics.mark']).toBeNull()
+    expect(store.shortcutBindings['lyrics.mark2']).toBe('D')
+  })
+
+  it('clearShortcut sets the binding to null', () => {
+    const store = useEditorStore()
+    store.clearShortcut('lyrics.editWholeLine')
+    expect(store.shortcutBindings['lyrics.editWholeLine']).toBeNull()
+  })
+
+  it('resetShortcut restores the default binding', () => {
+    const store = useEditorStore()
+    store.assignShortcut('lyrics.mark', 'Q')
+    store.resetShortcut('lyrics.mark')
+    expect(store.shortcutBindings['lyrics.mark']).toBe('D')
+  })
+
+  it('resetAllShortcuts clears every override', () => {
+    const store = useEditorStore()
+    store.assignShortcut('lyrics.mark', 'Q')
+    store.assignShortcut('history.undo', 'F1')
+    store.resetAllShortcuts()
+    expect(store.shortcutBindings['lyrics.mark']).toBe('D')
+    expect(store.shortcutBindings['history.undo']).toBe('Ctrl+Z')
+  })
+
+  it('applyLocalState hydrates shortcutOverrides', () => {
+    const store = useEditorStore()
+    store.applyLocalState({
+      ...store.exportLocalStateBase(),
+      viewMode: 'waveform',
+      spectrogramVerticalZoom: 5,
+      autoFollowPlayback: true,
+      mainViewHeight: 250,
+      shortcutOverrides: { 'lyrics.mark2': 'Q' },
+    })
+    expect(store.shortcutBindings['lyrics.mark2']).toBe('Q')
+  })
+
+  it('exportLocalStateBase echoes the current shortcutOverrides', () => {
+    const store = useEditorStore()
+    store.assignShortcut('lyrics.mark2', 'Q')
+    expect(store.exportLocalStateBase().shortcutOverrides).toEqual({
+      'lyrics.mark2': 'Q',
+    })
+  })
+})
+
 describe('editor store (phase 5 plus part 6 - local preference hardware sync)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

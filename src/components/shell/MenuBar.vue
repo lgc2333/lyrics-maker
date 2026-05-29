@@ -6,6 +6,8 @@ import { useI18n } from 'vue-i18n'
 import type { LyricsExportTargetId } from '../../core/lyrics-io/types'
 import { COMMAND_LABEL_KEYS } from '../../i18n/status-label-maps'
 import type { LocalTheme } from '../../platform/settings/local-settings'
+import type { ShortcutAction } from '../../platform/shortcuts/registry'
+import { useEditorStore } from '../../stores/editor-store'
 
 const props = withDefaults(
   defineProps<{
@@ -53,6 +55,13 @@ const emit = defineEmits<{
 }>()
 
 const { t, te } = useI18n()
+
+const editorStore = useEditorStore()
+
+function shortcutSuffix(action: ShortcutAction): string {
+  const keystroke = editorStore.shortcutBindings[action]
+  return keystroke ? ` (${keystroke})` : ''
+}
 
 type MenuName = 'file' | 'edit' | 'help'
 const openMenu = ref<MenuName | null>(null)
@@ -318,7 +327,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             @mouseenter="closeFileSubmenu"
             @click="(emit('saveProject'), closeMenu())"
           >
-            {{ t('shell.menu.saveProject') }}
+            {{ t('shell.menu.saveProject') }}{{ shortcutSuffix('project.save') }}
           </button>
           <button
             data-testid="menu-save-as"
@@ -371,7 +380,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             "
             @click="(emit('undo'), closeMenu())"
           >
-            {{ t('shell.menu.undo') }}
+            {{ t('shell.menu.undo') }}{{ shortcutSuffix('history.undo') }}
             <span v-if="props.nextUndoLabel">
               : {{ translateCommandLabel(props.nextUndoLabel) }}
             </span>
@@ -388,7 +397,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             "
             @click="(emit('redo'), closeMenu())"
           >
-            {{ t('shell.menu.redo') }}
+            {{ t('shell.menu.redo') }}{{ shortcutSuffix('history.redo') }}
             <span v-if="props.nextRedoLabel">
               : {{ translateCommandLabel(props.nextRedoLabel) }}
             </span>

@@ -48,6 +48,13 @@ import type {
   LocalSnapDivisor,
   LocalUserState,
 } from '../platform/settings/local-settings'
+import { DEFAULT_SHORTCUT_BINDINGS } from '../platform/shortcuts/defaults'
+import {
+  bindingsByKeystroke as buildBindingsByKeystroke,
+  mergeBindings,
+} from '../platform/shortcuts/overrides'
+import type { ShortcutOverrides } from '../platform/shortcuts/overrides'
+import type { ShortcutAction } from '../platform/shortcuts/registry'
 
 function makeId(prefix: string) {
   return createPrefixedId(prefix)
@@ -134,6 +141,9 @@ export const useEditorStore = defineStore('editor', () => {
   )
   const _rhythmMode = shallowRef<LocalRhythmMode>(DEFAULT_LOCAL_USER_STATE.rhythmMode)
   const _gridVisible = shallowRef(DEFAULT_LOCAL_USER_STATE.gridVisible)
+  const _shortcutOverrides = shallowRef<ShortcutOverrides>({
+    ...DEFAULT_LOCAL_USER_STATE.shortcutOverrides,
+  })
   let _tapResetTimerId: number | null = null
 
   // ---- Computed (Phase 1 + Phase 2) ----
@@ -175,6 +185,13 @@ export const useEditorStore = defineStore('editor', () => {
   const snapDivisor = computed(() => _snapDivisor.value)
   const rhythmMode = computed(() => _rhythmMode.value)
   const gridVisible = computed(() => _gridVisible.value)
+  const shortcutOverrides = computed(() => _shortcutOverrides.value)
+  const shortcutBindings = computed(() =>
+    mergeBindings(DEFAULT_SHORTCUT_BINDINGS, _shortcutOverrides.value),
+  )
+  const shortcutBindingsByKeystroke = computed(() =>
+    buildBindingsByKeystroke(shortcutBindings.value),
+  )
   const duration = computed(() => _audioTransport.value?.getDuration() ?? 0)
   const hasAudio = computed(() => _audioFile.value !== null && duration.value > 0)
   const progressRatio = computed(() =>
@@ -402,6 +419,7 @@ export const useEditorStore = defineStore('editor', () => {
     _snapDivisor.value = state.snapDivisor
     _rhythmMode.value = state.rhythmMode
     _gridVisible.value = state.gridVisible
+    _shortcutOverrides.value = { ...state.shortcutOverrides }
     _metronomeState.value = state.metronomeEnabled ? 'on' : 'off'
     _syncAudioHardware()
     if (_metronome.value) {
@@ -421,7 +439,69 @@ export const useEditorStore = defineStore('editor', () => {
       snapDivisor: _snapDivisor.value,
       rhythmMode: _rhythmMode.value,
       gridVisible: _gridVisible.value,
+      shortcutOverrides: { ..._shortcutOverrides.value },
     }
+  }
+
+  function assignShortcut(
+    action: ShortcutAction,
+    keystroke: string,
+  ):
+    | { ok: true; reassignedFrom: ShortcutAction | null }
+    | { ok: false; reason: 'sameBinding' } {
+    const existingAction = shortcutBindingsByKeystroke.value.get(keystroke) ?? null
+    if (existingAction === action) {
+      return { ok: false, reason: 'sameBinding' }
+    }
+    const next: ShortcutOverrides = { ..._shortcutOverrides.value }
+    if (existingAction && existingAction !== action) {
+      next[existingAction] = null
+      next[action] = keystroke
+      _shortcutOverrides.value = next
+      showStatus('status.shortcuts.reassigned', {
+        keystroke,
+        fromAction: existingAction,
+        toAction: action,
+      })
+      return { ok: true, reassignedFrom: existingAction }
+    }
+    next[action] = keystroke
+    _shortcutOverrides.value = next
+    showStatus('status.shortcuts.assigned', { action, keystroke })
+    return { ok: true, reassignedFrom: null }
+  }
+
+  function clearShortcut(action: ShortcutAction): void {
+    _shortcutOverrides.value = { ..._shortcutOverrides.value, [action]: null }
+    showStatus('status.shortcuts.cleared', { action })
+  }
+
+  function resetShortcut(action: ShortcutAction): void {
+    const current = _shortcutOverrides.value
+    if (!Object.hasOwn(current, action)) return
+    const next: ShortcutOverrides = { ...current }
+    delete next[action]
+    // Displace any other action that would collide with the restored default.
+    const defaultKey = DEFAULT_SHORTCUT_BINDINGS[action]
+    if (defaultKey !== null) {
+      const merged = mergeBindings(DEFAULT_SHORTCUT_BINDINGS, next)
+      for (const [otherAction, otherKey] of Object.entries(merged) as Array<
+        [ShortcutAction, string | null]
+      >) {
+        if (otherAction === action) continue
+        if (otherKey === defaultKey) {
+          next[otherAction] = null
+        }
+      }
+    }
+    _shortcutOverrides.value = next
+    showStatus('status.shortcuts.reset', { action })
+  }
+
+  function resetAllShortcuts(): void {
+    if (Object.keys(_shortcutOverrides.value).length === 0) return
+    _shortcutOverrides.value = {}
+    showStatus('status.shortcuts.resetAll')
   }
 
   function setProjectTitle(title: string): void {
@@ -1016,6 +1096,13 @@ export const useEditorStore = defineStore('editor', () => {
     snapDivisor,
     rhythmMode,
     gridVisible,
+    shortcutOverrides,
+    shortcutBindings,
+    shortcutBindingsByKeystroke,
+    assignShortcut,
+    clearShortcut,
+    resetShortcut,
+    resetAllShortcuts,
     duration,
     hasAudio,
     progressRatio,

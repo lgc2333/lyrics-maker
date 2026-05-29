@@ -6,7 +6,6 @@ import { useEditorShortcuts } from '../../composables/useEditorShortcuts'
 import { useLocalSettings } from '../../composables/useLocalSettings'
 import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
-import { useShortcutBindings } from '../../composables/useShortcutBindings'
 import { useShortcutCapture } from '../../composables/useShortcutCapture'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import type { LyricLine, LyricWord } from '../../core/domain/project'
@@ -130,17 +129,9 @@ const localSettings = useLocalSettings({
 })
 provide(LOCAL_SETTINGS_KEY, localSettings)
 
-const shortcuts = useShortcutBindings({
-  initialOverrides: localSettings.shortcutOverrides,
-  onChange: (next) => {
-    localSettings.shortcutOverrides.value = next
-  },
-  onStatus: (key, params) => store.showStatus(key, params),
-})
-
 const capture = useShortcutCapture({
   onCaptured: (action, keystroke) => {
-    shortcuts.assignBinding(action, keystroke)
+    store.assignShortcut(action, keystroke)
   },
   onCancelled: () => {
     // No-op: capture cancellation is silent.
@@ -148,7 +139,7 @@ const capture = useShortcutCapture({
 })
 
 const shortcutOverriddenActions = computed(
-  () => new Set(Object.keys(localSettings.shortcutOverrides.value) as ShortcutAction[]),
+  () => new Set(Object.keys(store.shortcutOverrides) as ShortcutAction[]),
 )
 
 const showResetAllShortcutsDialog = ref(false)
@@ -159,7 +150,7 @@ function onResetAllShortcuts(): void {
 
 function confirmResetAllShortcuts(): void {
   showResetAllShortcutsDialog.value = false
-  shortcuts.resetAll()
+  store.resetAllShortcuts()
 }
 
 function cancelResetAllShortcuts(): void {
@@ -434,7 +425,7 @@ watch(
 )
 
 useEditorShortcuts({
-  bindings: shortcuts.bindingsByKeystroke,
+  bindings: computed(() => store.shortcutBindingsByKeystroke),
   paused: computed(() => capture.capturingAction.value !== null),
   onAction: async (action) => {
     if (action === 'history.undo') {
@@ -568,7 +559,7 @@ useEditorShortcuts({
       :locale-mode="localeMode"
       :theme-mode="themeMode"
       :effective-theme="effectiveTheme"
-      :shortcut-bindings="shortcuts.effectiveBindings.value"
+      :shortcut-bindings="store.shortcutBindings"
       :shortcut-overridden-actions="shortcutOverriddenActions"
       :capturing-action="capture.capturingAction.value"
       @close="closePreferencesModal"
@@ -578,8 +569,8 @@ useEditorShortcuts({
       @restoreSettings="openSettingsRestorePicker"
       @startCaptureShortcut="capture.start"
       @cancelCaptureShortcut="capture.cancel"
-      @resetShortcut="shortcuts.resetAction"
-      @clearShortcut="shortcuts.clearBinding"
+      @resetShortcut="store.resetShortcut"
+      @clearShortcut="store.clearShortcut"
       @resetAllShortcuts="onResetAllShortcuts"
     />
     <AboutModal

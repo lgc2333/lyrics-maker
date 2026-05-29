@@ -31,7 +31,11 @@ const TAP_MIN_SAMPLES = 9
 const tapBpmLabel = computed(() => {
   const count = store.tapCount
   const bpm = store.tapEstimatedBpm
-  if (count === 0) return t('timing.controls.tapBpmIdle')
+  if (count === 0) {
+    const keystroke = store.shortcutBindings['timing.tapBpm']
+    const suffix = keystroke ? ` (${keystroke})` : ''
+    return `${t('timing.controls.tapBpmIdle')}${suffix}`
+  }
   if (bpm === null) {
     const remaining = TAP_MIN_SAMPLES - count
     return `${t('timing.controls.tapBpmHint')}${'.'.repeat(Math.max(1, remaining))}`

@@ -12,7 +12,6 @@ import type {
   LocalUserSettings,
   LocalUserState,
 } from '../platform/settings/local-settings'
-import type { ShortcutOverrides } from '../platform/shortcuts/overrides'
 import { useEditorStore } from '../stores/editor-store'
 import type { TimelineViewContext } from './useTimelineView'
 
@@ -30,7 +29,6 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   const service = createLocalSettingsService()
   const settings = ref<LocalUserSettings>(structuredClone(DEFAULT_LOCAL_USER_SETTINGS))
   const state = ref<LocalUserState>(structuredClone(DEFAULT_LOCAL_USER_STATE))
-  const shortcutOverrides = ref<ShortcutOverrides>({})
   let hydrated = false
 
   function buildSettings(): LocalUserSettings {
@@ -48,7 +46,6 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
       spectrogramVerticalZoom: options.timeline.verticalZoom.value,
       autoFollowPlayback: options.timeline.autoFollowPlayback.value,
       mainViewHeight: options.mainViewHeight.value,
-      shortcutOverrides: { ...shortcutOverrides.value },
     }
   }
 
@@ -65,7 +62,6 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
     options.timeline.setVerticalZoom(nextState.spectrogramVerticalZoom)
     options.timeline.setAutoFollowPlayback(nextState.autoFollowPlayback)
     options.mainViewHeight.value = nextState.mainViewHeight
-    shortcutOverrides.value = { ...nextState.shortcutOverrides }
   }
 
   function logLocalSettingsFailure(
@@ -108,7 +104,7 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
       () => store.snapDivisor,
       () => store.rhythmMode,
       () => options.mainViewHeight.value,
-      () => shortcutOverrides.value,
+      () => store.shortcutOverrides,
     ],
     () => {
       if (!hydrated) return
@@ -155,7 +151,6 @@ export function useLocalSettings(options: UseLocalSettingsOptions) {
   return {
     settings,
     state,
-    shortcutOverrides,
     exportToText,
     importFromText,
     reportExportSuccess,
