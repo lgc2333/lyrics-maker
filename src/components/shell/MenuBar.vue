@@ -4,6 +4,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { LyricsExportTargetId } from '../../core/lyrics-io/types'
+import { COMMAND_LABEL_KEYS } from '../../i18n/status-label-maps'
 import type { LocalTheme } from '../../platform/settings/local-settings'
 
 const props = withDefaults(
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   pasteLyrics: []
   importLyricsFile: []
   exportLyricsFile: [target: LyricsExportTargetId]
+  validateProject: []
   addLyricLine: []
   undo: []
   redo: []
@@ -122,29 +124,6 @@ const themeIcon = computed(() => {
     ? 'material-symbols:dark-mode-rounded'
     : 'material-symbols:light-mode-rounded'
 })
-
-const COMMAND_LABEL_KEYS: Record<string, string> = {
-  'audio.setMusicVolume': 'status.command.audio.setMusicVolume',
-  'audio.setSfxVolume': 'status.command.audio.setSfxVolume',
-  'lyrics.addLine': 'status.command.lyrics.addLine',
-  'lyrics.clearWordEndTime': 'status.command.lyrics.clearWordEndTime',
-  'lyrics.insertLines': 'status.command.lyrics.insertLines',
-  'lyrics.insertWord': 'status.command.lyrics.insertWord',
-  'lyrics.mergeWords': 'status.command.lyrics.mergeWords',
-  'lyrics.removeLine': 'status.command.lyrics.removeLine',
-  'lyrics.removeWord': 'status.command.lyrics.removeWord',
-  'lyrics.replaceLineWords': 'status.command.lyrics.replaceLineWords',
-  'lyrics.setLineStartTime': 'status.command.lyrics.setLineStartTime',
-  'lyrics.setWordEndTime': 'status.command.lyrics.setWordEndTime',
-  'lyrics.splitWord': 'status.command.lyrics.splitWord',
-  'lyrics.updateWordText': 'status.command.lyrics.updateWordText',
-  'settings.setRhythmMode': 'status.command.settings.setRhythmMode',
-  'settings.setSnapDivisor': 'status.command.settings.setSnapDivisor',
-  'settings.setSnapEnabled': 'status.command.settings.setSnapEnabled',
-  'timing.addPoint': 'status.command.timing.addPoint',
-  'timing.removePoint': 'status.command.timing.removePoint',
-  'timing.updatePoint': 'status.command.timing.updatePoint',
-}
 
 function toggleMenu(name: MenuName): void {
   themeMenuOpen.value = false
@@ -232,7 +211,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
 
 <template>
   <header
-    class="grid h-8 grid-cols-[1fr_auto_1fr] items-center border-b border-base-300 px-2 text-xs"
+    class="grid h-9 grid-cols-[1fr_auto_1fr] items-center border-b border-base-300 px-2 text-sm"
   >
     <nav data-testid="menu-left" role="menubar" class="flex items-center gap-1">
       <div class="relative">
@@ -250,12 +229,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'file'"
           data-testid="menu-popup-file"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
         >
           <button
             data-testid="menu-new-project"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('newProject'), closeMenu())"
           >
@@ -264,7 +243,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-open-project"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('openProject'), closeMenu())"
           >
@@ -273,7 +252,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-open-audio"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('openAudioFile'), closeMenu())"
           >
@@ -282,7 +261,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-import-lyrics"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('importLyricsFile'), closeMenu())"
           >
@@ -294,7 +273,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
               role="menuitem"
               aria-haspopup="true"
               :aria-expanded="openFileSubmenu === 'exportLyrics'"
-              class="flex w-full cursor-pointer items-center justify-between gap-4 whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+              class="flex w-full cursor-pointer items-center justify-between gap-4 whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
               @mouseenter="openExportSubmenu"
             >
               <span>{{ t('shell.menu.exportLyrics') }}</span>
@@ -304,14 +283,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
               v-if="openFileSubmenu === 'exportLyrics'"
               data-testid="menu-popup-export-lyrics"
               role="menu"
-              class="absolute left-full top-0 z-50 ml-0.5 w-max min-w-[180px] rounded border border-base-300 bg-base-100 shadow"
+              class="absolute left-full top-0 z-50 ml-0.5 w-max min-w-[180px] rounded border border-base-300 bg-base-100 shadow text-xs"
             >
               <button
                 v-for="target in lyricExportTargets"
                 :key="target.id"
                 :data-testid="`menu-export-lyrics-${target.id}`"
                 role="menuitem"
-                class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+                class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
                 @click="(emit('exportLyricsFile', target.id), closeMenu())"
               >
                 {{ t(target.labelKey) }}
@@ -321,11 +300,20 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
               </button>
             </div>
           </div>
+          <button
+            data-testid="menu-validate-project"
+            role="menuitem"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
+            @mouseenter="closeFileSubmenu"
+            @click="(emit('validateProject'), closeMenu())"
+          >
+            {{ t('shell.menu.validateProject') }}
+          </button>
           <div class="my-0.5 border-t border-base-300" />
           <button
             data-testid="menu-save-project"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('saveProject'), closeMenu())"
           >
@@ -334,7 +322,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-save-as"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('saveProjectAs'), closeMenu())"
           >
@@ -344,7 +332,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           <button
             data-testid="menu-preferences"
             role="menuitem"
-            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+            class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
             @mouseenter="closeFileSubmenu"
             @click="(emit('openPreferences'), closeMenu())"
           >
@@ -368,13 +356,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'edit'"
           data-testid="menu-popup-edit"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[140px] rounded border border-base-300 bg-base-100 shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[140px] rounded border border-base-300 bg-base-100 shadow text-xs"
         >
           <button
             data-testid="menu-undo"
             role="menuitem"
             :disabled="!props.canUndo"
-            class="block w-full whitespace-nowrap px-2 py-1 text-left text-[11px]"
+            class="block w-full whitespace-nowrap px-2 py-1 text-left"
             :class="
               props.canUndo
                 ? 'cursor-pointer hover:bg-base-200'
@@ -391,7 +379,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
             data-testid="menu-redo"
             role="menuitem"
             :disabled="!props.canRedo"
-            class="block w-full whitespace-nowrap px-2 py-1 text-left text-[11px]"
+            class="block w-full whitespace-nowrap px-2 py-1 text-left"
             :class="
               props.canRedo
                 ? 'cursor-pointer hover:bg-base-200'
@@ -422,13 +410,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           v-if="openMenu === 'help'"
           data-testid="menu-popup-help"
           role="menu"
-          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
+          class="absolute left-0 top-full z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
         >
           <button
             data-testid="menu-about"
             role="menuitem"
             disabled
-            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left text-[11px] opacity-50"
+            class="block w-full cursor-not-allowed whitespace-nowrap px-2 py-1 text-left opacity-50"
           >
             {{ t('shell.menu.about') }}
           </button>
@@ -475,7 +463,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
         v-if="themeMenuOpen"
         data-testid="menu-popup-theme"
         role="menu"
-        class="absolute top-7 right-2 z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow"
+        class="absolute top-7 right-2 z-50 mt-0.5 w-max min-w-[120px] rounded border border-base-300 bg-base-100 shadow text-xs"
       >
         <button
           v-for="option in themeOptions"
@@ -483,7 +471,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick, tru
           :data-testid="option.testid"
           role="menuitemradio"
           :aria-checked="themeMode === option.value"
-          class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left text-[11px] hover:bg-base-200"
+          class="block w-full cursor-pointer whitespace-nowrap px-2 py-1 text-left hover:bg-base-200"
           :class="{ 'bg-base-200 font-semibold': themeMode === option.value }"
           @click="selectThemeMode(option.value)"
         >

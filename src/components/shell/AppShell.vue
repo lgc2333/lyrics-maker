@@ -7,6 +7,8 @@ import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import { useProjectPersistence } from '../../composables/useProjectPersistence'
 import { TIMELINE_VIEW_KEY, useTimelineView } from '../../composables/useTimelineView'
 import type { LyricLine, LyricWord } from '../../core/domain/project'
+import type { ProjectValidationIssue } from '../../core/domain/project-validation'
+import { validateProjectForExport } from '../../core/domain/project-validation'
 import type {
   LyricsDisplayFormatId,
   LyricsExportTargetId,
@@ -22,6 +24,7 @@ import LyricsPasteModal from './LyricsPasteModal.vue'
 import MainView from './MainView.vue'
 import MenuBar from './MenuBar.vue'
 import PreferencesModal from './PreferencesModal.vue'
+import ProjectValidationModal from './ProjectValidationModal.vue'
 import StatusBar from './StatusBar.vue'
 import TimingPointsPanel from './TimingPointsPanel.vue'
 import TransportBar from './TransportBar.vue'
@@ -56,6 +59,11 @@ const pendingLyricsImport = ref<{
   fileName: string
   format: LyricsFormatId
   displayFormat?: LyricsDisplayFormatId
+} | null>(null)
+const projectValidationModal = shallowRef<{
+  mode: 'export' | 'readonly'
+  issues: ProjectValidationIssue[]
+  pendingExportTarget?: LyricsExportTargetId
 } | null>(null)
 const isDragHovering = ref(false)
 
@@ -280,6 +288,49 @@ function cancelLyricsImport(): void {
   store.showStatus('status.lyrics.importCancelled')
 }
 
+async function requestLyricsExport(target: LyricsExportTargetId): Promise<void> {
+  const issues = validateProjectForExport(store.project, target)
+  if (issues.length === 0) {
+    await persistence.exportLyrics(target)
+    return
+  }
+  projectValidationModal.value = {
+    mode: 'export',
+    issues,
+    pendingExportTarget: target,
+  }
+}
+
+async function continueValidationExport(): Promise<void> {
+  const pendingTarget = projectValidationModal.value?.pendingExportTarget
+  projectValidationModal.value = null
+  if (pendingTarget) {
+    await persistence.exportLyrics(pendingTarget)
+  }
+}
+
+function cancelValidationExport(): void {
+  projectValidationModal.value = null
+  store.showStatus('status.lyrics.exportCancelled')
+}
+
+function validateCurrentProject(): void {
+  const issues = validateProjectForExport(store.project, 'all')
+  if (issues.length === 0) {
+    store.showStatus('status.project.validationPassed')
+    return
+  }
+  projectValidationModal.value = {
+    mode: 'readonly',
+    issues,
+  }
+  store.showStatus('status.project.validationIssues', { count: issues.length })
+}
+
+function closeProjectValidationModal(): void {
+  projectValidationModal.value = null
+}
+
 function onDragOver(event: DragEvent): void {
   event.preventDefault()
   isDragHovering.value = true
@@ -406,9 +457,8 @@ useEditorShortcuts({
       @pasteLyrics="showPasteModal = true"
       @openPreferences="showPreferencesModal = true"
       @importLyricsFile="requestLyricsImport"
-      @exportLyricsFile="
-        (target: LyricsExportTargetId) => persistence.exportLyrics(target)
-      "
+      @exportLyricsFile="requestLyricsExport"
+      @validateProject="validateCurrentProject"
       @addLyricLine="onAddLyricLine"
     />
     <LyricsPasteModal
@@ -429,6 +479,14 @@ useEditorShortcuts({
       :display-format="pendingLyricsImport.displayFormat"
       @confirm="confirmLyricsImport"
       @cancel="cancelLyricsImport"
+    />
+    <ProjectValidationModal
+      v-if="projectValidationModal"
+      :mode="projectValidationModal.mode"
+      :issues="projectValidationModal.issues"
+      @continue="continueValidationExport"
+      @cancel="cancelValidationExport"
+      @close="closeProjectValidationModal"
     />
     <PreferencesModal
       v-if="showPreferencesModal"

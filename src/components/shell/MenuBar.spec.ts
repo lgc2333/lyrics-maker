@@ -189,6 +189,17 @@ describe('menuBar', () => {
     expect(wrapper.emitted('saveProjectAs')).toHaveLength(1)
   })
 
+  it('emits validateProject from the file menu', async () => {
+    const wrapper = mount(MenuBar, {
+      props: { mode: 'timing', theme: 'light', audioLoaded: true },
+    })
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-validate-project"]').trigger('click')
+
+    expect(wrapper.emitted('validateProject')).toHaveLength(1)
+  })
+
   it('emits new project and lyric import/export actions from the file menu', async () => {
     const wrapper = mount(MenuBar, {
       props: { mode: 'timing', theme: 'light', audioLoaded: true },

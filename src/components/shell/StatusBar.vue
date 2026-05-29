@@ -93,7 +93,7 @@ const messageText = computed(() => {
 <template>
   <footer
     data-testid="status-bar"
-    class="flex h-6 shrink-0 items-center gap-3 border-t border-base-300 bg-base-100 px-2 text-[11px]"
+    class="flex h-7 shrink-0 items-center gap-3 border-t border-base-300 bg-base-100 px-2 text-xs"
   >
     <div data-testid="status-message" class="min-w-0 flex-1 truncate">
       {{ messageText }}

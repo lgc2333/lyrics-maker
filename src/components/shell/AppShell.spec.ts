@@ -418,6 +418,79 @@ describe('appShell', () => {
     expect(mockExportLyrics).toHaveBeenCalledWith('lrc-enhanced')
   })
 
+  it('opens validation warning before exporting lyrics with project issues', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.replaceLyricsFromImport(
+      [
+        {
+          words: [{ text: 'untimed' }],
+        },
+      ],
+      { format: 'txt', fileName: 'bad.txt' },
+    )
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    await wrapper.get('[data-testid="menu-export-lyrics-ttml"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="project-validation-modal"]').exists()).toBe(true)
+    expect(mockExportLyrics).not.toHaveBeenCalled()
+
+    await wrapper.get('[data-testid="project-validation-continue"]').trigger('click')
+
+    expect(mockExportLyrics).toHaveBeenCalledWith('ttml')
+    expect(wrapper.find('[data-testid="project-validation-modal"]').exists()).toBe(
+      false,
+    )
+  })
+
+  it('cancels export from validation warning', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.replaceLyricsFromImport(
+      [
+        {
+          words: [{ text: 'untimed' }],
+        },
+      ],
+      { format: 'txt', fileName: 'bad.txt' },
+    )
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-export-lyrics"]').trigger('mouseenter')
+    await wrapper.get('[data-testid="menu-export-lyrics-ttml"]').trigger('click')
+    await wrapper.get('[data-testid="project-validation-cancel"]').trigger('click')
+
+    expect(mockExportLyrics).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="project-validation-modal"]').exists()).toBe(
+      false,
+    )
+    expect(wrapper.get('[data-testid="status-message"]').text()).toContain(
+      '已取消导出歌词',
+    )
+  })
+
+  it('validates the project from the file menu without exporting', async () => {
+    const wrapper = mount(AppShell)
+    const store = useEditorStore()
+    store.replaceLyricsFromImport(
+      [
+        {
+          words: [{ text: 'untimed' }],
+        },
+      ],
+      { format: 'txt', fileName: 'bad.txt' },
+    )
+
+    await wrapper.get('[data-testid="menu-trigger-file"]').trigger('click')
+    await wrapper.get('[data-testid="menu-validate-project"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="project-validation-modal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="project-validation-close"]').exists()).toBe(true)
+    expect(mockExportLyrics).not.toHaveBeenCalled()
+  })
+
   it('opens a project immediately when the current project is clean', async () => {
     const wrapper = mount(AppShell)
 

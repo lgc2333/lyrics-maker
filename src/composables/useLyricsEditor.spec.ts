@@ -533,6 +533,22 @@ describe('handleNextLineKey (Enter)', () => {
     expect(editor.activeWordIndex.value).toBe(0)
   })
 
+  it('allows current line endTime to snap to the next line startTime boundary', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'storm' }], startTime: 74 },
+      { id: 'l2', words: [{ id: 'w2', text: "I'm" }], startTime: 75.75 },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+
+    editor.handleNextLineKey(75.76)
+    await nextTick()
+
+    expect(store.project.lyrics[0].words[0].endTime).toBeCloseTo(75.75, 6)
+    expect(editor.activeLineId.value).toBe('l2')
+  })
+
   it('always resets active word to start block after advancing to a pre-timed next line', async () => {
     const store = useEditorStore()
     store.insertLyricLines([

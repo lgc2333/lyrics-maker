@@ -7,6 +7,7 @@
       "openAudio": "导入音乐",
       "importLyrics": "导入歌词文件...",
       "exportLyrics": "导出歌词为",
+      "validateProject": "校验工程",
       "openFile": "打开文件...",
       "saveProject": "保存项目",
       "save": "保存 (Ctrl+S)",
@@ -137,6 +138,36 @@
       "saveAndOpen": "保存并打开",
       "discardAndOpen": "不保存并打开",
       "cancel": "取消"
+    },
+    "validation": {
+      "title": "工程校验警告",
+      "summary": "{errors} 个错误，{warnings} 个警告",
+      "exportPrompt": "这些问题可能影响导出结果。你仍然可以继续导出。",
+      "error": "错误",
+      "warning": "警告",
+      "cancel": "取消导出",
+      "continueExport": "继续导出",
+      "close": "关闭",
+      "issues": {
+        "emptyTitle": "工程标题为空。",
+        "emptyId": "存在空 ID。",
+        "duplicateId": "ID 与其他项目元素重复。",
+        "nonFiniteTime": "时间值不是有效数字。",
+        "negativeTime": "时间值小于 0。",
+        "invalidBpm": "BPM 必须是大于 0 的有效数字。",
+        "invalidTimeSignatureNumerator": "拍号分子必须是正整数。",
+        "invalidTimeSignatureDenominator": "拍号分母必须是正整数。",
+        "duplicateTimingPointTime": "存在重复的 Timing Point 时间。",
+        "emptyWords": "歌词行没有任何词块。",
+        "missingLineStartTime": "这一行有词块时间，但缺少行起始时间。",
+        "lineStartAfterEnd": "行起始时间晚于行结束时间。",
+        "lineIntervalOverlap": "歌词行时间区间重叠。",
+        "lineOrderRegression": "歌词行时间顺序倒退。",
+        "wordEndBeforeBoundary": "词块结束时间早于前一个边界。",
+        "missingWordEndTime": "逐词导出可能丢失未打轴词块。",
+        "missingLineTiming": "逐行导出无法推导完整行区间。",
+        "untimedEmptyPlaceholder": "空文本占位词缺少结束时间，无法承载静默边界。"
+      }
     }
   },
   "preferences": {
@@ -203,6 +234,8 @@
       "newCancelled": "已取消新建项目",
       "draftRestored": "已从浏览器草稿恢复",
       "titleUpdated": "已更新工程名",
+      "validationPassed": "工程校验通过",
+      "validationIssues": "工程校验发现 {count} 个问题",
       "unsupportedFileApi": "当前浏览器不支持工程文件读写"
     },
     "audio": {

@@ -98,16 +98,16 @@ const effectiveThemeLabel = computed(() =>
       </header>
 
       <div class="grid min-h-0 flex-1 grid-cols-[11rem_1fr]">
-        <aside class="border-r border-base-300 bg-base-200/40 p-2">
+        <aside class="border-r border-base-300 bg-base-200/40 p-1.5">
           <button
             v-for="category in categories"
             :key="category.key"
             :data-testid="category.testid"
-            class="mb-1 block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
+            class="mb-0.5 block w-full rounded px-2.5 py-1.5 text-left text-sm transition-colors"
             :class="
               activeCategory === category.key
                 ? 'bg-base-100 font-semibold shadow-sm'
-                : 'text-base-content/70 hover:bg-base-100/70 hover:text-base-content'
+                : 'text-base-content/75 hover:bg-base-300/80 hover:text-base-content'
             "
             @click="activeCategory = category.key"
           >

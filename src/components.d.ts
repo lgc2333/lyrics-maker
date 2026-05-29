@@ -19,6 +19,7 @@ declare module 'vue' {
     MainView: typeof import('./components/shell/MainView.vue')['default']
     MenuBar: typeof import('./components/shell/MenuBar.vue')['default']
     PreferencesModal: typeof import('./components/shell/PreferencesModal.vue')['default']
+    ProjectValidationModal: typeof import('./components/shell/ProjectValidationModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatusBar: typeof import('./components/shell/StatusBar.vue')['default']
