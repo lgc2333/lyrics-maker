@@ -470,6 +470,398 @@ describe('lineOverlayPlugin', () => {
       const plugin = LineOverlayPlugin.create()
       expect(() => plugin.update({ lyrics: [], activeLineId: null })).not.toThrow()
     })
+
+    it('renders drag hit areas for line and word boundaries', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      const lineStart = wrapper.querySelector<HTMLElement>(
+        '[data-testid="boundary-handle-line-start-line-1"]',
+      )
+      const lineEnd = wrapper.querySelector<HTMLElement>(
+        '[data-testid="boundary-handle-line-end-line-1"]',
+      )
+      const separator = wrapper.querySelector<HTMLElement>(
+        '[data-testid="boundary-handle-word-separator-w1"]',
+      )
+
+      expect(lineStart).not.toBeNull()
+      expect(lineEnd).not.toBeNull()
+      expect(separator).not.toBeNull()
+      expect(lineStart?.style.pointerEvents).toBe('auto')
+      expect(lineStart?.style.cursor).toBe('ew-resize')
+      expect(Number(lineStart?.style.zIndex)).toBeGreaterThan(5)
+    })
+
+    it('does not render ambiguous separator hit area when previous word is untimed', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'missing ' },
+              { id: 'w2', text: 'later', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      expect(
+        wrapper.querySelector('[data-testid="boundary-handle-word-separator-w1"]'),
+      ).toBeNull()
+    })
+
+    it('moves the dragged line start and range with dragPreview', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+        dragPreview: {
+          intent: { kind: 'line-start', lineId: 'line-1' },
+          time: 1.5,
+        },
+      })
+
+      const range = wrapper.querySelector<HTMLElement>(
+        '[data-testid="lyric-range-line-1"]',
+      )
+      const preview = wrapper.querySelector<HTMLElement>(
+        '[data-testid="boundary-handle-drag-preview"]',
+      )
+
+      expect(range?.style.left).toBe('150px')
+      expect(range?.style.width).toBe('150px')
+      expect(preview).not.toBeNull()
+      expect(preview?.style.left).toBe('0px')
+    })
+
+    it('moves adjacent word label widths with word separator dragPreview', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 4 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+        dragPreview: {
+          intent: { kind: 'word-separator', lineId: 'line-1', wordId: 'w1' },
+          time: 2.5,
+        },
+      })
+
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="lyric-range-line-1"]')?.style
+          .width,
+      ).toBe('300px')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="word-label-w1"]')?.style
+          .width,
+      ).toBe('150px')
+      expect(
+        wrapper.querySelector<HTMLElement>('[data-testid="word-label-w2"]')?.style.left,
+      ).toBe('150px')
+    })
+  })
+
+  describe('drag events', () => {
+    function dispatchPointer(
+      target: EventTarget,
+      type: string,
+      init: MouseEventInit & { pointerId?: number } = {},
+    ): void {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        clientX: init.clientX ?? 0,
+      }) as MouseEvent & { pointerId: number }
+      Object.defineProperty(event, 'pointerId', {
+        configurable: true,
+        value: init.pointerId ?? 1,
+      })
+      target.dispatchEvent(event)
+    }
+
+    it('emits drag lifecycle events with line-start intent', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(vi.fn())
+      vi.spyOn(HTMLElement.prototype, 'releasePointerCapture').mockImplementation(
+        vi.fn(),
+      )
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const startSpy = vi.fn()
+      const moveSpy = vi.fn()
+      const endSpy = vi.fn()
+      plugin.on('boundaryDragStart', startSpy)
+      plugin.on('boundaryDragMove', moveSpy)
+      plugin.on('boundaryDragEnd', endSpy)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      const handle = wrapper.querySelector(
+        '[data-testid="boundary-handle-line-start-line-1"]',
+      )!
+      dispatchPointer(handle, 'pointerdown', { clientX: 120 })
+      dispatchPointer(window, 'pointermove', { clientX: 250 })
+      dispatchPointer(window, 'pointerup', { clientX: 250 })
+
+      expect(startSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+      })
+      expect(moveSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+        rawTime: 2.5,
+      })
+      expect(endSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+        rawTime: 2.5,
+      })
+    })
+
+    it('emits word-separator intent using the left word id', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(vi.fn())
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const startSpy = vi.fn()
+      plugin.on('boundaryDragStart', startSpy)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [
+              { id: 'w1', text: 'hello ', endTime: 2 },
+              { id: 'w2', text: 'world', endTime: 3 },
+            ],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      dispatchPointer(
+        wrapper.querySelector('[data-testid="boundary-handle-word-separator-w1"]')!,
+        'pointerdown',
+        { clientX: 200 },
+      )
+
+      expect(startSpy).toHaveBeenCalledWith({
+        intent: { kind: 'word-separator', lineId: 'line-1', wordId: 'w1' },
+      })
+    })
+
+    it('does not double-count scrollLeft when converting pointer X to time', () => {
+      const { wrapper, scrollContainer, ws, emit } = createFakeWs()
+      scrollContainer.scrollLeft = 300
+      vi.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({
+        left: -300,
+        right: 700,
+        top: 0,
+        bottom: 100,
+        width: 1000,
+        height: 100,
+        x: -300,
+        y: 0,
+        toJSON: () => ({}),
+      })
+      vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(vi.fn())
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const moveSpy = vi.fn()
+      plugin.on('boundaryDragMove', moveSpy)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      const handle = wrapper.querySelector(
+        '[data-testid="boundary-handle-line-start-line-1"]',
+      )!
+      dispatchPointer(handle, 'pointerdown', { clientX: 100 })
+      dispatchPointer(window, 'pointermove', { clientX: 100 })
+
+      expect(moveSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+        rawTime: 4,
+      })
+    })
+
+    it('emits cancel once when Escape is pressed during drag', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(vi.fn())
+      vi.spyOn(HTMLElement.prototype, 'releasePointerCapture').mockImplementation(
+        vi.fn(),
+      )
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const cancelSpy = vi.fn()
+      plugin.on('boundaryDragCancel', cancelSpy)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      dispatchPointer(
+        wrapper.querySelector('[data-testid="boundary-handle-line-start-line-1"]')!,
+        'pointerdown',
+        { clientX: 100 },
+      )
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+
+      expect(cancelSpy).toHaveBeenCalledTimes(1)
+      expect(cancelSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+      })
+    })
+
+    it('continues a drag from window events after preview redraw replaces the captured handle', () => {
+      const { wrapper, ws, emit } = createFakeWs()
+      vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(vi.fn())
+      vi.spyOn(HTMLElement.prototype, 'releasePointerCapture').mockImplementation(
+        vi.fn(),
+      )
+      const plugin = LineOverlayPlugin.create()
+      Reflect.set(plugin, 'wavesurfer', ws)
+      Reflect.get(plugin, 'onInit').call(plugin)
+      const moveSpy = vi.fn()
+      const endSpy = vi.fn()
+      plugin.on('boundaryDragMove', moveSpy)
+      plugin.on('boundaryDragEnd', endSpy)
+
+      emit('ready')
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+      })
+
+      const originalHandle = wrapper.querySelector(
+        '[data-testid="boundary-handle-line-start-line-1"]',
+      )!
+      dispatchPointer(originalHandle, 'pointerdown', { clientX: 100 })
+      plugin.update({
+        lyrics: [
+          {
+            id: 'line-1',
+            startTime: 1,
+            words: [{ id: 'w1', text: 'hello', endTime: 3 }],
+          },
+        ],
+        activeLineId: 'line-1',
+        duration: 10,
+        dragPreview: {
+          intent: { kind: 'line-start', lineId: 'line-1' },
+          time: 1.25,
+        },
+      })
+
+      expect(originalHandle.isConnected).toBe(false)
+
+      dispatchPointer(window, 'pointermove', { clientX: 200 })
+      dispatchPointer(window, 'pointerup', { clientX: 200 })
+
+      expect(moveSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+        rawTime: 2,
+      })
+      expect(endSpy).toHaveBeenCalledWith({
+        intent: { kind: 'line-start', lineId: 'line-1' },
+        rawTime: 2,
+      })
+    })
   })
 
   describe('destroy', () => {

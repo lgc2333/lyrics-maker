@@ -11,6 +11,13 @@ import {
 } from 'vue'
 import type { InjectionKey, MaybeRefOrGetter, ShallowRef } from 'vue'
 
+import type { BoundaryDragIntent } from '../core/lyrics/boundary-bounds'
+import {
+  BOUNDARY_DRAG_EPSILON,
+  getDragClampBounds,
+} from '../core/lyrics/boundary-bounds'
+import { computeSnappedTime } from '../core/lyrics/snap-time'
+import { formatTimestamp } from '../core/utils/format-timestamp'
 import { GridOverlayPlugin } from '../platform/waveform/grid-overlay-plugin'
 import { LineOverlayPlugin } from '../platform/waveform/line-overlay-plugin'
 import { PlayheadOverlayPlugin } from '../platform/waveform/playhead-overlay-plugin'
@@ -28,6 +35,7 @@ const SEEK_SCROLL_MARGIN_RATIO = 0.1
 
 interface UseTimelineViewOptions {
   onExplicitSeek?: (time: number) => void
+  onBoundaryDragStart?: (intent: BoundaryDragIntent) => void
   activeLyricSelection?: MaybeRefOrGetter<{
     lineId: string | null
     wordIndex: number
@@ -75,6 +83,13 @@ export function useTimelineView(
   let playheadPlugin: PlayheadOverlayPlugin | null = null
   let lastUserScrollAt = 0
   let resizeObserver: ResizeObserver | null = null
+  let dragSession: {
+    intent: BoundaryDragIntent
+    originalTime: number
+    lastSnappedTime: number
+  } | null = null
+  let suppressAutoFollow = false
+  let lineOverlayDragUnsubscribers: Array<() => void> = []
   const USER_SCROLL_COOLDOWN_MS = 1000
 
   function _buildOverlayParams() {
@@ -96,6 +111,7 @@ export function useTimelineView(
       activeWordIndex: selection.wordIndex,
       theme: activeTheme.value,
       viewMode: viewMode.value,
+      duration: store.duration,
     }
   }
 
@@ -121,6 +137,7 @@ export function useTimelineView(
     lineOverlayPlugin = view.registerPlugin(
       LineOverlayPlugin.create({ outerContainer: container }),
     )
+    _subscribeLineOverlayDragEvents(lineOverlayPlugin)
     playheadPlugin = view.registerPlugin(
       PlayheadOverlayPlugin.create({ outerContainer: container }),
     )
@@ -214,6 +231,7 @@ export function useTimelineView(
       playheadPlugin?.update(_buildPlayheadParams())
       if (
         autoFollowPlayback.value &&
+        !suppressAutoFollow &&
         store.isPlaying &&
         Date.now() - lastUserScrollAt > USER_SCROLL_COOLDOWN_MS
       ) {
@@ -302,6 +320,8 @@ export function useTimelineView(
   onUnmounted(() => {
     window.removeEventListener('keydown', _onKeydown)
     window.removeEventListener('keyup', _onKeyup)
+    _clearDragSession()
+    _teardownLineOverlayDragSubscriptions()
     resizeObserver?.disconnect()
     resizeObserver = null
     wavesurferView?.destroy()
@@ -317,6 +337,8 @@ export function useTimelineView(
     const container = containerRef.value
     const scrollTime = wavesurferView?.getScrollTime() ?? 0
 
+    _clearDragSession()
+    _teardownLineOverlayDragSubscriptions()
     resizeObserver?.disconnect()
     wavesurferView?.destroy()
     wavesurferView = null
@@ -352,6 +374,147 @@ export function useTimelineView(
 
   function setTheme(nextTheme: 'light' | 'dark'): void {
     activeTheme.value = nextTheme
+  }
+
+  function _readTimeForIntent(intent: BoundaryDragIntent): number | undefined {
+    const line = store.project.lyrics.find((item) => item.id === intent.lineId)
+    if (!line) return undefined
+    if (intent.kind === 'line-start') return line.startTime
+    return line.words.find((word) => word.id === intent.wordId)?.endTime
+  }
+
+  function _collectExistingEndTimes(intent: BoundaryDragIntent): number[] {
+    const line = store.project.lyrics.find((item) => item.id === intent.lineId)
+    if (!line) return []
+    return line.words
+      .filter((word) => {
+        if (intent.kind === 'line-start') return true
+        return word.id !== intent.wordId
+      })
+      .map((word) => word.endTime)
+      .filter((time): time is number => time !== undefined)
+  }
+
+  function _teardownLineOverlayDragSubscriptions(): void {
+    for (const off of lineOverlayDragUnsubscribers) off()
+    lineOverlayDragUnsubscribers = []
+  }
+
+  function _subscribeLineOverlayDragEvents(plugin: LineOverlayPlugin): void {
+    _teardownLineOverlayDragSubscriptions()
+    lineOverlayDragUnsubscribers = [
+      plugin.on('boundaryDragStart', _handleBoundaryDragStart),
+      plugin.on('boundaryDragMove', _handleBoundaryDragMove),
+      plugin.on('boundaryDragEnd', _handleBoundaryDragEnd),
+      plugin.on('boundaryDragCancel', _handleBoundaryDragCancel),
+    ]
+  }
+
+  function _handleBoundaryDragStart({ intent }: { intent: BoundaryDragIntent }): void {
+    const originalTime = _readTimeForIntent(intent)
+    if (originalTime === undefined || store.duration <= 0) return
+    dragSession = {
+      intent,
+      originalTime,
+      lastSnappedTime: Number.NaN,
+    }
+    suppressAutoFollow = true
+    options.onBoundaryDragStart?.(intent)
+  }
+
+  function _handleBoundaryDragMove({
+    intent,
+    rawTime,
+  }: {
+    intent: BoundaryDragIntent
+    rawTime: number
+  }): void {
+    if (!dragSession || !_isSameIntent(dragSession.intent, intent)) return
+    const clamped = _computeBoundaryDragTime(intent, rawTime)
+    if (clamped === dragSession.lastSnappedTime) return
+    dragSession.lastSnappedTime = clamped
+    lineOverlayPlugin?.update({
+      ..._buildLineOverlayParams(),
+      dragPreview: { intent, time: clamped },
+    })
+  }
+
+  function _computeBoundaryDragTime(
+    intent: BoundaryDragIntent,
+    rawTime: number,
+  ): number {
+    const snapped = computeSnappedTime({
+      rawTime,
+      snapEnabled: store.snapEnabled,
+      timingPoints: store.project.timingPoints,
+      divisor: divisor.value,
+      triplets: effectiveTriplets.value,
+      existingEndTimes: _collectExistingEndTimes(intent),
+    })
+    const { min, max } = getDragClampBounds(
+      intent,
+      store.project.lyrics,
+      store.duration,
+    )
+    return Math.max(min, Math.min(max, snapped))
+  }
+
+  function _handleBoundaryDragEnd({
+    intent,
+    rawTime,
+  }: {
+    intent: BoundaryDragIntent
+    rawTime: number
+  }): void {
+    if (!dragSession || !_isSameIntent(dragSession.intent, intent)) return
+    const session = dragSession
+    dragSession = null
+    suppressAutoFollow = false
+    if (_readTimeForIntent(session.intent) === undefined) {
+      lineOverlayPlugin?.update(_buildLineOverlayParams())
+      return
+    }
+
+    const finalTime = _computeBoundaryDragTime(session.intent, rawTime)
+    lineOverlayPlugin?.update(_buildLineOverlayParams())
+    if (Math.abs(finalTime - session.originalTime) < BOUNDARY_DRAG_EPSILON) return
+    _commitBoundary(session.intent, finalTime)
+  }
+
+  function _handleBoundaryDragCancel(): void {
+    _clearDragSession()
+    lineOverlayPlugin?.update(_buildLineOverlayParams())
+  }
+
+  function _clearDragSession(): void {
+    dragSession = null
+    suppressAutoFollow = false
+  }
+
+  function _commitBoundary(intent: BoundaryDragIntent, time: number): void {
+    if (intent.kind === 'line-start') {
+      store.setLineStartTime(intent.lineId, time)
+      store.showStatus('status.lyrics.dragLineStart', {
+        time: formatTimestamp(time),
+      })
+      return
+    }
+
+    store.setWordEndTime(intent.lineId, intent.wordId, time)
+    store.showStatus(
+      intent.kind === 'line-end'
+        ? 'status.lyrics.dragLineEnd'
+        : 'status.lyrics.dragWordEnd',
+      { time: formatTimestamp(time) },
+    )
+  }
+
+  function _isSameIntent(a: BoundaryDragIntent, b: BoundaryDragIntent): boolean {
+    if (a.kind !== b.kind || a.lineId !== b.lineId) return false
+    if ('wordId' in a || 'wordId' in b) {
+      return 'wordId' in a && 'wordId' in b && a.wordId === b.wordId
+    }
+    return true
   }
 
   /**

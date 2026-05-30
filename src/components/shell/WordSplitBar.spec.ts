@@ -81,6 +81,7 @@ function createMockLyricsEditor(
       return store.project.lyrics.find((l) => l.id === activeLineId.value) ?? null
     }),
     activateLine: vi.fn(),
+    selectLine: vi.fn(),
     clearSelection: vi.fn(),
     requestWholeLineEdit: vi.fn(),
     insertEmptyLineAt: vi.fn(),

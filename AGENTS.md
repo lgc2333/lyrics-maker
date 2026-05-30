@@ -36,6 +36,7 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 - Git index writes (e.g. `git add`, `git commit`) may require escalation, `.git/index.lock` is permission-denied by the sandbox.
 - If you need to install dependencies, DO NOT do this by yourself. Ask the user to do it; sandboxed pnpm may not be able to access its store.
 - In the Codex sandbox, `rg` may resolve to a WinGet Links shim and fail to launch even though ripgrep works in the user's normal shell. If this happens, run `Get-Command rg -All` and `where.exe rg` to find another working `rg.exe`, then call that executable directly, or fall back to PowerShell search.
+- Broad `Get-ChildItem -Recurse` scans can time out; prefer `git ls-files`, targeted `Get-ChildItem`, or a working `rg --files`.
 
 ## Tooling
 
@@ -48,9 +49,9 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 - **Bug fixing**: Always invoke `systematic-debugging` before proposing any fix.
 - **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also invoke `create-adaptable-composables` and `vue-*` skills as needed.
 
-When the user or a skill instructs you to use `writing-plans`, write plans without embedded code. After the plan is written and the user has reviewed it, always proceed with inline execution.
-
-If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
+- When the user or a skill instructs you to use `writing-plans`, **write plans without embedded code**. After the user reviewed your plan, always proceed with inline execution.
+- Ask the user first before invoke `using-git-worktrees`.
+- If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
 
 ## Architecture: Three-Layer Design
 
@@ -137,11 +138,11 @@ Detailed project rules live in focused pattern docs:
 - [Lyrics import/export patterns](docs/patterns/lyrics-import-export.md): format registry, LRC/TTML/ASS/subtitle parsing and serialization rules.
 - [Testing patterns](docs/patterns/testing.md): test environment, Vue/store/composable test setup, and testing gotchas.
 
-When starting work, proactively read the linked pattern docs relevant to the files or domain you will touch. When adding new durable project rules, update the relevant linked `docs/patterns/*` file instead of appending them under this section.
+When starting work, proactively read the linked pattern docs relevant to the files or domain you will touch. When revising durable project guidance, put domain patterns in the matching `docs/patterns/*` file; keep `AGENTS.md` for agent workflow and environment notes only.
 
 ## Committing
 
-Use semantic/conventional commit messages, e.g. `fix: keep vertical slider popovers reachable`.
+Use conventional commit messages.
 
 ## Current Phase
 

@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { computed, defineComponent, h, ref, shallowRef } from 'vue'
+import { computed, defineComponent, h, nextTick, ref, shallowRef } from 'vue'
 
 import {
   __overrideAudioTransportFactory,
@@ -9,6 +9,29 @@ import {
   useEditorStore,
 } from '../stores/editor-store'
 import { useTimelineView } from './useTimelineView'
+
+type Listener = (payload?: unknown) => void
+
+class MockLineOverlayPlugin {
+  update = vi.fn()
+  private listeners = new Map<string, Listener[]>()
+
+  on(event: string, listener: Listener): () => void {
+    const listeners = this.listeners.get(event) ?? []
+    listeners.push(listener)
+    this.listeners.set(event, listeners)
+    return () => {
+      this.listeners.set(
+        event,
+        (this.listeners.get(event) ?? []).filter((item) => item !== listener),
+      )
+    }
+  }
+
+  emit(event: string, payload?: unknown): void {
+    for (const listener of this.listeners.get(event) ?? []) listener(payload)
+  }
+}
 
 const mockViews: Array<{
   registerPlugin: ReturnType<typeof vi.fn>
@@ -26,7 +49,7 @@ const mockViews: Array<{
 }> = []
 
 const mockGridPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
-const mockLinePlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
+const mockLinePlugins: MockLineOverlayPlugin[] = []
 const mockPlayheadPlugins: Array<{ update: ReturnType<typeof vi.fn> }> = []
 const mockViewListeners: Array<Record<string, Array<(...args: unknown[]) => void>>> = []
 
@@ -47,7 +70,7 @@ vi.mock('../platform/waveform/grid-overlay-plugin', () => ({
 vi.mock('../platform/waveform/line-overlay-plugin', () => ({
   LineOverlayPlugin: {
     create: vi.fn(() => {
-      const plugin = { update: vi.fn() }
+      const plugin = new MockLineOverlayPlugin()
       mockLinePlugins.push(plugin)
       return plugin
     }),
@@ -532,6 +555,153 @@ describe('useTimelineView', () => {
     timeline!.rhythmMode.value = 'triplets'
     await wrapper.vm.$nextTick()
     expect(timeline!.effectiveTriplets.value).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('previews snapped and clamped drag moves, then commits one command with drag status', async () => {
+    const onBoundaryDragStart = vi.fn()
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef, { onBoundaryDragStart })
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        startTime: 1,
+        words: [
+          { id: 'word-1', text: 'hello ', endTime: 2 },
+          { id: 'word-2', text: 'world', endTime: 4 },
+        ],
+      },
+      {
+        id: 'line-2',
+        startTime: 7,
+        words: [{ id: 'word-3', text: 'next', endTime: 8 }],
+      },
+    ])
+    const intent = {
+      kind: 'word-separator' as const,
+      lineId: 'line-1',
+      wordId: 'word-1',
+    }
+
+    mockLinePlugins[0].emit('boundaryDragStart', { intent })
+    mockLinePlugins[0].emit('boundaryDragMove', { intent, rawTime: 5 })
+    mockLinePlugins[0].emit('boundaryDragEnd', { intent, rawTime: 5 })
+
+    expect(onBoundaryDragStart).toHaveBeenCalledWith(intent)
+    expect(mockLinePlugins[0].update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dragPreview: expect.objectContaining({
+          intent,
+          time: expect.closeTo(3.999, 6),
+        }),
+      }),
+    )
+    expect(store.project.lyrics[0].words[0].endTime).toBeCloseTo(3.999, 6)
+    expect(store.canUndo).toBe(true)
+    expect(store.statusMessage?.key).toBe('status.lyrics.dragWordEnd')
+    expect(store.statusMessage?.params?.time).toBe('00:03.999')
+
+    wrapper.unmount()
+  })
+
+  it('uses the drag end raw time when no move event produced a preview', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        startTime: 1,
+        words: [{ id: 'word-1', text: 'hello', endTime: 4 }],
+      },
+    ])
+    const intent = { kind: 'line-start' as const, lineId: 'line-1' }
+
+    mockLinePlugins[0].emit('boundaryDragStart', { intent })
+    mockLinePlugins[0].emit('boundaryDragEnd', { intent, rawTime: 2.5 })
+
+    expect(store.project.lyrics[0].startTime).toBe(2.5)
+    expect(store.statusMessage?.key).toBe('status.lyrics.dragLineStart')
+
+    wrapper.unmount()
+  })
+
+  it('cancels overlay drag without committing and clears preview', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        startTime: 1,
+        words: [
+          { id: 'word-1', text: 'hello ', endTime: 2 },
+          { id: 'word-2', text: 'world', endTime: 4 },
+        ],
+      },
+    ])
+    const intent = {
+      kind: 'line-end' as const,
+      lineId: 'line-1',
+      wordId: 'word-2',
+    }
+
+    mockLinePlugins[0].emit('boundaryDragStart', { intent })
+    mockLinePlugins[0].emit('boundaryDragMove', { intent, rawTime: 5 })
+    mockLinePlugins[0].emit('boundaryDragCancel', { intent })
+
+    expect(store.project.lyrics[0].words[1].endTime).toBe(4)
+    expect(mockLinePlugins[0].update).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ dragPreview: expect.anything() }),
+    )
+
+    wrapper.unmount()
+  })
+
+  it('suppresses playback auto-follow during overlay drag and restores it after end', async () => {
+    const container = document.createElement('div')
+    const containerRef = shallowRef<HTMLElement | null>(container)
+    const wrapper = mountHarness(() => {
+      useTimelineView(containerRef)
+    })
+    const store = useEditorStore()
+    await store.importAudioFile(new File(['x'], 'song.mp3', { type: 'audio/mpeg' }))
+    store.insertLyricLines([
+      {
+        id: 'line-1',
+        startTime: 1,
+        words: [{ id: 'word-1', text: 'hello', endTime: 3 }],
+      },
+    ])
+    const intent = { kind: 'line-start' as const, lineId: 'line-1' }
+    await store.togglePlayback()
+
+    mockLinePlugins[0].emit('boundaryDragStart', { intent })
+    store.seekPlayback(2)
+    await nextTick()
+
+    expect(mockViews[0].scrollPlaybackTo).not.toHaveBeenCalled()
+
+    mockLinePlugins[0].emit('boundaryDragMove', { intent, rawTime: 1.5 })
+    mockLinePlugins[0].emit('boundaryDragEnd', { intent, rawTime: 1.5 })
+    store.seekPlayback(2.5)
+    await nextTick()
+
+    expect(mockViews[0].scrollPlaybackTo).toHaveBeenCalled()
 
     wrapper.unmount()
   })

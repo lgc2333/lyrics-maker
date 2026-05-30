@@ -87,6 +87,7 @@ const isDragHovering = ref(false)
 const timelineContainerRef = shallowRef<HTMLElement | null>(null)
 const timeline = useTimelineView(timelineContainerRef, {
   onExplicitSeek: (time) => lyricsEditor.selectTimedWordAt(time),
+  onBoundaryDragStart: (intent) => lyricsEditor.selectLine(intent.lineId),
   activeLyricSelection: computed(() => ({
     lineId: lyricsEditor.activeLineId.value,
     wordIndex: lyricsEditor.activeWordIndex.value,

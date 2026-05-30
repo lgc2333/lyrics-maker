@@ -795,6 +795,25 @@
 - platform overlay 只发出意图数据，由 Vue/store 层应用 command。
 - 现有键盘打轴流程必须继续可用。
 
+### 已完成内容
+
+- `LineOverlayPlugin` 增加拖拽 hit area、pointer 状态机、Esc 取消、边缘自动滚动和 `dragPreview` 临时渲染。
+- `useTimelineView` 订阅 overlay intent 事件，负责 snap、clamp、preview 回传、auto-follow 抑制和现有 command 提交。
+- `useLyricsEditor.selectLine()` 支持拖拽开始时轻量激活行，不触发 seek，也不改变同一行的词级上下文。
+- 成功拖拽通过 `StatusBar` 显示拖拽语义状态；无效拖拽、取消和目标消失不写 command。
+- 新增 `core/lyrics/boundary-bounds.ts` 纯函数集中维护拖拽 clamp 边界。
+
+### 验收结果
+
+- 目标测试覆盖：
+  - `boundary-bounds.spec.ts`
+  - `line-overlay-plugin.spec.ts`
+  - `useTimelineView.spec.ts`
+  - `useLyricsEditor.spec.ts`
+- 验证记录：
+  - focused tests：108 passed
+  - `pnpm check`
+
 ## 推荐实施顺序
 
 1. Part 1：StatusBar 地基与无音频边界。

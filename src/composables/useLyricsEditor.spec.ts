@@ -261,6 +261,75 @@ describe('useLyricsEditor', () => {
     expect(editor.activeLineId.value).toBeNull()
   })
 
+  it('selectLine activates a line without seeking', () => {
+    const store = useEditorStore()
+    const seekSpy = vi.spyOn(store, 'seekPlayback')
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 5 },
+    ])
+    const { editor } = mountEditor()
+
+    editor.selectLine('l1')
+
+    expect(editor.activeLineId.value).toBe('l1')
+    expect(editor.activeWordIndex.value).toBe(0)
+    expect(seekSpy).not.toHaveBeenCalled()
+  })
+
+  it('selectLine keeps activeWordIndex when selecting the active line again', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }], startTime: 5 },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+    editor.activeWordIndex.value = 1
+
+    editor.selectLine('l1')
+
+    expect(editor.activeWordIndex.value).toBe(1)
+  })
+
+  it('keeps activeWordIndex after a non-seeking overlay drag edits timing on the active line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      {
+        id: 'l1',
+        startTime: 0,
+        words: [
+          { id: 'w1', text: 'hello', endTime: 1 },
+          { id: 'w2', text: 'world', endTime: 2 },
+          { id: 'w3', text: 'again', endTime: 3 },
+        ],
+      },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+    editor.activeWordIndex.value = 2
+
+    editor.selectLine('l1')
+    store.setWordEndTime('l1', 'w1', 1.25)
+    await nextTick()
+
+    expect(editor.activeWordIndex.value).toBe(2)
+  })
+
+  it('selectLine resets activeWordIndex when switching lines', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'hello' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'world' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activeLineId.value = 'l1'
+    editor.activeWordIndex.value = 1
+
+    editor.selectLine('l2')
+
+    expect(editor.activeLineId.value).toBe('l2')
+    expect(editor.activeWordIndex.value).toBe(0)
+  })
+
   it('selectTimedWordAt activates the line and word containing the time', () => {
     const store = useEditorStore()
     store.insertLyricLines([

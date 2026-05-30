@@ -24,6 +24,9 @@
 - **Manual timeline interaction may select lyrics by timed word range.** Keep WaveSurfer `interaction` seeking in `useTimelineView`, expose an optional explicit-seek callback, and let `useLyricsEditor` map `time` to `activeLineId`/1-based `activeWordIndex` from `[line.startTime|prevWord.endTime, word.endTime]`.
 - **Selected word overlay highlight follows lyrics editor state.** Pass `activeLineId`/1-based `activeWordIndex` from `useLyricsEditor` through `useTimelineView` into `LineOverlayPlugin`; do not store this transient UI selection in project data.
 - **Selected word highlight requires a direct complete word range.** Highlight only when the selected word has its own start boundary (`line.startTime` or previous word `endTime`) and `endTime`; do not reuse partial-overlay bridge ranges for selection.
+- **LineOverlay drag editing is intent-only in platform code.** The plugin emits boundary drag events with line/word ids and raw time; Vue composables perform snap, clamp, command dispatch, and status feedback.
+- **Overlay drag preview is data-shaped but not project data.** Pass `dragPreview` into `LineOverlayPlugin.update()` for temporary rendering and clear it on commit, cancel, plugin recreate, and unmount.
+- **Overlay boundary drags must survive redraw and preserve selection.** Use window/capture pointer listeners so `dragPreview` redraws cannot drop move/up events, and suppress lyrics editor word re-derivation when drag commands mutate timing on the active line.
 
 ## Audio & Metronome
 

@@ -49,6 +49,18 @@ export function useLyricsEditor() {
     }
   }
 
+  function selectLine(lineId: string): void {
+    const line = store.project.lyrics.find((l) => l.id === lineId)
+    if (!line) return
+    if (activeLineId.value === lineId) {
+      _suppressWatchSync = true
+      return
+    }
+    _suppressWatchSync = true
+    activeLineId.value = lineId
+    activeWordIndex.value = 0
+  }
+
   function clearSelection(): void {
     activeLineId.value = null
     activeWordIndex.value = 0
@@ -348,6 +360,7 @@ export function useLyricsEditor() {
     wholeLineEditRequestId,
     activeLine,
     activateLine,
+    selectLine,
     clearSelection,
     requestWholeLineEdit,
     insertEmptyLineAt,
