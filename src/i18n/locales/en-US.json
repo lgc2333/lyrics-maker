@@ -114,7 +114,8 @@
       "timingMode": "Timing",
       "editMode": "Edit",
       "wholeLineEdit": "Edit Whole Line",
-      "deleteWord": "Delete word"
+      "deleteWord": "Delete word",
+      "setToCurrentTime": "Set to current playback position"
     },
     "import": {
       "confirmTitle": "Import Lyrics File",

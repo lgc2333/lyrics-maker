@@ -114,7 +114,8 @@
       "timingMode": "打轴",
       "editMode": "编辑",
       "wholeLineEdit": "整行编辑",
-      "deleteWord": "删除词块"
+      "deleteWord": "删除词块",
+      "setToCurrentTime": "设为当前播放位置"
     },
     "import": {
       "confirmTitle": "导入歌词文件",

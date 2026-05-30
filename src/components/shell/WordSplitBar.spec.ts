@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, defineComponent, ref } from 'vue'
 import { createI18n } from 'vue-i18n'
 
+import { useLyricsEditor } from '../../composables/useLyricsEditor'
 import zhCN from '../../i18n/locales/zh-CN.json'
 import type { AudioTransport } from '../../platform/audio/audio-transport'
 import {
@@ -12,6 +13,7 @@ import {
   useEditorStore,
 } from '../../stores/editor-store'
 import WordSplitBar from './WordSplitBar.vue'
+import type { LyricsEditorContext } from './injection-keys'
 import { LYRICS_EDITOR_KEY } from './injection-keys'
 
 vi.mock('@iconify/vue', () => ({
@@ -61,7 +63,9 @@ const i18n = createI18n({
   messages: { 'zh-CN': zhCN },
 })
 
-function createMockLyricsEditor(overrides = {}) {
+function createMockLyricsEditor(
+  overrides: Partial<LyricsEditorContext> = {},
+): LyricsEditorContext {
   const activeLineId = ref(null as string | null)
   const activeWordIndex = ref(0)
   const splitBarMode = ref('timing' as 'cut' | 'timing' | 'edit')
@@ -79,10 +83,17 @@ function createMockLyricsEditor(overrides = {}) {
     activateLine: vi.fn(),
     clearSelection: vi.fn(),
     requestWholeLineEdit: vi.fn(),
+    insertEmptyLineAt: vi.fn(),
+    insertEmptyLineTop: vi.fn(),
+    insertEmptyLineBottom: vi.fn(),
+    insertEmptyLineAboveActive: vi.fn(),
+    insertEmptyLineBelowActive: vi.fn(),
+    selectTimedWordAt: vi.fn(),
     handleMarkKey: vi.fn(),
     handleNextLineKey: vi.fn(),
     handleMarkNoAdvanceKey: vi.fn(),
     handleDeleteLine: vi.fn(),
+    removeLine: vi.fn(),
     handlePlayLineInterval: vi.fn(),
     handlePlayWordInterval: vi.fn(),
     ...overrides,
@@ -90,7 +101,7 @@ function createMockLyricsEditor(overrides = {}) {
 }
 
 function mountComponent(
-  lyricsEditor = createMockLyricsEditor(),
+  lyricsEditor: LyricsEditorContext = createMockLyricsEditor(),
   options: { attachTo?: HTMLElement } = {},
 ) {
   return {
@@ -672,6 +683,158 @@ describe('wordSplitBar', () => {
 
       expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
       expect(store.project.lyrics[0].words[1].endTime).toBe(2.5)
+    })
+
+    it('clicking the start timestamp current-time button applies the playback position to the line start', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.seekPlayback(3.75)
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'Hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 0
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-start-time-to-current-button"]')
+        .trigger('click')
+
+      expect(store.project.lyrics[0].startTime).toBe(3.75)
+    })
+
+    it('clicking the start timestamp current-time button reports missing audio without changing line start', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [{ id: 'w1', text: 'Hello' }],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 0
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-start-time-to-current-button"]')
+        .trigger('click')
+
+      expect(store.project.lyrics[0].startTime).toBeUndefined()
+      expect(store.statusMessage?.key).toBe('status.audioRequired')
+      expect(store.statusMessage?.params?.action).toBe('lyrics.mark')
+    })
+
+    it('clicking the start timestamp current-time button keeps the start block selected', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.seekPlayback(3.75)
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          words: [
+            { id: 'w1', text: 'Hello', endTime: 1 },
+            { id: 'w2', text: 'world', endTime: 2 },
+          ],
+        },
+      ])
+      const lyricsEditor = useLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 0
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-start-time-to-current-button"]')
+        .trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(store.project.lyrics[0].startTime).toBe(3.75)
+      expect(lyricsEditor.activeWordIndex.value).toBe(0)
+    })
+
+    it('clicking the word timestamp current-time button applies the playback position to the selected word end', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.seekPlayback(4.5)
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          startTime: 0,
+          words: [
+            { id: 'w1', text: 'Hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 2
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-word-end-time-to-current-button"]')
+        .trigger('click')
+
+      expect(store.project.lyrics[0].words[0].endTime).toBeUndefined()
+      expect(store.project.lyrics[0].words[1].endTime).toBe(4.5)
+    })
+
+    it('clicking the word timestamp current-time button reports missing audio without changing word end', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          startTime: 0,
+          words: [
+            { id: 'w1', text: 'Hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = createMockLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 2
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-word-end-time-to-current-button"]')
+        .trigger('click')
+
+      expect(store.project.lyrics[0].words[1].endTime).toBeUndefined()
+      expect(store.statusMessage?.key).toBe('status.audioRequired')
+      expect(store.statusMessage?.params?.action).toBe('lyrics.mark')
+    })
+
+    it('clicking the word timestamp current-time button keeps the selected word active', async () => {
+      const store = useEditorStore()
+      await store.importAudioFile(new File([], 'test.mp3'))
+      store.seekPlayback(4.5)
+      store.insertLyricLines([
+        {
+          id: 'line-1',
+          startTime: 0,
+          words: [
+            { id: 'w1', text: 'Hello' },
+            { id: 'w2', text: 'world' },
+          ],
+        },
+      ])
+      const lyricsEditor = useLyricsEditor()
+      lyricsEditor.activeLineId.value = 'line-1'
+      lyricsEditor.activeWordIndex.value = 1
+      const { wrapper } = mountComponent(lyricsEditor)
+
+      await wrapper
+        .get('[data-testid="set-word-end-time-to-current-button"]')
+        .trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(store.project.lyrics[0].words[0].endTime).toBe(4.5)
+      expect(lyricsEditor.activeWordIndex.value).toBe(1)
     })
   })
 

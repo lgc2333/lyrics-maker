@@ -123,6 +123,35 @@ function onWordEndTimeInput(wordId: string, event: Event): void {
   store.setWordEndTime(activeLine.value.id, wordId, nextValue)
 }
 
+async function setStartTimeToCurrentTime(): Promise<void> {
+  if (!activeLine.value) return
+  if (!store.hasAudio) {
+    store.showStatus('status.audioRequired', { action: 'lyrics.mark' })
+    return
+  }
+  const nextValue = Math.max(0, store.currentTime)
+  if (activeLine.value.startTime === nextValue) return
+  const activeWordIndex = lyricsEditor.activeWordIndex.value
+  store.setLineStartTime(activeLine.value.id, nextValue)
+  await nextTick()
+  lyricsEditor.activeWordIndex.value = activeWordIndex
+}
+
+async function setWordEndTimeToCurrentTime(wordId: string): Promise<void> {
+  if (!activeLine.value) return
+  if (!store.hasAudio) {
+    store.showStatus('status.audioRequired', { action: 'lyrics.mark' })
+    return
+  }
+  const word = words.value.find((w) => w.id === wordId)
+  const nextValue = Math.max(0, store.currentTime)
+  if (word?.endTime === nextValue) return
+  const activeWordIndex = lyricsEditor.activeWordIndex.value
+  store.setWordEndTime(activeLine.value.id, wordId, nextValue)
+  await nextTick()
+  lyricsEditor.activeWordIndex.value = activeWordIndex
+}
+
 const editingWordId = ref<string | null>(null)
 const editingWordText = ref('')
 const wholeLineEditMode = ref(false)
@@ -437,7 +466,7 @@ watch(
               data-testid="start-time-input"
               type="text"
               inputmode="decimal"
-              class="input input-xs h-5 w-20 border-base-300/70 bg-base-100/70 text-right tabular-nums"
+              class="input input-xs join-item h-5.5 w-20 border-base-300/70 bg-base-100/70 text-right tabular-nums"
               :value="
                 activeLine.startTime !== undefined
                   ? formatTimestamp(activeLine.startTime)
@@ -447,6 +476,20 @@ watch(
               @blur="onStartTimeInput"
               @keydown.enter.stop.prevent="onStartTimeInput"
             />
+            <button
+              data-testid="set-start-time-to-current-button"
+              type="button"
+              class="btn btn-xs join-item h-5.5 px-1.5 gap-0"
+              :title="t('lyrics.wordSplitBar.setToCurrentTime')"
+              @mousedown.prevent
+              @click="setStartTimeToCurrentTime"
+            >
+              <Icon
+                icon="material-symbols:chevron-right"
+                class="text-[16px] -ml-1 -mr-1"
+              />
+              <Icon icon="material-symbols:timer-outline" class="text-sm" />
+            </button>
           </template>
 
           <template v-else-if="selectedWord">
@@ -462,7 +505,7 @@ watch(
               data-testid="word-end-time-input"
               type="text"
               inputmode="decimal"
-              class="input input-xs h-5 w-20 border-base-300/70 bg-base-100/70 px-1 text-right tabular-nums"
+              class="input input-xs join-item h-5.5 w-20 border-base-300/70 bg-base-100/70 px-1 text-right tabular-nums"
               :value="
                 selectedWord.endTime !== undefined
                   ? formatTimestamp(selectedWord.endTime)
@@ -472,6 +515,20 @@ watch(
               @blur="onWordEndTimeInput(selectedWord.id, $event)"
               @keydown.enter.stop.prevent="onWordEndTimeInput(selectedWord.id, $event)"
             />
+            <button
+              data-testid="set-word-end-time-to-current-button"
+              type="button"
+              class="btn btn-xs join-item h-5.5 px-1.5 gap-0"
+              :title="t('lyrics.wordSplitBar.setToCurrentTime')"
+              @mousedown.prevent
+              @click="setWordEndTimeToCurrentTime(selectedWord.id)"
+            >
+              <Icon
+                icon="material-symbols:chevron-right"
+                class="text-[16px] -ml-1 -mr-1"
+              />
+              <Icon icon="material-symbols:timer-outline" class="text-sm" />
+            </button>
           </template>
         </div>
       </div>
