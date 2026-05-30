@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 defineProps<{
   version: string
   commit: string
+  branch: string
 }>()
 
 const emit = defineEmits<{
@@ -50,7 +51,7 @@ const GITHUB_URL = 'https://github.com/lgc2333/lyrics-maker'
           {{ t('shell.about.madeWith') }}
         </div>
         <div data-testid="about-version" class="font-mono text-sm">
-          v{{ version }} ({{ commit }})
+          v{{ version }} ({{ branch }}:{{ commit }})
         </div>
         <a
           data-testid="about-github-link"

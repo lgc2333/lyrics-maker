@@ -27,10 +27,21 @@ function readGitShortCommit(): string {
   }
 }
 
+function readGitBranch(): string {
+  try {
+    return (
+      execSync('git branch --show-current', { encoding: 'utf8' }).trim() || 'detached'
+    )
+  } catch {
+    return 'dev'
+  }
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(readPackageVersion()),
     __APP_COMMIT__: JSON.stringify(readGitShortCommit()),
+    __APP_BRANCH__: JSON.stringify(readGitBranch()),
   },
   plugins: [
     VueRouter({ dts: 'src/typed-router.d.ts' }),

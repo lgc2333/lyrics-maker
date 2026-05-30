@@ -4,14 +4,16 @@ import { describe, expect, it } from 'vitest'
 import AboutModal from './AboutModal.vue'
 
 describe('aboutModal', () => {
-  it('shows app title, signature, version+commit, and github link', () => {
+  it('shows app title, signature, version, commit, branch, and github link', () => {
     const wrapper = mount(AboutModal, {
-      props: { version: '1.2.3', commit: 'abc1234' },
+      props: { version: '1.2.3', commit: 'abc1234', branch: 'feature/about-branch' },
     })
 
     expect(wrapper.text()).toContain('Lyrics Maker')
     expect(wrapper.text()).toContain('Made with ♥️ by LgCookie')
-    expect(wrapper.get('[data-testid="about-version"]').text()).toBe('v1.2.3 (abc1234)')
+    expect(wrapper.get('[data-testid="about-version"]').text()).toBe(
+      'v1.2.3 (feature/about-branch:abc1234)',
+    )
 
     const link = wrapper.get('[data-testid="about-github-link"]')
     expect(link.attributes('href')).toBe('https://github.com/lgc2333/lyrics-maker')
@@ -21,7 +23,7 @@ describe('aboutModal', () => {
 
   it('emits close when close button is clicked', async () => {
     const wrapper = mount(AboutModal, {
-      props: { version: '1.2.3', commit: 'abc1234' },
+      props: { version: '1.2.3', commit: 'abc1234', branch: 'main' },
     })
 
     await wrapper.get('[data-testid="about-close"]').trigger('click')
@@ -31,7 +33,7 @@ describe('aboutModal', () => {
 
   it('emits close when backdrop is clicked', async () => {
     const wrapper = mount(AboutModal, {
-      props: { version: '1.2.3', commit: 'abc1234' },
+      props: { version: '1.2.3', commit: 'abc1234', branch: 'main' },
     })
 
     await wrapper.get('[data-testid="about-modal"]').trigger('click')
@@ -41,7 +43,7 @@ describe('aboutModal', () => {
 
   it('does not emit close when dialog body is clicked', async () => {
     const wrapper = mount(AboutModal, {
-      props: { version: '1.2.3', commit: 'abc1234' },
+      props: { version: '1.2.3', commit: 'abc1234', branch: 'main' },
     })
 
     await wrapper.get('[data-testid="about-dialog"]').trigger('click')

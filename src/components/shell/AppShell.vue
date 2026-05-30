@@ -22,7 +22,7 @@ import { createPrefixedId } from '../../platform/ids/create-id'
 import type { LocalLocale, LocalTheme } from '../../platform/settings/local-settings'
 import type { ShortcutAction } from '../../platform/shortcuts/registry'
 import { useEditorStore } from '../../stores/editor-store'
-import { APP_COMMIT, APP_VERSION } from '../../version'
+import { APP_BRANCH, APP_COMMIT, APP_VERSION } from '../../version'
 import AboutModal from './AboutModal.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import ImportConfirmModal from './ImportConfirmModal.vue'
@@ -688,6 +688,7 @@ useEditorShortcuts({
       v-if="showAboutModal"
       :version="APP_VERSION"
       :commit="APP_COMMIT"
+      :branch="APP_BRANCH"
       @close="showAboutModal = false"
     />
     <input
