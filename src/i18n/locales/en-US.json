@@ -227,7 +227,7 @@
       "enUS": "English"
     },
     "shortcuts": {
-      "description": "Click a key button and press a new combination to assign; press Esc to cancel.",
+      "description": "Click a key button and press a new combination to assign; press Esc to cancel. Some combinations are reserved by the browser; please try alternatives.",
       "resetAll": "Reset All",
       "resetAllConfirmTitle": "Reset all shortcuts?",
       "resetAllConfirm": "Are you sure you want to reset all shortcuts to their defaults?",

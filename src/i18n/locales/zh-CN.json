@@ -227,7 +227,7 @@
       "enUS": "English"
     },
     "shortcuts": {
-      "description": "点击键位按钮后按下新组合即可分配；按 Esc 取消。",
+      "description": "点击键位按钮后按下新组合即可分配；按 Esc 取消。部分组合会被浏览器占用，请改用其他键位。",
       "resetAll": "全部重置",
       "resetAllConfirmTitle": "重置全部快捷键？",
       "resetAllConfirm": "确定要重置所有快捷键到默认值吗？",
