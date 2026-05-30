@@ -2,6 +2,8 @@
 
 # Lyrics Maker
 
+**简体中文** | [English](README.en.md)
+
 > [!WARNING]
 > 当前项目为纯 AI Vibe Coding 产出，代码质量可能不尽人意，仅作为本 Vibe Coding 新手上手练习的尝试成果。
 
