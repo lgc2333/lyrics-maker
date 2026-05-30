@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { env } from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -13,35 +14,46 @@ function readPackageVersion(): string {
   try {
     const pkgUrl = new URL('./package.json', import.meta.url)
     const pkgRaw = readFileSync(fileURLToPath(pkgUrl), 'utf8')
-    return JSON.parse(pkgRaw).version ?? 'dev'
+    return JSON.parse(pkgRaw).version ?? 'unknown'
   } catch {
-    return 'dev'
+    return 'unknown'
   }
 }
 
 function readGitShortCommit(): string {
   try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim() || 'dev'
+    return (
+      execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim() || 'unknown'
+    )
   } catch {
-    return 'dev'
+    return 'unknown'
   }
 }
 
 function readGitBranch(): string {
   try {
-    return (
-      execSync('git branch --show-current', { encoding: 'utf8' }).trim() || 'detached'
-    )
+    return execSync('git branch --show-current', { encoding: 'utf8' }).trim()
   } catch {
-    return 'dev'
+    return 'unknown'
   }
+}
+
+const CLOUDFLARE_BRANCH_KEYS = ['CF_PAGES_BRANCH', 'WORKERS_CI_BRANCH'] as const
+
+function readBuildBranch(): string {
+  const cloudflareBranch = CLOUDFLARE_BRANCH_KEYS.map((key) => env[key]?.trim()).find(
+    (value) => value,
+  )
+  const gitBranch = readGitBranch()
+
+  return cloudflareBranch ?? (gitBranch || 'detached')
 }
 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(readPackageVersion()),
     __APP_COMMIT__: JSON.stringify(readGitShortCommit()),
-    __APP_BRANCH__: JSON.stringify(readGitBranch()),
+    __APP_BRANCH__: JSON.stringify(readBuildBranch()),
   },
   plugins: [
     VueRouter({ dts: 'src/typed-router.d.ts' }),
