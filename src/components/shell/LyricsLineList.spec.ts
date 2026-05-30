@@ -72,6 +72,7 @@ function createMockLyricsEditor(overrides = {}) {
     handleNextLineKey: vi.fn(),
     handleMarkNoAdvanceKey: vi.fn(),
     handleDeleteLine: vi.fn(),
+    removeLine: vi.fn(),
     handlePlayLineInterval: vi.fn(),
     handlePlayWordInterval: vi.fn(),
     ...overrides,
@@ -532,10 +533,46 @@ describe('lyricsLineList', () => {
 
       await deleteButtons[1].trigger('click')
 
-      expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1'])
+      expect(lyricsEditor.removeLine).toHaveBeenCalledWith('line-2')
       expect(lyricsEditor.activateLine).not.toHaveBeenCalled()
-      store.undo()
-      expect(store.project.lyrics.map((line) => line.id)).toEqual(['line-1', 'line-2'])
+      expect(lyricsEditor.clearSelection).not.toHaveBeenCalled()
+    })
+
+    it('disables active-line insert buttons after deleting the active line empties the list', async () => {
+      const store = useEditorStore()
+      store.insertLyricLines([{ id: 'line-1', words: [{ id: 'w1', text: 'A' }] }])
+      const activeLineId = ref<string | null>('line-1')
+      const lyricsEditor = createMockLyricsEditor({
+        activeLineId,
+        removeLine: vi.fn((lineId: string) => {
+          store.removeLyricLine(lineId)
+          if (activeLineId.value === lineId) activeLineId.value = null
+        }),
+      })
+      const wrapper = mountComponent(lyricsEditor)
+
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-above"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(false)
+
+      await wrapper.get('[data-testid="lyrics-delete-line"]').trigger('click')
+
+      expect(lyricsEditor.removeLine).toHaveBeenCalledWith('line-1')
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-above"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
+      expect(
+        (
+          wrapper.get('[data-testid="lyrics-insert-below"]')
+            .element as HTMLButtonElement
+        ).disabled,
+      ).toBe(true)
     })
   })
 })

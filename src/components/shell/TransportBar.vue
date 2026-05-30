@@ -250,9 +250,9 @@ function onGridVisibilityToggle(): void {
       </button>
       <div
         data-testid="playback-rate-value"
-        class="join-item min-w-12 text-sm tabular-nums text-center"
+        class="join-item min-w-11 text-sm tabular-nums text-center"
       >
-        {{ Math.round(store.playbackRate * 100) }}%
+        {{ Math.round(store.playbackRate * 100) }}<span class="text-[10px]">%</span>
       </div>
       <button
         data-testid="playback-rate-increase"

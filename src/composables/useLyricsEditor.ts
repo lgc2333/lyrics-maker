@@ -283,13 +283,14 @@ export function useLyricsEditor() {
     store.setWordEndTime(activeLineId.value, word.id, clamped)
   }
 
-  function handleDeleteLine(): void {
-    if (!activeLineId.value) return
+  function removeLine(lineId: string): void {
     const lyrics = store.project.lyrics
-    const index = lyrics.findIndex((l) => l.id === activeLineId.value)
+    const index = lyrics.findIndex((l) => l.id === lineId)
     if (index === -1) return
 
-    store.removeLyricLine(activeLineId.value)
+    const wasActive = activeLineId.value === lineId
+    store.removeLyricLine(lineId)
+    if (!wasActive) return
 
     const remaining = store.project.lyrics
     if (remaining.length === 0) {
@@ -302,6 +303,11 @@ export function useLyricsEditor() {
       activeLineId.value = remaining[remaining.length - 1].id
       activeWordIndex.value = 0
     }
+  }
+
+  function handleDeleteLine(): void {
+    if (!activeLineId.value) return
+    removeLine(activeLineId.value)
   }
 
   function handlePlayLineInterval(): void {
@@ -354,6 +360,7 @@ export function useLyricsEditor() {
     handleNextLineKey,
     handleMarkNoAdvanceKey,
     handleDeleteLine,
+    removeLine,
     handlePlayLineInterval,
     handlePlayWordInterval,
   }

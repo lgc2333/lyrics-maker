@@ -213,7 +213,7 @@ watch(
 <template>
   <div
     data-testid="word-split-bar"
-    class="flex flex-col border-b border-base-300 px-2 py-2"
+    class="flex flex-col border-b border-base-300 px-2 py-2 min-h-10"
   >
     <!-- Mode toggle + word blocks -->
     <div class="flex items-center gap-2">

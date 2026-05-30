@@ -96,7 +96,7 @@ function hasIncompleteWordStatus(line: {
 }
 
 function removeLine(lineId: string): void {
-  store.removeLyricLine(lineId)
+  lyricsEditor.removeLine(lineId)
 }
 </script>
 
@@ -104,49 +104,49 @@ function removeLine(lineId: string): void {
   <div class="flex h-full min-w-0">
     <aside
       data-testid="lyrics-line-toolbar"
-      class="flex w-10 shrink-0 flex-col items-center gap-1 border-r border-base-300 bg-base-200/35 py-2"
+      class="flex w-10 shrink-0 flex-col items-center gap-2 border-r border-base-300 bg-base-200/35 py-1"
     >
       <button
         data-testid="lyrics-insert-top"
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        class="btn btn-ghost btn-sm btn-square"
         :title="t('lyrics.lineList.toolbar.insertTop')"
         :aria-label="t('lyrics.lineList.toolbar.insertTop')"
         @click="lyricsEditor.insertEmptyLineTop()"
       >
-        <Icon icon="lucide:arrow-up-to-line" class="h-4 w-4" />
+        <Icon icon="ph:rows-plus-top" class="h-5 w-5" />
       </button>
       <button
         data-testid="lyrics-insert-above"
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        class="btn btn-ghost btn-sm btn-square"
         :disabled="!lyricsEditor.activeLineId.value"
         :title="t('lyrics.lineList.toolbar.insertAbove')"
         :aria-label="t('lyrics.lineList.toolbar.insertAbove')"
         @click="lyricsEditor.insertEmptyLineAboveActive()"
       >
-        <Icon icon="lucide:arrow-up" class="h-4 w-4" />
+        <Icon icon="tabler:row-insert-top" class="h-5 w-5" />
       </button>
       <button
         data-testid="lyrics-insert-below"
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        class="btn btn-ghost btn-sm btn-square"
         :disabled="!lyricsEditor.activeLineId.value"
         :title="t('lyrics.lineList.toolbar.insertBelow')"
         :aria-label="t('lyrics.lineList.toolbar.insertBelow')"
         @click="lyricsEditor.insertEmptyLineBelowActive()"
       >
-        <Icon icon="lucide:arrow-down" class="h-4 w-4" />
+        <Icon icon="tabler:row-insert-bottom" class="h-5 w-5" />
       </button>
       <button
         data-testid="lyrics-insert-bottom"
         type="button"
-        class="btn btn-ghost btn-xs btn-square"
+        class="btn btn-ghost btn-sm btn-square"
         :title="t('lyrics.lineList.toolbar.insertBottom')"
         :aria-label="t('lyrics.lineList.toolbar.insertBottom')"
         @click="lyricsEditor.insertEmptyLineBottom()"
       >
-        <Icon icon="lucide:arrow-down-to-line" class="h-4 w-4" />
+        <Icon icon="ph:rows-plus-bottom" class="h-5 w-5" />
       </button>
     </aside>
     <div class="flex min-w-0 flex-1 flex-col">

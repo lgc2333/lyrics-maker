@@ -15,6 +15,7 @@ declare module 'vue' {
     AppShell: typeof import('./components/shell/AppShell.vue')['default']
     ConfirmDialog: typeof import('./components/shell/ConfirmDialog.vue')['default']
     ImportConfirmModal: typeof import('./components/shell/ImportConfirmModal.vue')['default']
+    LyricsClipboardConfirmModal: typeof import('./components/shell/LyricsClipboardConfirmModal.vue')['default']
     LyricsLineList: typeof import('./components/shell/LyricsLineList.vue')['default']
     LyricsPanel: typeof import('./components/shell/LyricsPanel.vue')['default']
     LyricsPasteModal: typeof import('./components/shell/LyricsPasteModal.vue')['default']

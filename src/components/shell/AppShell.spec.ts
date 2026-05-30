@@ -200,7 +200,7 @@ describe('appShell', () => {
     await wrapper.get('[data-testid="mode-switch-lyrics"]').trigger('click')
     expect(wrapper.find('[data-testid="lyrics-panel"]').exists()).toBe(true)
     expect(wrapper.text()).toContain(
-      '从上方「文件 -> 导入歌词文件...」菜单导入歌词开始打轴',
+      '从上方「文件 -> 导入歌词文件...」菜单导入歌词，或按 Ctrl+V 粘贴歌词开始编辑',
     )
   })
 

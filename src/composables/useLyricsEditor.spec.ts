@@ -851,6 +851,88 @@ describe('handleDeleteLine (Delete)', () => {
   })
 })
 
+describe('removeLine (by lineId)', () => {
+  beforeEach(async () => {
+    __overrideAudioTransportFactory(() => createMockAudioTransport())
+    __overrideMetronomeFactory(() => createMockMetronome())
+    setActivePinia(createPinia())
+    const store = useEditorStore()
+    await store.importAudioFile(new File([], 'test.mp3'))
+  })
+
+  it('removes the line from the store', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'A' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'B' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.removeLine('l1')
+    await nextTick()
+    expect(store.project.lyrics.map((l) => l.id)).toEqual(['l2'])
+  })
+
+  it('keeps activeLineId unchanged when removing a non-active line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'A' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'B' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.removeLine('l2')
+    await nextTick()
+    expect(editor.activeLineId.value).toBe('l1')
+  })
+
+  it('activates next neighbor when removing the active line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'A' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'B' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.removeLine('l1')
+    await nextTick()
+    expect(editor.activeLineId.value).toBe('l2')
+  })
+
+  it('activates previous neighbor when removing the last (active) line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([
+      { id: 'l1', words: [{ id: 'w1', text: 'A' }] },
+      { id: 'l2', words: [{ id: 'w2', text: 'B' }] },
+    ])
+    const { editor } = mountEditor()
+    editor.activateLine('l2')
+    editor.removeLine('l2')
+    await nextTick()
+    expect(editor.activeLineId.value).toBe('l1')
+  })
+
+  it('sets activeLineId to null when removing the only line', async () => {
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'A' }] }])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.removeLine('l1')
+    await nextTick()
+    expect(store.project.lyrics).toHaveLength(0)
+    expect(editor.activeLineId.value).toBeNull()
+  })
+
+  it('does nothing when lineId does not exist', () => {
+    const store = useEditorStore()
+    store.insertLyricLines([{ id: 'l1', words: [{ id: 'w1', text: 'A' }] }])
+    const { editor } = mountEditor()
+    editor.activateLine('l1')
+    editor.removeLine('missing')
+    expect(store.project.lyrics).toHaveLength(1)
+    expect(editor.activeLineId.value).toBe('l1')
+  })
+})
+
 describe('handlePlayLineInterval (C)', () => {
   beforeEach(async () => {
     __overrideAudioTransportFactory(() => createMockAudioTransport())
