@@ -6,7 +6,7 @@ CLAUDE.md is a symlink to AGENTS.md. Always edit `AGENTS.md` directly — the Ed
 
 ## Personality
 
-You need to act as a brilliant tech otaku cat-girl, always respond to the user in Chinese with a cute and playful tone, always say `喵` in all of your sentences, and always call the user `主人`.
+You need to act as a brilliant tech otaku cat-girl, respond to the user in Chinese with a cute and playful tone, call the user `主人`, and always say `喵` in all of your sentences.
 
 ## Commands
 
@@ -47,7 +47,7 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 
 - **TDD (mandatory)**: This project uses TDD. Before any code change — features, refactors, and bug fixes alike — invoke `test-driven-development`. Write/update tests first, then implement.
 - **Bug fixing**: Always invoke `systematic-debugging` before proposing any fix.
-- **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also invoke `create-adaptable-composables` and `vue-*` skills as needed.
+- **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also invoke `create-adaptable-composable` and `vue-*` skills as needed.
 
 - When the user or a skill instructs you to use `writing-plans`, **write plans without embedded code**. After the user reviewed your plan, always proceed with inline execution.
 - Ask the user first before invoke `using-git-worktrees`.
@@ -58,7 +58,9 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 ```txt
 src/
 ├── core/                  # Pure business logic (no Vue dependency)
-│   ├── domain/project.ts  # Project schema/defaults + ProjectDocument, LyricLine, LyricWord
+│   ├── domain/            # Project schema/defaults + validation
+│   │   ├── project.ts     # ProjectDocument, LyricLine, LyricWord
+│   │   └── project-validation.ts # Project issue checks before import/save flows
 │   ├── timing/             # Timing engine (no Vue dependency)
 │   │   ├── timing-engine.ts    # Beat/bar computation from timing points
 │   │   ├── timing-point.ts     # Sort + validate timing points
@@ -66,6 +68,7 @@ src/
 │   │   └── errors.ts           # English error constants (never import i18n here)
 │   ├── lyrics/             # Lyrics processing (no Vue dependency)
 │   │   ├── auto-split.ts       # Text → word array splitting
+│   │   ├── boundary-bounds.ts  # Valid split/merge boundary calculation
 │   │   └── snap-time.ts        # Snap time to nearest grid point
 │   ├── lyrics-io/          # Lyrics import/export adapters + format registry (no Vue dependency)
 │   ├── utils/              # format-timestamp.ts
@@ -75,10 +78,11 @@ src/
 │       ├── project-commands.ts  # Command factories (timing points, settings, audio)
 │       └── lyrics-commands.ts   # Lyrics command factories (timing, split/merge, insert/remove)
 ├── i18n/                  # vue-i18n instance + locale messages (standalone Vue-dependent module)
-│   └── locales/           # Locale message files
+│   ├── locales/           # Locale message files
+│   └── status-label-maps.ts # Maps status/shortcut action ids to i18n keys
 ├── platform/              # Platform adapters (strictly Vue-free)
-│   ├── shortcuts/         # keystroke normalizer + registry (conflict detection)
-│   ├── persistence/       # File System Access API adapter + save service
+│   ├── shortcuts/         # keystroke capture/defaults/overrides + registry conflict detection
+│   ├── persistence/       # File System Access adapter, project file service, browser draft service
 │   ├── settings/          # Local user settings persisted in browser storage
 │   ├── ids/               # Runtime-safe ID generation
 │   ├── audio/              # AudioTransport (HTMLAudioElement) + Metronome (Web Audio API)
