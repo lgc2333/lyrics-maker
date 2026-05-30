@@ -44,18 +44,13 @@ Before claiming work is done, run `pnpm lint` then `pnpm format` to catch lint e
 
 ## Workflow Skills
 
-Do not invoke skills that are not named in this section unless the user explicitly asks for them, or a skill you have already read explicitly instructs you to invoke another skill.
-
 - **TDD (mandatory)**: This project uses TDD. Before any code change — features, refactors, and bug fixes alike — invoke `test-driven-development`. Write/update tests first, then implement.
 - **Bug fixing**: Always invoke `systematic-debugging` before proposing any fix.
-- **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also:
-  - **Vue composable work**: Before touching composables, invoke `create-adaptable-composable`.
-  - **Pinia store work**: Before touching Pinia stores, invoke `vue-pinia-best-practices`.
-  - **Vue test work**: Before touching Vue-related tests, invoke `vue-testing-best-practices`.
+- **Vue work**: Before touching `.vue` files or other Vue-related code, invoke `vue-best-practices`. Also invoke `create-adaptable-composables` and `vue-*` skills as needed.
+
+When the user or a skill instructs you to use `writing-plans`, write plans without embedded code. After the plan is written and the user has reviewed it, always proceed with inline execution.
 
 If a required skill cannot be found in the workspace, stop the current operation first and ask the user whether to install workspace skills with `pnpm dlx skills update -p`.
-
-When the user or a skill instructs you to use `writing-plans`, write plans without embedded code. After the plan is written and the user has reviewed it, do not ask which execution mode to use; always proceed with inline execution.
 
 ## Architecture: Three-Layer Design
 

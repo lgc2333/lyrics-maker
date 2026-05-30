@@ -73,23 +73,11 @@
       "skillPath": "skills/test-driven-development/SKILL.md",
       "computedHash": "126f1ebf6ccd414f42544f6e83d8cc5adb089e1108eaffb7c400701e37eecd9f"
     },
-    "troubleshooting": {
-      "source": "ChromeDevTools/chrome-devtools-mcp",
-      "sourceType": "github",
-      "skillPath": "skills/troubleshooting/SKILL.md",
-      "computedHash": "4b0faa18305bd71d4a1b22bc4ad739d13e20645d5b8484d3c8cf285a1efa7865"
-    },
     "using-git-worktrees": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/using-git-worktrees/SKILL.md",
       "computedHash": "bd10bc57c23040630b17c877a9bc7b4be40c35161a2e2f110d770d78e3b0a4ff"
-    },
-    "using-superpowers": {
-      "source": "obra/superpowers",
-      "sourceType": "github",
-      "skillPath": "skills/using-superpowers/SKILL.md",
-      "computedHash": "de10fd3ff46d797acc92b9df6b3ea456a5cd1d095b73c90bc921e83cce4c5bb9"
     },
     "verification-before-completion": {
       "source": "obra/superpowers",
@@ -108,18 +96,6 @@
       "sourceType": "github",
       "skillPath": "skills/vue-debug-guides/SKILL.md",
       "computedHash": "fa7b31c32a6717ae47cd2ea208773e27536225ad053a564effe656bf927fe9ef"
-    },
-    "vue-jsx-best-practices": {
-      "source": "vuejs-ai/skills",
-      "sourceType": "github",
-      "skillPath": "skills/vue-jsx-best-practices/SKILL.md",
-      "computedHash": "f78720a9904eb748af26cff651aaf8c0c8e6a72f9ee30e6f0626fc45e33cfd9a"
-    },
-    "vue-options-api-best-practices": {
-      "source": "vuejs-ai/skills",
-      "sourceType": "github",
-      "skillPath": "skills/vue-options-api-best-practices/SKILL.md",
-      "computedHash": "b35263a402e34a93e089cdf6d2e714d2dc1670a1f834ce67215552c4a70a864c"
     },
     "vue-pinia-best-practices": {
       "source": "vuejs-ai/skills",
